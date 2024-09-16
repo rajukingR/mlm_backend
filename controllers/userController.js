@@ -1,28 +1,65 @@
-const { User } = require('../models');
+const { User, Role } = require('../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
+// Define role hierarchy
+const roleHierarchy = {
+  Admin: 1,
+  'Area Development Officer': 2,
+  'Master Distributor': 3,
+  'Super Distributor': 4,
+  Distributor: 5,
+  Customer: 6
+};
+
 // User sign-up
 exports.signUp = async (req, res) => {
   try {
-    const { username, password, email, role_id, pincode, state, city, street_name, building_no_name, mobile_number, parent_id } = req.body;
+    const {
+      username,
+      password,
+      email,
+      role_id,
+      superior_id,
+      pincode,
+      state,
+      city,
+      street_name,
+      building_no_name,
+      mobile_number,
+      full_name,
+      gst_number
+    } = req.body;
 
     // Validate required fields
-    if (!username || !password || !email || !role_id || !mobile_number || !parent_id) {
+    if (!username || !password || !email || !role_id || !mobile_number) {
       return res.status(400).json({ error: 'All required fields must be provided' });
     }
 
-        // Check if parent_id exists in the database
-        const parentUser = await User.findOne({ where: { id: parent_id } });
-        if (!parentUser) {
-          return res.status(400).json({ error: 'Parent ID does not exist' });
-        }
-    
-        // Additional validation to check if the parent has the correct role (if needed)
-        if (parentUser.role !== 'admin' && parentUser.role !== 'user') {
-          return res.status(400).json({ error: 'Invalid parent role' });
-        }
+    // Validate `role_id` and check if the role exists
+    const role = await Role.findByPk(role_id);
+    if (!role) {
+      return res.status(400).json({ error: 'Invalid role ID' });
+    }
+
+    // Check if superior_id is provided and validate it
+    if (role.role_name !== 'Admin' && !superior_id) {
+      return res.status(400).json({ error: 'Superior ID is required for hierarchical users' });
+    }
+
+    // Validate superior_id if provided
+    if (superior_id) {
+      const superiorUser = await User.findByPk(superior_id);
+      if (!superiorUser) {
+        return res.status(400).json({ error: 'Superior ID does not exist' });
+      }
+
+      // Ensure the superior's role is higher in hierarchy
+      if (roleHierarchy[superiorUser.role_name] >= roleHierarchy[role.role_name]) {
+        return res.status(400).json({ error: 'Superior must be a higher level in the hierarchy' });
+      }
+    }
 
     // Check if username, email, or mobile number already exists
     const existingUser = await User.findOne({
@@ -57,14 +94,16 @@ exports.signUp = async (req, res) => {
       password: hashedPassword,
       email,
       role_id,
+      superior_id: role.role_name === 'Admin' ? null : superior_id, // Set superior_id based on role
       pincode,
       state,
       city,
       street_name,
       building_no_name,
       mobile_number,
-      parent_id,
-      role: role_id === 1 ? 'admin' : 'user'
+      full_name,
+      gst_number,
+      role_name: role.role_name
     });
 
     res.status(201).json(newUser);
@@ -72,8 +111,6 @@ exports.signUp = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-// User sign-in
 
 // User sign-in
 exports.signIn = async (req, res) => {
@@ -106,7 +143,7 @@ exports.signIn = async (req, res) => {
       {
         id: user.id,
         email: user.email,
-        role: user.role_id
+        role: user.role_name // Use role_name instead of role_id
       },
       process.env.JWT_SECRET, // Ensure this is set in your .env file
       { expiresIn: '1h' } // Token expiry time
@@ -118,7 +155,7 @@ exports.signIn = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role_id
+        role: user.role_name // Use role_name instead of role_id
       }
     });
   } catch (error) {
@@ -128,28 +165,142 @@ exports.signIn = async (req, res) => {
 
 
 
-// exports.signIn = async (req, res) => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const { User, Role } = require('../models');
+// const bcrypt = require('bcrypt');
+// const jwt = require('jsonwebtoken');
+// const { Op } = require('sequelize');
+
+// // User sign-up
+// exports.signUp = async (req, res) => {
 //   try {
-//     const { usernameOrEmail, password } = req.body;
+//     const {
+//       username,
+//       password,
+//       email,
+//       role_id,
+//       superior_id,
+//       pincode,
+//       state,
+//       city,
+//       street_name,
+//       building_no_name,
+//       mobile_number,
+//       full_name,
+//       gst_number
+//     } = req.body;
 
 //     // Validate required fields
-//     if (!usernameOrEmail || !password) {
-//       return res.status(400).json({ error: 'Username/Email and password are required' });
+//     if (!username || !password || !email || !role_id || !mobile_number) {
+//       return res.status(400).json({ error: 'All required fields must be provided' });
 //     }
 
-//     // Find the user by username or email
-//     const user = await User.findOne({
+//     // Validate `role_id` and check if the role exists
+//     const role = await Role.findByPk(role_id);
+//     if (!role) {
+//       return res.status(400).json({ error: 'Invalid role ID' });
+//     }
+
+//     // Check if superior_id is provided and validate it
+//     if (role.role_name !== 'admin' && !superior_id) {
+//       return res.status(400).json({ error: 'Superior ID is required for hierarchical users' });
+//     }
+
+//     // Validate superior_id if provided
+//     if (superior_id) {
+//       const superiorUser = await User.findByPk(superior_id);
+//       if (!superiorUser) {
+//         return res.status(400).json({ error: 'Superior ID does not exist' });
+//       }
+//     }
+
+//     // Check if username, email, or mobile number already exists
+//     const existingUser = await User.findOne({
 //       where: {
 //         [Op.or]: [
-//           { username: usernameOrEmail },
-//           { email: usernameOrEmail }
+//           { username },
+//           { email },
+//           { mobile_number }
 //         ]
 //       }
 //     });
 
+//     // If an existing user is found, return specific error messages
+//     if (existingUser) {
+//       if (existingUser.username === username) {
+//         return res.status(400).json({ error: 'Username already in use' });
+//       }
+//       if (existingUser.email === email) {
+//         return res.status(400).json({ error: 'Email already in use' });
+//       }
+//       if (existingUser.mobile_number === mobile_number) {
+//         return res.status(400).json({ error: 'Mobile number already in use' });
+//       }
+//     }
+
+//     // Hash the password before saving it to the database
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Create a new user
+//     const newUser = await User.create({
+//       username,
+//       password: hashedPassword,
+//       email,
+//       role_id,
+//       superior_id: role.role_name === 'admin' ? null : superior_id, // Set superior_id based on role
+//       pincode,
+//       state,
+//       city,
+//       street_name,
+//       building_no_name,
+//       mobile_number,
+//       full_name,
+//       gst_number,
+//       role_name: role.role_name
+//     });
+
+//     res.status(201).json(newUser);
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// };
+
+// // User sign-in
+// exports.signIn = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     // Validate required fields
+//     if (!email || !password) {
+//       return res.status(400).json({ error: 'Email and password are required' });
+//     }
+
+//     // Find the user by email
+//     const user = await User.findOne({ where: { email } });
+
 //     // If user not found, return an error
 //     if (!user) {
-//       return res.status(401).json({ error: 'Invalid username/email or password' });
+//       return res.status(401).json({ error: 'Invalid email or password' });
 //     }
 
 //     // Compare the provided password with the stored hashed password
@@ -157,16 +308,15 @@ exports.signIn = async (req, res) => {
 
 //     // If password is incorrect, return an error
 //     if (!isPasswordValid) {
-//       return res.status(401).json({ error: 'Invalid username/email or password' });
+//       return res.status(401).json({ error: 'Invalid email or password' });
 //     }
 
 //     // Generate a JWT token
 //     const token = jwt.sign(
 //       {
 //         id: user.id,
-//         username: user.username,
 //         email: user.email,
-//         role: user.role_id
+//         role: user.role_name // Use role_name instead of role_id
 //       },
 //       process.env.JWT_SECRET, // Ensure this is set in your .env file
 //       { expiresIn: '1h' } // Token expiry time
@@ -177,9 +327,8 @@ exports.signIn = async (req, res) => {
 //       token,
 //       user: {
 //         id: user.id,
-//         username: user.username,
 //         email: user.email,
-//         role: user.role_id
+//         role: user.role_name // Use role_name instead of role_id
 //       }
 //     });
 //   } catch (error) {
