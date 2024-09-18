@@ -6,14 +6,14 @@ const { body } = require('express-validator');
 const productValidationRules = [
   body('image').isURL().withMessage('Image URL must be a valid URL'),
   body('name').notEmpty().withMessage('Product name is required'),
-  body('productID').notEmpty().withMessage('Product Id is required'),
+  body('product_code').notEmpty().withMessage('Product Id is required'),
   body('productVolume').notEmpty().withMessage('Product volume must be a decimal number'),
-  body('mrpPriceCustomer').isDecimal().withMessage('MRP price must be a decimal number'),
+  body('price').isDecimal().withMessage('MRP price must be a decimal number'),
   body('adoPrice').isDecimal().withMessage('ADO price must be a decimal number'),
   body('mdPrice').isDecimal().withMessage('MD price must be a decimal number'),
   body('sdPrice').isDecimal().withMessage('SD price must be a decimal number'),
   body('distributorPrice').isDecimal().withMessage('Distributor price must be a decimal number'),
-  body('activateStatus').isBoolean().withMessage('Activate status must be a boolean'),
+  body('status').isBoolean().withMessage('Activate status must be a boolean'),
 ];
 
 // Utility function to handle errors

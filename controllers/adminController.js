@@ -133,3 +133,79 @@ exports.signIn = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+//**  Fetch admin details **//
+exports.getAdminDetails = async (req, res) => {
+  try {
+    // Fetch the admin's details (you can limit or include specific fields if needed)
+    const adminDetails = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] } // Exclude password from response
+    });
+
+    if (!adminDetails) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    res.status(200).json(adminDetails);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+//*** Update Admin Details ***//
+exports.updateAdmin = async (req, res) => {
+  try {
+    const { username, email, pincode, state, city, street_name, building_no_name, mobile_number } = req.body;
+    const adminId = req.user.id; // ID from the token
+
+    // Validate required fields
+    if (!username || !email || !mobile_number) {
+      return res.status(400).json({ error: 'All required fields must be provided' });
+    }
+
+    // Find the admin by ID
+    const admin = await User.findByPk(adminId);
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    // Check if the email or mobile number already exists for another user
+    const existingUser = await User.findOne({
+      where: {
+        [Op.or]: [
+          { email },
+          { mobile_number }
+        ],
+        id: { [Op.ne]: adminId } // Exclude the current admin
+      }
+    });
+
+    if (existingUser) {
+      if (existingUser.email === email) {
+        return res.status(400).json({ error: 'Email already in use' });
+      }
+      if (existingUser.mobile_number === mobile_number) {
+        return res.status(400).json({ error: 'Mobile number already in use' });
+      }
+    }
+
+    // Update the admin details
+    await admin.update({
+      username,
+      email,
+      pincode,
+      state,
+      city,
+      street_name,
+      building_no_name,
+      mobile_number
+    });
+
+    res.status(200).json(admin);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
