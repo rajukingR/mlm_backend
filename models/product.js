@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(100),
       allowNull: false
     },
-    productID: {
+    product_code: {
       type: DataTypes.STRING(100),
       allowNull: false
     },
@@ -22,7 +22,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(100),
       allowNull: false
     },
-    mrpPriceCustomer: {
+    price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
     },
@@ -47,7 +47,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: false
     },
-    activateStatus: {
+    status: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true
