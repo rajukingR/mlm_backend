@@ -29,7 +29,11 @@ exports.signUp = async (req, res) => {
       building_no_name,
       mobile_number,
       full_name,
-      gst_number
+      gst_number,
+      superior_ado,
+      superior_md,
+      superior_sd,
+      superior_d
     } = req.body;
 
     // Validate required fields
@@ -43,21 +47,54 @@ exports.signUp = async (req, res) => {
       return res.status(400).json({ error: 'Invalid role ID' });
     }
 
-    // Check if superior_id is provided and validate it
+    // Check if superior_id is provided and validate it for non-admin roles
     if (role.role_name !== 'Admin' && !superior_id) {
       return res.status(400).json({ error: 'Superior ID is required for hierarchical users' });
     }
 
-    // Validate superior_id if provided
-    if (superior_id) {
-      const superiorUser = await User.findByPk(superior_id);
-      if (!superiorUser) {
-        return res.status(400).json({ error: 'Superior ID does not exist' });
-      }
+    // Validate superior fields based on the role
+    if (role.role_name === 'Master Distributor' && !superior_ado) {
+      return res.status(400).json({ error: 'ADO must be assigned when creating a Master Distributor' });
+    }
 
-      // Ensure the superior's role is higher in hierarchy
-      if (roleHierarchy[superiorUser.role_name] >= roleHierarchy[role.role_name]) {
-        return res.status(400).json({ error: 'Superior must be a higher level in the hierarchy' });
+    if (role.role_name === 'Super Distributor' && !superior_ado) {
+      return res.status(400).json({ error: 'ADO must be assigned when creating a Super Distributor' });
+    }
+
+    if (role.role_name === 'Distributor' && !superior_ado) {
+      return res.status(400).json({ error: 'ADO must be assigned when creating a Distributor' });
+    }
+
+    if (role.role_name === 'Customer' && !superior_ado) {
+      return res.status(400).json({ error: 'ADO must be assigned when creating a Customer' });
+    }
+
+    // Validate superior users if provided
+    if (superior_ado) {
+      const adoUser = await User.findByPk(superior_ado);
+      if (!adoUser || adoUser.role_name !== 'Area Development Officer') {
+        return res.status(400).json({ error: 'Invalid ADO ID' });
+      }
+    }
+
+    if (superior_md) {
+      const mdUser = await User.findByPk(superior_md);
+      if (!mdUser || mdUser.role_name !== 'Master Distributor') {
+        return res.status(400).json({ error: 'Invalid Master Distributor ID' });
+      }
+    }
+
+    if (superior_sd) {
+      const sdUser = await User.findByPk(superior_sd);
+      if (!sdUser || sdUser.role_name !== 'Super Distributor') {
+        return res.status(400).json({ error: 'Invalid Super Distributor ID' });
+      }
+    }
+
+    if (superior_d) {
+      const dUser = await User.findByPk(superior_d);
+      if (!dUser || dUser.role_name !== 'Distributor') {
+        return res.status(400).json({ error: 'Invalid Distributor ID' });
       }
     }
 
@@ -103,7 +140,11 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      role_name: role.role_name
+      role_name: role.role_name,
+      superior_ado,
+      superior_md,
+      superior_sd,
+      superior_d
     });
 
     res.status(201).json(newUser);
@@ -111,6 +152,7 @@ exports.signUp = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 //** User sign-in **//
 exports.signIn = async (req, res) => {

@@ -69,98 +69,48 @@ module.exports = {
 
 
 
-
-
-
-
-
-
-
-
-
-
 // 'use strict';
 
 // module.exports = {
 //   up: async (queryInterface, Sequelize) => {
-//     await queryInterface.createTable('Users', {
-//       id: {
-//         type: Sequelize.INTEGER,
-//         autoIncrement: true,
-//         primaryKey: true
+//     await queryInterface.addColumn('Users', 'superior_ado', {
+//       type: Sequelize.INTEGER,
+//       references: {
+//         model: 'Users', // 'Users' is the table name
+//         key: 'id'
 //       },
-//       username: {
-//         type: Sequelize.STRING,
-//         allowNull: false
+//       allowNull: true
+//     });
+//     await queryInterface.addColumn('Users', 'superior_md', {
+//       type: Sequelize.INTEGER,
+//       references: {
+//         model: 'Users', 
+//         key: 'id'
 //       },
-//       password: {
-//         type: Sequelize.STRING,
-//         allowNull: false
+//       allowNull: true
+//     });
+//     await queryInterface.addColumn('Users', 'superior_sd', {
+//       type: Sequelize.INTEGER,
+//       references: {
+//         model: 'Users', 
+//         key: 'id'
 //       },
-//       email: {
-//         type: Sequelize.STRING,
-//         allowNull: false
+//       allowNull: true
+//     });
+//     await queryInterface.addColumn('Users', 'superior_d', {
+//       type: Sequelize.INTEGER,
+//       references: {
+//         model: 'Users',
+//         key: 'id'
 //       },
-//       role_id: {
-//         type: Sequelize.INTEGER,
-//         references: {
-//           model: 'Roles',
-//           key: 'id'
-//         },
-//         allowNull: false
-//       },
-//       superior_id: {
-//         type: Sequelize.INTEGER,
-//         references: {
-//           model: 'Users',
-//           key: 'id'
-//         },
-//         allowNull: true
-//       },
-//       pincode: {
-//         type: Sequelize.STRING,
-//         allowNull: true
-//       },
-//       state: {
-//         type: Sequelize.STRING,
-//         allowNull: true
-//       },
-//       city: {
-//         type: Sequelize.STRING,
-//         allowNull: true
-//       },
-//       street_name: {
-//         type: Sequelize.STRING,
-//         allowNull: true
-//       },
-//       building_no_name: {
-//         type: Sequelize.STRING,
-//         allowNull: true
-//       },
-//       full_name: {
-//         type: Sequelize.STRING,
-//         allowNull: true
-//       },
-//       mobile_number: {
-//         type: Sequelize.STRING,
-//         allowNull: true
-//       },
-//       role_name: {
-//         type: Sequelize.ENUM('admin', 'user'),
-//         allowNull: false
-//       },
-//       createdAt: {
-//         type: Sequelize.DATE,
-//         defaultValue: Sequelize.NOW
-//       },
-//       updatedAt: {
-//         type: Sequelize.DATE,
-//         defaultValue: Sequelize.NOW
-//       }
+//       allowNull: true
 //     });
 //   },
 
 //   down: async (queryInterface, Sequelize) => {
-//     await queryInterface.dropTable('Users');
+//     await queryInterface.removeColumn('Users', 'superior_ado');
+//     await queryInterface.removeColumn('Users', 'superior_md');
+//     await queryInterface.removeColumn('Users', 'superior_sd');
+//     await queryInterface.removeColumn('Users', 'superior_d');
 //   }
 // };
