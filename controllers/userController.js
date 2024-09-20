@@ -154,6 +154,201 @@ exports.signUp = async (req, res) => {
 };
 
 
+
+
+
+
+
+
+
+//** User Edite  API **//
+// User update
+// Update user information
+
+// Optimized User Update Controller
+exports.updateUser = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get the user ID from request params
+    const {
+      username,
+      password,
+      email,
+      role_id,
+      superior_id,
+      superior_ado,
+      superior_md,
+      superior_sd,
+      superior_d,
+      pincode,
+      state,
+      city,
+      street_name,
+      building_no_name,
+      mobile_number,
+      full_name,
+      gst_number,
+      status
+    } = req.body;
+
+    // Validate required fields
+    if (!username || !email || !role_id || !mobile_number) {
+      return res.status(400).json({ error: 'Required fields must be provided (username, email, role_id, mobile_number).' });
+    }
+
+    // Find the user being updated
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Validate `role_id` and check if the role exists
+    const role = await Role.findByPk(role_id);
+    if (!role) {
+      return res.status(400).json({ error: 'Invalid role ID.' });
+    }
+
+    // Validate hierarchical superiors based on role_id
+    if (role.role_name !== 'Admin') {
+      if (!superior_id) {
+        return res.status(400).json({ error: 'Superior ID is required for hierarchical users.' });
+      }
+
+      // Admin creating MD, SD, or Distributor
+      if (['Master Distributor', 'Super Distributor', 'Distributor'].includes(role.role_name) && !superior_ado) {
+        return res.status(400).json({ error: `Superior ADO is required for ${role.role_name}.` });
+      }
+
+      // Validate superior IDs exist in the system
+      const checkSuperiors = async (superiorId, roleName) => {
+        const superior = await User.findByPk(superiorId);
+        if (!superior) {
+          throw new Error(`Superior ${roleName} not found.`);
+        }
+      };
+
+      if (superior_ado) await checkSuperiors(superior_ado, 'ADO');
+      if (superior_md) await checkSuperiors(superior_md, 'MD');
+      if (superior_sd) await checkSuperiors(superior_sd, 'SD');
+      if (superior_d) await checkSuperiors(superior_d, 'Distributor');
+    }
+
+    // Check if username, email, or mobile number is being updated and already exists in another user
+    const existingUser = await User.findOne({
+      where: {
+        [Op.or]: [{ username }, { email }, { mobile_number }],
+        id: { [Op.ne]: userId }, // Exclude current user from the check
+      },
+    });
+    if (existingUser) {
+      if (existingUser.username === username) {
+        return res.status(400).json({ error: 'Username already in use.' });
+      }
+      if (existingUser.email === email) {
+        return res.status(400).json({ error: 'Email already in use.' });
+      }
+      if (existingUser.mobile_number === mobile_number) {
+        return res.status(400).json({ error: 'Mobile number already in use.' });
+      }
+    }
+
+    // Hash the password if it's being updated
+    let hashedPassword = user.password; // Keep the old password if not updating
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
+    // Update user details
+    await user.update({
+      username,
+      password: hashedPassword,
+      email,
+      role_id,
+      superior_id: role.role_name === 'Admin' ? null : superior_id, // Set superior_id only if role isn't Admin
+      superior_ado,
+      superior_md,
+      superior_sd,
+      superior_d,
+      pincode,
+      state,
+      city,
+      street_name,
+      building_no_name,
+      mobile_number,
+      full_name,
+      gst_number,
+      status, // Update status if needed
+      role_name: role.role_name, // Update the role name if the role_id is changed
+    });
+
+    // Success response
+    return res.status(200).json({
+      message: 'User updated successfully.',
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role_id: user.role_id,
+        role_name: role.role_name,
+        superior_id: user.superior_id,
+        superior_ado: user.superior_ado,
+        superior_md: user.superior_md,
+        superior_sd: user.superior_sd,
+        superior_d: user.superior_d,
+        pincode: user.pincode,
+        state: user.state,
+        city: user.city,
+        street_name: user.street_name,
+        building_no_name: user.building_no_name,
+        mobile_number: user.mobile_number,
+        full_name: user.full_name,
+        gst_number: user.gst_number,
+        status: user.status,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating user:', error.message);
+    
+    // Proper error response in case of server or validation failure
+    return res.status(500).json({ error: error.message || 'An error occurred while updating the user.' });
+  }
+};
+
+
+// Delete a user
+exports.deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get the user ID from request params
+
+    // Check if the user exists
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Perform deletion
+    await User.destroy({ where: { id: userId } });
+
+    res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ error: 'An error occurred while deleting the user' });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //** User sign-in **//
 exports.signIn = async (req, res) => {
   try {
@@ -204,3 +399,76 @@ exports.signIn = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
+
+
+
+
+// Admin Read API: Get all users in hierarchical format
+exports.getAllUsers = async (req, res) => {
+  try {
+    // Fetch all users
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] },
+    });
+
+    // Structure users into hierarchy
+    const userHierarchy = {};
+    users.forEach(user => {
+      const role = user.role_name;
+
+      if (!userHierarchy[role]) {
+        userHierarchy[role] = [];
+      }
+      userHierarchy[role].push(user);
+    });
+
+    // Build a structured response
+    const response = {
+      Admins: userHierarchy.Admin || [],
+      ADOs: userHierarchy['Area Development Officer'] || [],
+      MDs: userHierarchy['Master Distributor'] || [],
+      SDs: userHierarchy['Super Distributor'] || [],
+      Ds: userHierarchy.Distributor || [],
+      Cs: userHierarchy.Customer || [],
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error('Error fetching all users:', error);
+    res.status(500).json({ error: 'An error occurred while fetching users' });
+  }
+};
+
+
+
+
+
+
+
+
+
+// const { User } = require('../models');
+
+// Helper function to recursively nest users
+const nestUsers = (users, roleName) => {
+  const roleHierarchy = {
+    'Area Development Officer': 'Master Distributor',
+    'Master Distributor': 'Super Distributor',
+    'Super Distributor': 'Distributor',
+    'Distributor': 'Customer',
+  };
+
+  return users
+    .filter(user => user.role_name === roleName)
+    .map(user => {
+      const nextRole = roleHierarchy[roleName];
+      if (nextRole) {
+        user.children = nestUsers(users, nextRole); // Recursively add children
+      }
+      return user;
+    });
+};
+
