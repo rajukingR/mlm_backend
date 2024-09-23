@@ -69,6 +69,14 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
+    category_id: { 
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'category',
+        key: 'id'
+      }
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
