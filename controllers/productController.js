@@ -25,7 +25,7 @@ const handleErrors = (res, error, statusCode = 500) => {
 const validateAdminRole = (req, res, next) => {
   console.log('User role:', req.user.role);
 
-  if (req.user.role !== 'admin') {
+  if (req.user.role_name !== 'Admin') {
     return res.status(403).json({ error: 'Access denied. Admins only.' });
   }
   next();

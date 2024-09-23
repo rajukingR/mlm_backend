@@ -10,6 +10,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(100),
       allowNull: false
     },
+    quantity_type: {
+      type: DataTypes.STRING(100),
+      allowNull: false
+    },
+    currency: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      defaultValue: 'INR' 
+    },
     product_code: {
       type: DataTypes.STRING(100),
       allowNull: false
@@ -63,15 +72,15 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW, // Updated to DataTypes.NOW
+      defaultValue: DataTypes.NOW, 
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW, // Updated to DataTypes.NOW
+      defaultValue: DataTypes.NOW, 
     }
   }, {
-    timestamps: true, // This is the default, explicitly stating it for clarity
+    timestamps: true, 
   });
 
   return Product;
