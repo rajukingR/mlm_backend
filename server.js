@@ -7,6 +7,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const userRoutes = require('./routes/userRoutes');
 //
 const productRoutes = require('./routes/productRoutes');
+//
+const categoryRoutes = require('./routes/categoryRoutes')
 const { authMiddleware } = require('./middlewares/authMiddleware');
 //
 // const authMiddleware = require('./middlewares/authMiddleware'); 
@@ -23,6 +25,9 @@ app.use(express.json()); // Using express.json() to parse JSON bodies
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
 app.use('/products',authMiddleware, productRoutes);
+//
+app.use('/category',authMiddleware, categoryRoutes)
+
 
 app.listen(port, async () => {
   try {
