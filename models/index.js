@@ -1,11 +1,20 @@
 const fs = require('fs');
 const path = require('path');
 const { Sequelize, DataTypes } = require('sequelize');
-const config = require('../config/config.json')[process.env.NODE_ENV || 'development'];
+const config = require('../config/config');
 
-const sequelize = new Sequelize(config.database, config.username, config.password, {
-  host: config.host,
-  dialect: config.dialect,
+// const config = require('../config/config')[process.env.NODE_ENV || 'development'];
+
+// const sequelize = new Sequelize(config.database, config.username, config.password, {
+//   host: config.host,
+//   dialect: config.dialect,
+// });
+
+//**In Futue need devlo produc then use 2 .env**/
+
+const sequelize = new Sequelize(config.development.database, config.development.username, config.development.password, {
+  host: config.development.host,
+  dialect: config.development.dialect,
 });
 
 const db = {};
