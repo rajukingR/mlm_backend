@@ -8,6 +8,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     }
   }, {
+    tableName: 'roles',
     timestamps: true // Ensure timestamps are enabled
   });
 
