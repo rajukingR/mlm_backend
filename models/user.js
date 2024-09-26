@@ -27,7 +27,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true, // Allow null for admins
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id'
       }
     },
@@ -36,7 +36,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id'
       }
     },
@@ -44,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id'
       }
     },
@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id'
       }
     },
@@ -60,7 +60,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id'
       }
     },
@@ -79,7 +79,8 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     }
   }, {
-    timestamps: true // Ensure timestamps are managed by Sequelize
+    tableName: 'users', 
+    timestamps: true 
   });
 
   User.associate = (models) => {
