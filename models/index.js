@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { Sequelize, DataTypes } = require('sequelize');
-const config = require('../config/config');
+// const config = require('../config/config');
+const config = require('../config/config.json');
 
 // const config = require('../config/config')[process.env.NODE_ENV || 'development'];
 

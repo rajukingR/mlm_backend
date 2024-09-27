@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     role_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: 'Roles', // Ensure this matches the table name
+        model: 'roles', // Ensure this matches the table name
         key: 'id'
       },
       allowNull: false
