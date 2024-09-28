@@ -3,15 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
-// Define role hierarchy
-const roleHierarchy = {
-  Admin: 1,
-  'Area Development Officer': 2,
-  'Master Distributor': 3,
-  'Super Distributor': 4,
-  Distributor: 5,
-  Customer: 6
-};
+
 
 // User sign-up
 exports.signUp = async (req, res) => {
@@ -308,7 +300,7 @@ exports.updateUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating user:', error.message);
-    
+
     // Proper error response in case of server or validation failure
     return res.status(500).json({ error: error.message || 'An error occurred while updating the user.' });
   }
@@ -335,6 +327,7 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while deleting the user' });
   }
 };
+
 
 
 
@@ -406,19 +399,16 @@ exports.signIn = async (req, res) => {
 
 
 
-// Admin Read API: Get all users in hierarchical format
+// Admin Read API: Get all users in hierarchical forma
 exports.getAllUsers = async (req, res) => {
   try {
-    // Fetch all users
     const users = await User.findAll({
       attributes: { exclude: ['password'] },
     });
-
     // Structure users into hierarchy
     const userHierarchy = {};
     users.forEach(user => {
       const role = user.role_name;
-
       if (!userHierarchy[role]) {
         userHierarchy[role] = [];
       }
@@ -447,28 +437,4 @@ exports.getAllUsers = async (req, res) => {
 
 
 
-
-
-
-// const { User } = require('../models');
-
-// Helper function to recursively nest users
-const nestUsers = (users, roleName) => {
-  const roleHierarchy = {
-    'Area Development Officer': 'Master Distributor',
-    'Master Distributor': 'Super Distributor',
-    'Super Distributor': 'Distributor',
-    'Distributor': 'Customer',
-  };
-
-  return users
-    .filter(user => user.role_name === roleName)
-    .map(user => {
-      const nextRole = roleHierarchy[roleName];
-      if (nextRole) {
-        user.children = nestUsers(users, nextRole); // Recursively add children
-      }
-      return user;
-    });
-};
 
