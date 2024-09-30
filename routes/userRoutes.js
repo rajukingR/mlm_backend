@@ -8,10 +8,11 @@ const { authMiddleware,isAdmin } = require('../middlewares/authMiddleware');
 router.post('/signup', userController.signUp);
 router.post('/signin', userController.signIn);
 //
-router.put('/update/:userId', authMiddleware, userController.updateUser);
-router.delete('/delete/:userId', authMiddleware, userController.deleteUser);
+router.put('/update/:userId', authMiddleware,isAdmin, userController.updateUser);
+router.delete('/delete/:userId', authMiddleware,isAdmin, userController.deleteUser);
 //
-router.get('/all',authMiddleware, userController.getAllUsers);
+router.get('/all',authMiddleware,isAdmin, userController.getAllUsers);
+router.get('/role-user',authMiddleware,isAdmin, userController.getUsersByRole);
 
 // AuthMiddleware is not work well fix it
 

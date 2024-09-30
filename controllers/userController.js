@@ -436,5 +436,41 @@ exports.getAllUsers = async (req, res) => {
 
 
 
+exports.getUsersByRole = async (req, res) => {
+  try {
+    const { role_id } = req.query; // Get role_id from query parameter
+
+    // Validate role_id
+    if (!role_id) {
+      return res.status(400).json({ error: 'Role ID is required' });
+    }
+
+    // Check if the role exists in the roles table
+    const role = await Role.findByPk(role_id);
+    if (!role) {
+      return res.status(400).json({ error: 'Invalid Role ID' });
+    }
+
+    // Fetch users with the provided role_id
+    const users = await User.findAll({
+      where: { role_id }, // Match role_id in the users table
+      attributes: ['id', 'username', 'mobile_number', 'email', 'full_name', 'role_id', 'role_name', 'superior_ado', 'superior_md', 'superior_sd', 'superior_d'] // Specify fields you want to return
+    });
+
+    // If no users are found, return a message
+    if (users.length === 0) {
+      return res.status(404).json({ message: 'No users found for the given role' });
+    }
+
+    // Return the list of users
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+
 
 

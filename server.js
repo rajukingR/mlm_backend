@@ -5,10 +5,9 @@ require('dotenv').config();
 const { sequelize } = require('./models');
 const adminRoutes = require('./routes/adminRoutes');
 const userRoutes = require('./routes/userRoutes');
-//
 const productRoutes = require('./routes/productRoutes');
-//
-const categoryRoutes = require('./routes/categoryRoutes')
+const categoryRoutes = require('./routes/categoryRoutes');
+const memberRoutes = require('./routes/userHierarchyGetRoutes');
 const { authMiddleware } = require('./middlewares/authMiddleware');
 //
 // const authMiddleware = require('./middlewares/authMiddleware'); 
@@ -26,7 +25,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
 app.use('/products',authMiddleware, productRoutes);
 //
-app.use('/category',authMiddleware, categoryRoutes)
+app.use('/category',authMiddleware, categoryRoutes);
+//
+app.use('/members',memberRoutes)
 
 
 app.listen(port, async () => {
