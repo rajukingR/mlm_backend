@@ -14,11 +14,6 @@ router.delete('/delete/:userId', authMiddleware,isAdmin, userController.deleteUs
 router.get('/all',authMiddleware,isAdmin, userController.getAllUsers);
 router.get('/role-user',authMiddleware,isAdmin, userController.getUsersByRole);
 
-// AuthMiddleware is not work well fix it
-
-
-//
-// router.get('/hierarchy', authUserMiddleware, userHierarchyController.getHierarchicalUsers);
 
 
 module.exports = router;
