@@ -2,10 +2,10 @@
   "name": "mlm-server",
   "version": "1.0.0",
   "main": "server.js",
-"scripts": {
-  "start": "node build/server.js",
-  "build": "babel server.js --out-dir build"
-},
+  "scripts": {
+    "start": "node build/server.js",
+    "build": "babel server.js --out-dir build"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
