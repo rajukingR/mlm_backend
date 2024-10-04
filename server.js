@@ -9,6 +9,7 @@ const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const memberRoutes = require('./routes/userHierarchyGetRoutes');
 const directMemberRoutes = require('./routes/userDirectHierarchyRoutes');
+const orderRoutes = require('./routes/orderRouts');
 const { authMiddleware } = require('./middlewares/authMiddleware');
 //
 // const authMiddleware = require('./middlewares/authMiddleware'); 
@@ -31,6 +32,9 @@ app.use('/category',authMiddleware, categoryRoutes);
 app.use('/members',memberRoutes);
 //
 app.use('/directMembers',directMemberRoutes);
+//**Order Routes**//
+app.use('/orders',orderRoutes);
+// app.use('/orders',orderRoutes);
 
 
 app.listen(port, async () => {
