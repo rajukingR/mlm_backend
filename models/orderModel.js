@@ -1,43 +1,34 @@
-'use strict';
-
 module.exports = (sequelize, DataTypes) => {
   const Order = sequelize.define('Order', {
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id'
-      }
     },
     total_amount: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: false
+      allowNull: true, // Allow NULL
+    },
+    coupon_code: {
+      type: DataTypes.STRING(50),
+      allowNull: true, // Allow NULL
+    },
+    discount_applied: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true, // Allow NULL
+    },
+    final_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true, // Allow NULL
     },
     status: {
       type: DataTypes.ENUM('Pending', 'Completed', 'Cancelled'),
-      defaultValue: 'Pending',
-      allowNull: false
-    },
-    createdAt: {
-      type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: false,
-      defaultValue: DataTypes.NOW,
+      defaultValue: 'Pending', // Default status is 'Pending'
     },
   }, {
     tableName: 'orders',
-    timestamps: true,
+    timestamps: true, // CreatedAt and UpdatedAt
   });
-
-  Order.associate = (models) => {
-    Order.belongsTo(models.User, { foreignKey: 'user_id' }); // Associating orders with users
-    Order.hasMany(models.OrderItem, { foreignKey: 'order_id' }); // Associating orders with order items
-  };
 
   return Order;
 };

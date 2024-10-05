@@ -6,7 +6,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'orders', // This should match the Order model name
+        model: 'orders',
         key: 'id'
       }
     },
@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'products', // This should match the Product model name
+        model: 'products',
         key: 'id'
       }
     },
@@ -22,7 +22,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    price: {
+    quantity_type: {
+      type: DataTypes.STRING(255),
+      allowNull: false
+    },
+    baseprice: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    final_price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
     },
@@ -35,15 +43,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
-    },
+    }
   }, {
-    tableName: 'order_items',
+    tableName: 'orderitems',
     timestamps: true,
   });
 
   OrderItem.associate = (models) => {
-    OrderItem.belongsTo(models.Order, { foreignKey: 'order_id' }); // Associating order items with orders
-    OrderItem.belongsTo(models.Product, { foreignKey: 'product_id' }); // Associating order items with products
+    OrderItem.belongsTo(models.Order, { foreignKey: 'order_id' });
+    OrderItem.belongsTo(models.Product, { foreignKey: 'product_id' });
   };
 
   return OrderItem;
