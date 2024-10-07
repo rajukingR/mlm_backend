@@ -280,3 +280,73 @@ exports.getOrdersByUser = async (req, res) => {
 
 /////////////see other member requested orderlist////////////
 //////////////////////////////////////////////////////
+
+
+// Fetch orders requested by lower hierarchy roles
+exports.getOrdersBySubordinates = async (req, res) => {
+  const userId = req.params.user_id; // The ID of the currently logged-in user
+
+  try {
+    // Fetch the logged-in user's role
+    const currentUser = await User.findByPk(userId);
+    if (!currentUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const currentRole = currentUser.role_name;
+
+    // Fetch all subordinate users based on the current user's role
+    const subordinates = await findSubordinateUsers(userId, currentRole);
+
+    if (subordinates.length === 0) {
+      return res.status(404).json({ message: 'No subordinates found' });
+    }
+
+    // Fetch orders requested by subordinates
+    const subordinateIds = subordinates.map(user => user.id); // Extract subordinate user IDs
+    const orders = await Order.findAll({
+      where: { user_id: subordinateIds },
+      include: [{
+        model: OrderItem,
+        as: 'OrderItems', // Specify the alias here
+      }]
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found for subordinates' });
+    }
+
+    return res.status(200).json({ orders });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+};
+
+// Helper function to find subordinates based on the user's role
+const findSubordinateUsers = async (userId, role) => {
+  let whereCondition = {};
+
+  switch (role) {
+    case 'Area Development Officer':
+      whereCondition = { superior_ado: userId };
+      break;
+    case 'Master Distributor':
+      whereCondition = { superior_md: userId };
+      break;
+    case 'Super Distributor':
+      whereCondition = { superior_sd: userId };
+      break;
+    case 'Distributor':
+      whereCondition = { superior_d: userId };
+      break;
+    default:
+      return []; // No subordinates for roles like Customer
+  }
+
+  return await User.findAll({
+    where: whereCondition
+  });
+};
+
