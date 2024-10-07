@@ -108,6 +108,13 @@ const getSuperior = async (userId, userRole) => {
 
 
 
+/////////////*********** */ Get Orders **********//////////
+
+
+
+
+
+
 
 
 
@@ -244,3 +251,32 @@ const getSuperior = async (userId, userRole) => {
 //   });
 //   return superior ? superior.id : null; // Return the superior ID or null
 // };
+exports.getOrdersByUser = async (req, res) => {
+  const { user_id } = req.params; // Expecting user_id as a URL parameter
+
+  try {
+    // Check if user exists
+    const orders = await Order.findAll({
+      where: { user_id },
+      include: [{
+        model: OrderItem,
+        as: 'OrderItems', // Make sure this matches the alias used in the Order model
+        required: false, // Include order items if they exist
+      }],
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found for this user' });
+    }
+
+    return res.status(200).json({ orders });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+};
+
+
+/////////////see other member requested orderlist////////////
+//////////////////////////////////////////////////////

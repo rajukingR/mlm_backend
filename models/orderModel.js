@@ -27,11 +27,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'Pending',
     },
-    requested_by_role: {  // New field to track the role of the requester
+    requested_by_role: { // New field to track the role of the requester
       type: DataTypes.STRING(50),
       allowNull: false,
     },
-    higher_role_id: {  // New field to store the next superior's user ID
+    higher_role_id: { // New field to store the next superior's user ID
       type: DataTypes.INTEGER,
       allowNull: false,
     },
@@ -39,6 +39,13 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'orders',
     timestamps: true, // CreatedAt and UpdatedAt
   });
+
+  Order.associate = (models) => {
+    Order.hasMany(models.OrderItem, { // Define the one-to-many relationship
+      foreignKey: 'order_id',
+      as: 'OrderItems', // Optional: alias for inclusion
+    });
+  };
 
   return Order;
 };
