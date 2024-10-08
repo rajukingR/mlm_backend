@@ -9,7 +9,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     tableName: 'roles',
-    timestamps: true // Ensure timestamps are enabled
+    timestamps: true 
   });
 
   Role.associate = (models) => {
