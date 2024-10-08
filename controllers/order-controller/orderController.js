@@ -108,7 +108,7 @@ const getSuperior = async (userId, userRole) => {
 
 
 
-/////////////*********** */ Get Orders **********//////////
+/////////////*********** */ Get Orders my**********//////////
 
 exports.getOrdersByUser = async (req, res) => {
   const { user_id } = req.params; // Expecting user_id as a URL parameter
@@ -244,4 +244,62 @@ exports.getOrderDetails = async (req, res) => {
     res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
+
+
+//////////////Cncel Order ////////////////////
+//////////////////////////////////////////////
+// Assuming you are using Express and Sequelize
+
+// Cancel Order Function
+// exports.cancelOrder = async (req, res) => {
+//   const { orderId } = req.params;
+
+//   try {
+//     // Find the order by ID
+//     const order = await Order.findOne({ where: { id: orderId } });
+
+//     // Check if the order exists
+//     if (!order) {
+//       return res.status(404).json({ message: 'Order not found' });
+//     }
+
+//     // Update the order status to 'Cancelled'
+//     order.status = 'Cancelled';
+//     await order.save();
+
+//     return res.status(200).json({ message: 'Order cancelled successfully', order });
+//   } catch (error) {
+//     return res.status(500).json({ message: 'Internal server error', error: error.message });
+//   }
+// };
+
+exports.cancelOrder = async (req, res) => {
+  const { orderId } = req.params; // Extract orderId from the URL parameters
+  const userId = req.user.id; // Assuming you get the user ID from the decoded token
+
+  try {
+    // Find the order by ID
+    const order = await Order.findOne({ where: { id: orderId } });
+
+    // Check if the order exists
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Check if the user is the creator of the order
+    if (order.user_id !== userId) {
+      return res.status(403).json({ message: 'You are not authorized to cancel this order' });
+    }
+
+    // Update the order status to 'Cancelled'
+    order.status = 'Cancelled';
+    await order.save();
+
+    return res.status(200).json({ message: 'Order cancelled successfully', order });
+  } catch (error) {
+    return res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+};
+
 
