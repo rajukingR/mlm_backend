@@ -10,6 +10,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const memberRoutes = require('./routes/userHierarchyGetRoutes');
 const directMemberRoutes = require('./routes/userDirectHierarchyRoutes');
 const orderRoutes = require('./routes/orderRouts');
+const rolsRoutes = require('./routes/rolesRoutes');
 const { authMiddleware } = require('./middlewares/authMiddleware');
 //
 // const authMiddleware = require('./middlewares/authMiddleware'); 
@@ -26,15 +27,12 @@ app.use(express.json()); // Using express.json() to parse JSON bodies
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
 app.use('/products',authMiddleware, productRoutes);
-//
 app.use('/category',authMiddleware, categoryRoutes);
-//
 app.use('/members',memberRoutes);
-//
 app.use('/directMembers',directMemberRoutes);
-//**Order Routes**//
 app.use('/orders',orderRoutes);
-// app.use('/orders',orderRoutes);
+app.use('/roles',rolsRoutes);
+
 
 
 app.listen(port, async () => {
