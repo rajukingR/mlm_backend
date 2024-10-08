@@ -249,30 +249,6 @@ exports.getOrderDetails = async (req, res) => {
 
 //////////////Cncel Order ////////////////////
 //////////////////////////////////////////////
-// Assuming you are using Express and Sequelize
-
-// Cancel Order Function
-// exports.cancelOrder = async (req, res) => {
-//   const { orderId } = req.params;
-
-//   try {
-//     // Find the order by ID
-//     const order = await Order.findOne({ where: { id: orderId } });
-
-//     // Check if the order exists
-//     if (!order) {
-//       return res.status(404).json({ message: 'Order not found' });
-//     }
-
-//     // Update the order status to 'Cancelled'
-//     order.status = 'Cancelled';
-//     await order.save();
-
-//     return res.status(200).json({ message: 'Order cancelled successfully', order });
-//   } catch (error) {
-//     return res.status(500).json({ message: 'Internal server error', error: error.message });
-//   }
-// };
 
 exports.cancelOrder = async (req, res) => {
   const { orderId } = req.params; // Extract orderId from the URL parameters
@@ -301,5 +277,45 @@ exports.cancelOrder = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
+
+/////////Accept Ordr by hiery hirarchy////////////////
+//////////////Accepted means sended //////////////////////////
+// In your orderController.js
+exports.acceptOrder = async (req, res) => {
+    const { orderId } = req.params;
+    const { id: userId } = req.user; // Extract 'id' from req.user (the logged-in user's ID)
+
+    try {
+        // Log the orderId and userId for debugging
+        console.log("Accepting Order - Order ID:", orderId, "User ID:", userId);
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized. No user ID found." });
+        }
+
+        // Find the order by its ID and ensure the logged-in user is the 'higher_role_id' (the person the order was requested to)
+        const order = await Order.findOne({ where: { id: orderId, higher_role_id: userId } });
+
+        if (!order) {
+            return res.status(404).json({ message: "Order not found or you are not authorized to accept this order." });
+        }
+
+        // Update order status to 'Accepted'
+        order.status = 'Accepted';
+        await order.save();
+
+        res.status(200).json({ message: "Order accepted successfully.", order });
+    } catch (error) {
+        console.error("Error while accepting order:", error);
+        res.status(500).json({ message: "Internal server error", error });
+    }
+};
+
+
+
+
+
+
 
 
