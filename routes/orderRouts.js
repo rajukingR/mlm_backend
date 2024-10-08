@@ -10,6 +10,8 @@ router.get('/get-order-request/:user_id',authMiddleware, userOrderController.get
 router.get('/get-order-detail/:id',authMiddleware, userOrderController.getOrderDetails);
 //
 router.put('/cancel-order/:orderId',authMiddleware, userOrderController.cancelOrder);
+//
+router.post('/accept-order/:orderId',authMiddleware, userOrderController.acceptOrder);
 
 
 module.exports = router;
