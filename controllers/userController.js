@@ -81,12 +81,22 @@ exports.signUp = async (req, res) => {
       if (!sdUser || sdUser.role_name !== 'Super Distributor') {
         return res.status(400).json({ error: 'Invalid Super Distributor ID' });
       }
+
+      // Ensure that the superior is not of the same role
+      if (role.role_name === 'Super Distributor' && sdUser.role_name === 'Super Distributor') {
+        return res.status(400).json({ error: 'A Super Distributor cannot have another Super Distributor as their superior' });
+      }
     }
 
     if (superior_d) {
       const dUser = await User.findByPk(superior_d);
       if (!dUser || dUser.role_name !== 'Distributor') {
         return res.status(400).json({ error: 'Invalid Distributor ID' });
+      }
+
+      // Ensure that the superior is not of the same role
+      if (role.role_name === 'Distributor' && dUser.role_name === 'Distributor') {
+        return res.status(400).json({ error: 'A Distributor cannot have another Distributor as their superior' });
       }
     }
 
@@ -144,7 +154,6 @@ exports.signUp = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 
 

@@ -4,7 +4,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node build/server.js",
-    "build": "babel server.js --out-dir build"
+    "build": "babel server.js --out-dir build",
+    "server": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
