@@ -4,146 +4,286 @@ const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
 
-    
-    // User sign-up
-    exports.signUp = async (req, res) => {
-      try {
-        const {
-          username,
-          password,
-          email,
-          role_id,
-          superior_id,
-          pincode,
-          state,
-          city,
-          street_name,
-          building_no_name,
-          mobile_number,
-          full_name,
-          gst_number,
-          superior_ado,
-          superior_md,
-          superior_sd,
-          superior_d,
-        } = req.body;
-    
-        // Validate role
-        const role = await Role.findByPk(role_id);
-        if (!role) {
-          return res.status(400).json({ error: 'Invalid role ID' });
+
+
+// User sign-up
+exports.signUp = async (req, res) => {
+  try {
+    const {
+      username,
+      password,
+      email,
+      role_id,
+      superior_id,
+      superior_ado,
+      superior_md,
+      superior_sd,
+      superior_d,
+      pincode,
+      state,
+      city,
+      street_name,
+      building_no_name,
+      mobile_number,
+      full_name,
+      gst_number,
+    } = req.body;
+
+    // Validate role
+    const role = await Role.findByPk(role_id);
+    if (!role) {
+      return res.status(400).json({ error: 'Invalid role ID' });
+    }
+
+    // Validate superior user (creator)
+    const creator = await User.findByPk(superior_id);
+    if (!creator) {
+      return res.status(400).json({ error: 'Invalid superior ID' });
+    }
+
+    const creatorRole = creator.role_name;
+
+    // Check for existing username
+    const existingUser = await User.findOne({ where: { username } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    // Check for existing email
+    const existingEmail = await User.findOne({ where: { email } });
+    if (existingEmail) {
+      return res.status(400).json({ error: 'Email already exists' });
+    }
+
+    // Check for existing mobile number
+    const existingMobile = await User.findOne({ where: { mobile_number } });
+    if (existingMobile) {
+      return res.status(400).json({ error: 'Mobile number already exists' });
+    }
+
+    // Admin hierarchy validation
+    if (creatorRole === 'Admin') {
+      // Admin can create ADO
+      if (role.role_name === 'Area Development Officer') {
+        if (superior_ado !== null || superior_md !== null || superior_sd !== null || superior_d !== null) {
+          return res.status(400).json({ error: 'All superior fields must be null when creating an ADO' });
         }
-    
-        // Validate superior user (creator)
-        const creator = await User.findByPk(superior_id);
-        if (!creator) {
-          return res.status(400).json({ error: 'Invalid superior ID' });
-        }
-    
-        const creatorRole = creator.role_name;
-    
-        // Check for existing username
-        const existingUser = await User.findOne({ where: { username } });
-        if (existingUser) {
-          return res.status(400).json({ error: 'Username already exists' });
-        }
-    
-        // Check for existing email
-        const existingEmail = await User.findOne({ where: { email } });
-        if (existingEmail) {
-          return res.status(400).json({ error: 'Email already exists' });
-        }
-    
-        // Check for existing mobile number
-        const existingMobile = await User.findOne({ where: { mobile_number } });
-        if (existingMobile) {
-          return res.status(400).json({ error: 'Mobile number already exists' });
-        }
-    
-        // Helper function to validate that a given ID exists in the User table
-        const validateSuperior = async (id, fieldName) => {
-          if (id !== null) {
-            const superiorUser = await User.findByPk(id);
-            if (!superiorUser) {
-              return res.status(400).json({ error: `Invalid ${fieldName} ID: ${id}` });
-            }
-          }
-        };
-    
-        // Validate the superior fields
-        await validateSuperior(superior_ado, 'superior_ado');
-        await validateSuperior(superior_md, 'superior_md');
-        await validateSuperior(superior_sd, 'superior_sd');
-        await validateSuperior(superior_d, 'superior_d');
-    
-        // Role-based validation for superior fields
-        if (role.role_name === 'Area Development Officer') {
-          // ADO creation: all superior fields must be null
-          if (superior_ado || superior_md || superior_sd || superior_d) {
-            return res.status(400).json({ error: 'All superior fields must be null when creating an ADO' });
-          }
-        } else if (role.role_name === 'Master Distributor') {
-          // MD creation: superior_ado is required, others must be null
-          if (!superior_ado || superior_md || superior_sd || superior_d) {
-            return res.status(400).json({ error: 'Superior ADO is required, and other superior fields must be null when creating an MD' });
-          }
-        } else if (role.role_name === 'Super Distributor') {
-          // SD creation: superior_ado is required, superior_md optional, others must be null
-          if (!superior_ado || superior_sd || superior_d) {
-            return res.status(400).json({ error: 'Superior ADO is required, and superior SD, D must be null when creating an SD' });
-          }
-        } else if (role.role_name === 'Distributor') {
-          // D creation: superior_ado is required, superior_d must be null
-          if (!superior_ado || superior_d) {
-            return res.status(400).json({ error: 'Superior ADO is required, and superior D must be null when creating a Distributor' });
-          }
-        } else if (role.role_name === 'Customer') {
-          // C creation: superior_ado is required, others optional
-          if (!superior_ado) {
-            return res.status(400).json({ error: 'Superior ADO is required when creating a Customer' });
-          }
-        }
-    
-        // Prevent assigning a superior with the same role
-        if (creatorRole === role.role_name) {
-          return res.status(400).json({ error: 'A user cannot have a superior with the same role' });
-        }
-    
-        // Create the user after validation passes
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = await User.create({
-          username,
-          password: hashedPassword,
-          email,
-          role_id,
-          role_name: role.role_name, // Assign the role_name from the retrieved role
-          superior_ado,
-          superior_md,
-          superior_sd,
-          superior_d,
-          pincode,
-          state,
-          city,
-          street_name,
-          building_no_name,
-          mobile_number,
-          full_name,
-          gst_number,
-          superior_id, // Include superior_id for reference
-          status: 'Active', // Default status or modify as needed
-        });
-    
-        res.status(201).json({
-          message: 'User created successfully',
-          user: newUser,
-        });
-    
-      } catch (error) {
-        console.error(error); // Log the error for debugging
-        res.status(500).json({ error: error.message });
       }
-    };
-    
+      // Admin can create MD
+      else if (role.role_name === 'Master Distributor') {
+        if (!superior_ado) {
+          return res.status(400).json({ error: 'Superior ADO is required when creating an MD' });
+        }
+        if (superior_md !== null || superior_sd !== null || superior_d !== null) {
+          return res.status(400).json({ error: 'Other superior fields must be null when creating an MD' });
+        }
+      }
+      // Admin can create SD
+      else if (role.role_name === 'Super Distributor') {
+        if (!superior_ado) {
+          return res.status(400).json({ error: 'Superior ADO is required when creating an SD' });
+        }
+        if (superior_md === null) {
+          // SD can be created without superior_md
+        }
+        if (superior_sd !== null || superior_d !== null) {
+          return res.status(400).json({ error: 'Other superior fields must be null when creating an SD' });
+        }
+      }
+      // Admin can create Distributor
+      else if (role.role_name === 'Distributor') {
+        if (!superior_ado) {
+          return res.status(400).json({ error: 'Superior ADO is required when creating a Distributor' });
+        }
+        if (superior_d !== null) {
+          return res.status(400).json({ error: 'Superior D must be null when creating a Distributor' });
+        }
+      }
+      // Admin can create Customer
+      else if (role.role_name === 'Customer') {
+        if (!superior_ado) {
+          return res.status(400).json({ error: 'Superior ADO is required when creating a Customer' });
+        }
+        // Other superior fields are optional
+      }
+    }
+
+    // ADO hierarchy validation
+    else if (creatorRole === 'Area Development Officer') {
+      // ADO can create MD
+      if (role.role_name === 'Master Distributor') {
+        if (superior_ado !== creator.id) {
+          return res.status(400).json({ error: 'Superior ADO must be the ADO creating the MD' });
+        }
+        if (superior_md !== null || superior_sd !== null || superior_d !== null) {
+          return res.status(400).json({ error: 'Other superior fields must be null when creating an MD' });
+        }
+      }
+      // ADO can create SD
+      else if (role.role_name === 'Super Distributor') {
+        if (superior_ado !== creator.id) {
+          return res.status(400).json({ error: 'Superior ADO must be the ADO creating the SD' });
+        }
+        if (superior_md === null) {
+          // SD can be created without superior_md
+        }
+        if (superior_sd !== null || superior_d !== null) {
+          return res.status(400).json({ error: 'Other superior fields must be null when creating an SD' });
+        }
+      }
+      // ADO can create Distributor
+      else if (role.role_name === 'Distributor') {
+        if (superior_ado !== creator.id) {
+          return res.status(400).json({ error: 'Superior ADO must be the ADO creating the Distributor' });
+        }
+        if (superior_d !== null) {
+          return res.status(400).json({ error: 'Superior D must be null when creating a Distributor' });
+        }
+      }
+      // ADO can create Customer
+      else if (role.role_name === 'Customer') {
+        if (superior_ado !== creator.id) {
+          return res.status(400).json({ error: 'Superior ADO must be the ADO creating the Customer' });
+        }
+        // Other superior fields are optional
+      }
+    }
+
+    // MD hierarchy validation
+    else if (creatorRole === 'Master Distributor') {
+      // MD can create SD
+      if (role.role_name === 'Super Distributor') {
+        if (superior_ado !== null) {
+          return res.status(400).json({ error: 'Superior ADO must be null when creating an SD' });
+        }
+        if (!superior_md) {
+          return res.status(400).json({ error: 'Superior MD is required when creating an SD' });
+        }
+        if (superior_sd !== null || superior_d !== null) {
+          return res.status(400).json({ error: 'Other superior fields must be null when creating an SD' });
+        }
+      }
+      // MD can create Distributor
+      else if (role.role_name === 'Distributor') {
+        if (superior_ado !== null) {
+          return res.status(400).json({ error: 'Superior ADO must be null when creating a Distributor' });
+        }
+        if (!superior_md) {
+          return res.status(400).json({ error: 'Superior MD is required when creating a Distributor' });
+        }
+        if (superior_sd !== null || superior_d !== null) {
+          return res.status(400).json({ error: 'Other superior fields must be null when creating a Distributor' });
+        }
+      }
+      // MD can create Customer
+      else if (role.role_name === 'Customer') {
+        if (superior_ado !== null) {
+          return res.status(400).json({ error: 'Superior ADO must be null when creating a Customer' });
+        }
+        if (!superior_md) {
+          return res.status(400).json({ error: 'Superior MD is required when creating a Customer' });
+        }
+      }
+    }
+
+    // SD hierarchy validation
+    else if (creatorRole === 'Super Distributor') {
+      // SD can create Distributor
+      if (role.role_name === 'Distributor') {
+        if (superior_ado !== null || superior_md !== null || superior_sd !== creator.id) {
+          return res.status(400).json({ error: 'Superior SD is required when creating a Distributor' });
+        }
+        if (superior_d !== null) {
+          return res.status(400).json({ error: 'Superior D must be null when creating a Distributor' });
+        }
+      }
+      // SD can create Customer
+      else if (role.role_name === 'Customer') {
+        if (superior_ado !== null || superior_md !== null || superior_sd !== creator.id) {
+          return res.status(400).json({ error: 'Superior SD is required when creating a Customer' });
+        }
+        // Other superior fields are optional
+      }
+    }
+
+    // D hierarchy validation
+    else if (creatorRole === 'Distributor') {
+      // D can create Customer
+      if (role.role_name === 'Customer') {
+        if (superior_ado !== null || superior_md !== null || superior_sd !== null || superior_d !== creator.id) {
+          return res.status(400).json({ error: 'Superior D is required when creating a Customer' });
+        }
+      }
+    }
+
+    // Prevent assigning a superior with the same role
+    if (creatorRole === role.role_name) {
+      return res.status(400).json({ error: 'A user cannot have a superior with the same role' });
+    }
+
+    /// ***************** Check if the superior ADO exists *************** ///
+
+    if (superior_ado) {
+      const ado = await User.findByPk(superior_ado);
+      if (!ado) {
+        return res.status(400).json({ error: 'Invalid superior ADO ID' });
+      }
+    }
+
+    // Check if the superior MD exists
+    if (superior_md) {
+      const md = await User.findByPk(superior_md);
+      if (!md) {
+        return res.status(400).json({ error: 'Invalid superior MD ID' });
+      }
+    }
+
+    // Check if the superior SD exists
+    if (superior_sd) {
+      const sd = await User.findByPk(superior_sd);
+      if (!sd) {
+        return res.status(400).json({ error: 'Invalid superior SD ID' });
+      }
+    }
+
+    // Check if the superior D exists
+    if (superior_d) {
+      const d = await User.findByPk(superior_d);
+      if (!d) {
+        return res.status(400).json({ error: 'Invalid superior D ID' });
+      }
+    }
+
+
+    // Create the user after validation passes
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = await User.create({
+      username,
+      password: hashedPassword,
+      email,
+      role_id,
+      role_name: role.role_name,
+      superior_ado,
+      superior_md,
+      superior_sd,
+      superior_d,
+      superior_id,
+      pincode,
+      state,
+      city,
+      street_name,
+      building_no_name,
+      mobile_number,
+      full_name,
+      gst_number,
+    });
+
+    res.status(201).json(newUser);
+  } catch (error) {
+    console.error('Error creating user:', error);
+    res.status(500).json({ error: 'Failed to create user' });
+  }
+};
 
 
 
