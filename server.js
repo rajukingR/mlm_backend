@@ -11,6 +11,9 @@ const memberRoutes = require('./routes/userHierarchyGetRoutes');
 const directMemberRoutes = require('./routes/userDirectHierarchyRoutes');
 const orderRoutes = require('./routes/orderRouts');
 const rolsRoutes = require('./routes/rolesRoutes');
+const clubRoutes = require('./routes/clubRoutes');
+const salesTargetrRoutes = require('./routes/salesTargetrRoutes');
+
 const { authMiddleware } = require('./middlewares/authMiddleware');
 //
 // const authMiddleware = require('./middlewares/authMiddleware'); 
@@ -32,6 +35,10 @@ app.use('/members',memberRoutes);
 app.use('/directMembers',directMemberRoutes);
 app.use('/orders',orderRoutes);
 app.use('/roles',rolsRoutes);
+app.use('/club',clubRoutes);
+app.use('/salestarget', salesTargetrRoutes);
+
+
 
 
 
