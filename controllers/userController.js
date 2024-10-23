@@ -36,10 +36,30 @@ exports.signUp = async (req, res) => {
     }
 
     // Validate superior user (creator)
-    const creator = await User.findByPk(superior_id);
-    if (!creator) {
-      return res.status(400).json({ error: 'Invalid superior ID' });
-    }
+    //////////////////////////////////
+    const roleHierarchy = {
+      1: ['2', '3', '4', '5'],
+      2: ['3', '4', '5'],    
+      3: ['4', '5'],          
+      4: ['5'],               
+      5: ['6'],               
+      6: []                   
+  };
+  // const superior = await getUserById(superior_id);
+  const creator = await User.findByPk(superior_id);
+  if (!creator) {
+    return res.status(400).json({ error: 'Invalid superior_id' });
+   }
+   const allowedRoles = roleHierarchy[creator.role_id]; 
+       // Check if the new user's role is allowed under the superior's role
+       if (!allowedRoles.includes(role_id.toString())) {
+        return res.status(400).json({ error: 'Superior user role cannot supervise this role' });
+  }
+
+    // const creator = await User.findByPk(superior_id);
+    // if (!creator) {
+    //   return res.status(400).json({ error: 'Invalid superior ID' });
+    // }
 
     const creatorRole = creator.role_name;
 
