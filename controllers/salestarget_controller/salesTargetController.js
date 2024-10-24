@@ -45,90 +45,111 @@ exports.getSalesTargetById = async (req, res) => {
 
 // Create a new sales target
 exports.createSalesTarget = async (req, res) => {
-    const { targets } = req.body;
-  
-    if (!targets || !Array.isArray(targets)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Targets must be an array and is required.',
-      });
-    }
-  
-    try {
-      const createdTargets = [];
-  
-      for (const target of targets) {
-        const { role, virginCoconutOil, virginCoconutHairOil } = target;
-  
-        // Validate required fields
-        if (!role || !virginCoconutOil?.target || !virginCoconutOil?.duration ||
-            !virginCoconutHairOil?.target || !virginCoconutHairOil?.duration) {
-          return res.status(400).json({
-            success: false,
-            message: 'Role, target, and duration are required for both products.',
-          });
-        }
-  
-        // Create entries in the database
-        const oilTarget = await SalesTarget.create({
-          role,
-          productType: 'Virgin Coconut Oil',
-          target: parseFloat(virginCoconutOil.target),
-          duration: virginCoconutOil.duration,
-        });
-  
-        const hairOilTarget = await SalesTarget.create({
-          role,
-          productType: 'Virgin Coconut Hair Oil',
-          target: parseFloat(virginCoconutHairOil.target),
-          duration: virginCoconutHairOil.duration,
-        });
-  
-        createdTargets.push({ oilTarget, hairOilTarget });
-      }
-  
-      return res.status(201).json({
-        success: true,
-        message: 'Sales targets created successfully',
-        data: createdTargets,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to create sales targets',
-        error: error.message,
-      });
-    }
-  };
-  
-// Update a sales target by ID
-exports.updateSalesTarget = async (req, res) => {
-  const { id } = req.params;
-  const { role, target, duration } = req.body;
+  const { targets } = req.body;
+
+  // Validate input
+  if (!targets || !Array.isArray(targets)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Targets must be an array and is required.',
+    });
+  }
 
   try {
-    const targetToUpdate = await SalesTarget.findByPk(id);
+    const createdTargets = [];
 
-    if (!targetToUpdate) {
+    // Loop through each target object
+    for (const target of targets) {
+      const { role, productData } = target;
+
+      // Validate required fields
+      if (!role || !productData || !Array.isArray(productData)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Role and productData (as an array) are required.',
+        });
+      }
+
+      // Create entry in the database
+      const createdTarget = await SalesTarget.create({
+        role,
+        productData,
+      });
+
+      createdTargets.push(createdTarget);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: 'Sales targets created successfully',
+      data: createdTargets,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to create sales targets',
+      error: error.message,
+    });
+  }
+};
+// Update an existing sales target
+exports.updateSalesTarget = async (req, res) => {
+  const { id } = req.params;
+  const { role, productData } = req.body;
+
+  try {
+    // Validate incoming data
+    if (!Array.isArray(productData) || productData.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid product data provided.',
+      });
+    }
+
+    // Fetch the existing sales target record
+    const salesTargetRecord = await SalesTarget.findOne({ where: { id } });
+    
+    // Check if the record exists
+    if (!salesTargetRecord) {
       return res.status(404).json({
         success: false,
         message: 'Sales target not found',
       });
     }
 
-    // Update sales target details
-    targetToUpdate.role = role || targetToUpdate.role;
-    targetToUpdate.target = target !== undefined ? target : targetToUpdate.target;
-    targetToUpdate.duration = duration || targetToUpdate.duration;
+    // Prepare a new productData array
+    const updatedProductData = productData.map(product => {
+      const { productType, target, duration } = product;
 
-    await targetToUpdate.save();
+      // Validate required fields
+      if (!productType || target === undefined) {
+        throw new Error('Product type and target are required.');
+      }
+
+      return {
+        productType,
+        target: parseFloat(target),
+        duration: duration || 'Not specified',
+      };
+    });
+
+    // Update the role and productData
+    salesTargetRecord.role = role; // Update the role if necessary
+    salesTargetRecord.productData = updatedProductData; // Set the updated product data
+
+    // Mark productData as changed
+    salesTargetRecord.changed('productData', true); // Mark productData as changed
+    salesTargetRecord.updatedAt = new Date(); // Update the timestamp
+
+    // Save the changes to the database
+    await salesTargetRecord.save();
 
     return res.status(200).json({
       success: true,
-      message: 'Sales target updated successfully',
-      data: targetToUpdate,
+      message: 'Sales targets updated successfully',
     });
   } catch (error) {
+    console.error('Error updating sales target:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to update sales target',
@@ -136,6 +157,7 @@ exports.updateSalesTarget = async (req, res) => {
     });
   }
 };
+
 
 // Delete a sales target by ID
 exports.deleteSalesTarget = async (req, res) => {
