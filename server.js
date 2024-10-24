@@ -14,6 +14,8 @@ const rolsRoutes = require('./routes/rolesRoutes');
 const clubRoutes = require('./routes/clubRoutes');
 const salesTargetrRoutes = require('./routes/salesTargetrRoutes');
 const minimumStockRoutes = require('./routes/minimumStockRoutes');
+const announcementRoutes = require('./routes/announcementRoutes');
+
 
 
 const { authMiddleware } = require('./middlewares/authMiddleware');
@@ -40,6 +42,8 @@ app.use('/roles',rolsRoutes);
 app.use('/club',clubRoutes);
 app.use('/salestarget', salesTargetrRoutes);
 app.use('/minimumstock', minimumStockRoutes);
+app.use('/announcements', announcementRoutes);
+
 
 
 
