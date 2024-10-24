@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = (sequelize, DataTypes) => {
-  const SalesTarget = sequelize.define('SalesTarget', {
+  const MinimumStock = sequelize.define('MinimumStock', {
     role: {
       type: DataTypes.ENUM(
         'Area Development Officer (ADO)', 
@@ -17,9 +17,9 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
   }, {
-    tableName: 'sales_target',
+    tableName: 'minimum_stock', // Change table name to minimum_stock
     timestamps: true,
   });
 
-  return SalesTarget;
+  return MinimumStock;
 };
