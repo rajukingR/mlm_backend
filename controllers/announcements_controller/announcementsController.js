@@ -112,8 +112,8 @@ exports.updateByIdAnnouncement = async (req, res) => {
     receiver,
     autoUpdate,
     activateStatus,
-    fromDate,  // Include fromDate for update
-    toDate,    // Include toDate for update
+    fromDate,
+    toDate,
   } = req.body;
 
   try {
@@ -135,9 +135,14 @@ exports.updateByIdAnnouncement = async (req, res) => {
     announcement.autoUpdate = autoUpdate !== undefined ? autoUpdate : announcement.autoUpdate;
     announcement.activateStatus = activateStatus !== undefined ? activateStatus : announcement.activateStatus;
 
-    if (autoUpdate) {
+    if (announcement.autoUpdate) {
       announcement.fromDate = fromDate || announcement.fromDate;
       announcement.toDate = toDate || announcement.toDate;
+    }
+
+    // Handle file upload if present (assuming similar to document)
+    if (req.file) {
+      announcement.image = req.file.filename; // Assuming you want to handle image uploads
     }
 
     await announcement.save(); // Save updated announcement
