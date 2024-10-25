@@ -1,9 +1,15 @@
 const { Announcement } = require('../../models');
 
-// Get all announcements
+// Get all announcements with optional filtering by receiver
 exports.getAnnouncements = async (req, res) => {
   try {
-    const announcements = await Announcement.findAll();
+    const { receiver } = req.query; // Get the receiver from the query params
+    const whereClause = receiver ? { receiver } : {}; // Set up the filtering condition
+
+    const announcements = await Announcement.findAll({
+      where: whereClause, // Apply the where clause if receiver is provided
+    });
+
     return res.status(200).json({
       success: true,
       data: announcements,
@@ -45,27 +51,8 @@ exports.getByIdAnnouncement = async (req, res) => {
 
 // Create a new announcement
 exports.createAnnouncement = async (req, res) => {
-  const { documentID, heading, description, link, receiver, autoUpdate, activateStatus } = req.body;
-
-  // Check for required fields
-  if (!documentID || !heading || !receiver) {
-    return res.status(400).json({ success: false, message: 'Document ID, heading, and receiver are required' });
-  }
-
   try {
-    const existingAnnouncement = await Announcement.findOne({ where: { documentID } });
-
-    if (existingAnnouncement) {
-      return res.status(409).json({
-        success: false,
-        message: 'Document ID already exists',
-      });
-    }
-
-    // Handle image upload if necessary
-    const image = req.file ? req.file.filename : null; // Assuming you're using multer or similar for file uploads
-
-    const newAnnouncement = await Announcement.create({
+    const {
       documentID,
       heading,
       description,
@@ -73,15 +60,39 @@ exports.createAnnouncement = async (req, res) => {
       receiver,
       autoUpdate,
       activateStatus,
-      image,
+      fromDate,  // Include fromDate
+      toDate,    // Include toDate
+    } = req.body;
+
+    if (!documentID || !heading || !receiver) {
+      return res.status(400).json({
+        success: false,
+        message: 'Document ID, heading, and receiver are required fields.',
+      });
+    }
+
+    const announcement = await Announcement.create({
+      documentID,
+      heading,
+      description,
+      link,
+      receiver,
+      autoUpdate,
+      activateStatus,
+      fromDate: autoUpdate ? fromDate : null, // Only save if autoUpdate is enabled
+      toDate: autoUpdate ? toDate : null,       // Only save if autoUpdate is enabled
+      image: req.file ? req.file.filename : null,
     });
+
+    // Emit event for new announcement using `req.io`
+    req.io.emit('new_announcement', announcement);
 
     return res.status(201).json({
       success: true,
-      message: 'Announcement created successfully',
-      data: newAnnouncement,
+      data: announcement,
     });
   } catch (error) {
+    console.error('Error creating announcement:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to create announcement',
@@ -93,7 +104,17 @@ exports.createAnnouncement = async (req, res) => {
 // Update an announcement by ID
 exports.updateByIdAnnouncement = async (req, res) => {
   const { id } = req.params;
-  const { documentID, heading, description, link, receiver, autoUpdate, activateStatus } = req.body;
+  const {
+    documentID,
+    heading,
+    description,
+    link,
+    receiver,
+    autoUpdate,
+    activateStatus,
+    fromDate,  // Include fromDate for update
+    toDate,    // Include toDate for update
+  } = req.body;
 
   try {
     const announcement = await Announcement.findByPk(id);
@@ -105,28 +126,28 @@ exports.updateByIdAnnouncement = async (req, res) => {
       });
     }
 
-    // Update announcement details
+    // Update fields accordingly
     announcement.documentID = documentID || announcement.documentID;
     announcement.heading = heading || announcement.heading;
     announcement.description = description || announcement.description;
     announcement.link = link || announcement.link;
     announcement.receiver = receiver || announcement.receiver;
-    announcement.autoUpdate = autoUpdate !== undefined ? autoUpdate : announcement.autoUpdate; // Update only if provided
-    announcement.activateStatus = activateStatus !== undefined ? activateStatus : announcement.activateStatus; // Update only if provided
+    announcement.autoUpdate = autoUpdate !== undefined ? autoUpdate : announcement.autoUpdate;
+    announcement.activateStatus = activateStatus !== undefined ? activateStatus : announcement.activateStatus;
 
-    // Handle image update if necessary
-    if (req.file) {
-      announcement.image = req.file.filename; // Update with the new image file
+    if (autoUpdate) {
+      announcement.fromDate = fromDate || announcement.fromDate;
+      announcement.toDate = toDate || announcement.toDate;
     }
 
-    await announcement.save();
+    await announcement.save(); // Save updated announcement
 
     return res.status(200).json({
       success: true,
-      message: 'Announcement updated successfully',
       data: announcement,
     });
   } catch (error) {
+    console.error('Error updating announcement:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to update announcement',
@@ -150,6 +171,9 @@ exports.deleteByIdAnnouncement = async (req, res) => {
     }
 
     await announcement.destroy();
+
+    // Emit event for deleted announcement using `req.io`
+    req.io.emit('delete_announcement', { id });
 
     return res.status(200).json({
       success: true,

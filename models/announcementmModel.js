@@ -1,3 +1,5 @@
+// models/Announcement.js
+
 'use strict';
 
 module.exports = (sequelize, DataTypes) => {
@@ -35,16 +37,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true, // Store the file name or URL
     },
+    fromDate: {  // New field for From Date
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    toDate: {    // New field for To Date
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   }, {
-    tableName: 'announcements', // The table name in the database
-    timestamps: true, // Enable createdAt and updatedAt fields
+    tableName: 'announcements',
+    timestamps: true,
   });
-
-  // Associations (if any) can be added here
-  Announcement.associate = (models) => {
-    // Example association if needed:
-    // Announcement.belongsTo(models.User, { foreignKey: 'userId' });
-  };
 
   return Announcement;
 };

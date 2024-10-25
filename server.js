@@ -1,7 +1,10 @@
+// server.js
+
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-
+const http = require('http');
+const { Server } = require('socket.io');
 const { sequelize } = require('./models');
 const adminRoutes = require('./routes/adminRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -15,42 +18,57 @@ const clubRoutes = require('./routes/clubRoutes');
 const salesTargetrRoutes = require('./routes/salesTargetrRoutes');
 const minimumStockRoutes = require('./routes/minimumStockRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
-
-
-
+const documentRoutes = require('./routes/documentRoutes'); // Import your document routes
 const { authMiddleware } = require('./middlewares/authMiddleware');
-//
-// const authMiddleware = require('./middlewares/authMiddleware'); 
-
 
 const app = express();
 const port = process.env.PORT || 3002;
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
 
 app.use(cors());
-app.use(express.json()); // Using express.json() to parse JSON bodies
-// app.use(authMiddleware); // Apply authMiddleware globally
+app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
-// API Routes
+// Pass `io` to the routes where needed
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
-app.use('/products',authMiddleware, productRoutes);
-app.use('/category',authMiddleware, categoryRoutes);
-app.use('/members',memberRoutes);
-app.use('/directMembers',directMemberRoutes);
-app.use('/orders',orderRoutes);
-app.use('/roles',rolsRoutes);
-app.use('/club',clubRoutes);
+app.use('/products', authMiddleware, productRoutes);
+app.use('/category', authMiddleware, categoryRoutes);
+app.use('/members', memberRoutes);
+app.use('/directMembers', directMemberRoutes);
+app.use('/orders', orderRoutes);
+app.use('/roles', rolsRoutes);
+app.use('/club', clubRoutes);
 app.use('/salestarget', salesTargetrRoutes);
 app.use('/minimumstock', minimumStockRoutes);
-app.use('/announcements', announcementRoutes);
 
+// Announcement routes
+app.use('/announcements', (req, res, next) => {
+  req.io = io; // Attach `io` to the request object for announcement routes
+  next();
+}, announcementRoutes);
 
+// Document routes
+app.use('/documents', (req, res, next) => {
+  req.io = io; // Attach `io` to the request object for document routes
+  next();
+}, documentRoutes);
 
+io.on('connection', (socket) => {
+  console.log('A user connected:', socket.id);
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
 
-
-
-
-app.listen(port, async () => {
+server.listen(port, async () => {
   try {
     await sequelize.authenticate();
     console.log('Database connected...');
