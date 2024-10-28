@@ -18,7 +18,9 @@ const clubRoutes = require('./routes/clubRoutes');
 const salesTargetrRoutes = require('./routes/salesTargetrRoutes');
 const minimumStockRoutes = require('./routes/minimumStockRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
-const documentRoutes = require('./routes/documentRoutes'); // Import your document routes
+const documentRoutes = require('./routes/documentRoutes'); 
+const editRequestRoutes = require('./routes/editRequestRoutes'); 
+
 const { authMiddleware } = require('./middlewares/authMiddleware');
 
 const app = express();
@@ -60,6 +62,10 @@ app.use('/documents', (req, res, next) => {
   req.io = io; // Attach `io` to the request object for document routes
   next();
 }, documentRoutes);
+
+app.use('/edit-requests', editRequestRoutes);
+
+
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
