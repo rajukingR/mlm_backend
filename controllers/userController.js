@@ -38,10 +38,10 @@ exports.signUp = async (req, res) => {
     // Validate superior user (creator)
     //////////////////////////////////
     const roleHierarchy = {
-      1: ['2', '3', '4', '5'],
-      2: ['3', '4', '5'],    
-      3: ['4', '5'],          
-      4: ['5'],               
+      1: ['2', '3', '4', '5', '6'],
+      2: ['3', '4', '5', '6'],    
+      3: ['4', '5', '6'],          
+      4: ['5', '6'],               
       5: ['6'],               
       6: []                   
   };
@@ -191,8 +191,9 @@ exports.signUp = async (req, res) => {
         if (!superior_md) {
           return res.status(400).json({ error: 'Superior MD is required when creating a Distributor' });
         }
-        if (superior_sd !== null || superior_d !== null) {
-          return res.status(400).json({ error: 'Other superior fields must be null when creating a Distributor' });
+        // if (superior_sd !== null || superior_d !== null) {
+          if (superior_d !== null) {
+          return res.status(400).json({ error: 'Superior Distributor must be null when creating a Distributor' });
         }
       }
       // MD can create Customer
@@ -220,7 +221,7 @@ exports.signUp = async (req, res) => {
       // SD can create Customer
       else if (role.role_name === 'Customer') {
         if (superior_ado !== null || superior_md !== null || superior_sd !== creator.id) {
-          return res.status(400).json({ error: 'Superior SD is required when creating a Customer' });
+          return res.status(400).json({ error: 'Superior SD only asignable high hierarchy' });
         }
         // Other superior fields are optional
       }
@@ -282,12 +283,8 @@ exports.signUp = async (req, res) => {
       password: hashedPassword,
       email,
       role_id,
-      role_name: role.role_name,
-      superior_ado,
-      superior_md,
-      superior_sd,
-      superior_d,
       superior_id,
+      role_name: role.role_name,
       pincode,
       state,
       city,
@@ -296,6 +293,10 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
+      superior_ado,
+      superior_md,
+      superior_sd,
+      superior_d,
     });
 
     res.status(201).json(newUser);
