@@ -22,7 +22,10 @@ const feedbackRoutes = require('./routes/feedbackRoutes');
 
 
 const announcementRoutes = require('./routes/announcementRoutes');
-const documentRoutes = require('./routes/documentRoutes'); // Import your document routes
+const documentRoutes = require('./routes/documentRoutes'); 
+const editRequestRoutes = require('./routes/editRequestRoutes'); 
+const userUpdateRoutes = require('./routes/userupdateRoutes');
+
 const { authMiddleware } = require('./middlewares/authMiddleware');
 
 const app = express();
@@ -53,6 +56,7 @@ app.use('/club', clubRoutes);
 app.use('/salestarget', salesTargetrRoutes);
 app.use('/minimumstock', minimumStockRoutes);
 app.use('/feedback', feedbackRoutes);
+app.use('/api', userUpdateRoutes); // Use /api prefix for member update route
 
 // Announcement routes
 app.use('/announcements', (req, res, next) => {
@@ -65,6 +69,10 @@ app.use('/documents', (req, res, next) => {
   req.io = io; // Attach `io` to the request object for document routes
   next();
 }, documentRoutes);
+
+app.use('/edit-requests', editRequestRoutes);
+
+
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
