@@ -120,7 +120,13 @@ exports.getOrdersByUser = async (req, res) => {
       include: [{
         model: OrderItem,
         as: 'OrderItems', // Make sure this matches the alias used in the Order model
-        required: false, // Include order items if they exist
+        required: false,
+        include: [
+          {
+            model: Product,
+            as: 'product',
+          },
+        ],
       }],
     });
 
@@ -167,7 +173,13 @@ exports.getOrdersBySubordinates = async (req, res) => {
       where: { user_id: subordinateIds },
       include: [{
         model: OrderItem,
-        as: 'OrderItems', // Specify the alias here
+        as: 'OrderItems',
+        include: [
+          {
+            model: Product,
+            as: 'product',
+          },
+        ], // Include order items if they exist
       }]
     });
 
