@@ -20,6 +20,7 @@ const minimumStockRoutes = require('./routes/minimumStockRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
 const documentRoutes = require('./routes/documentRoutes'); 
 const editRequestRoutes = require('./routes/editRequestRoutes'); 
+const userUpdateRoutes = require('./routes/userupdateRoutes');
 
 const { authMiddleware } = require('./middlewares/authMiddleware');
 
@@ -50,6 +51,7 @@ app.use('/roles', rolsRoutes);
 app.use('/club', clubRoutes);
 app.use('/salestarget', salesTargetrRoutes);
 app.use('/minimumstock', minimumStockRoutes);
+app.use('/api', userUpdateRoutes); // Use /api prefix for member update route
 
 // Announcement routes
 app.use('/announcements', (req, res, next) => {
