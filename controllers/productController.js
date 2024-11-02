@@ -67,7 +67,9 @@ exports.createProduct = [
 // Get all products
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.findAll();
+    const products = await Product.findAll({
+      where: { isDeleted: false } 
+    });
     return res.status(200).json(products);
   } catch (error) {
     return handleErrors(res, error);
@@ -77,7 +79,11 @@ exports.getAllProducts = async (req, res) => {
 // Get a single product by ID
 exports.getProductById = async (req, res) => {
   try {
-    const product = await Product.findByPk(req.params.id);
+    // const product = await Product.findByPk(req.params.id);
+    // const product = await Product.findByPk({
+     const product = await Product.findOne({
+       where: { id: req.params.id, isDeleted: false }
+    });
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
@@ -114,19 +120,40 @@ exports.updateProduct = [
 ];
 
 // Delete a product
+// exports.deleteProduct = [
+//   validateAdminRole, // Ensure only admin can delete a product
+//   async (req, res) => {
+//     try {
+//       const deleted = await Product.destroy({
+//         where: { id: req.params.id }
+//       });
+
+//       if (!deleted) {
+//         return res.status(404).json({ error: 'Product not found' });
+//       }
+//       // return res.status(204).send();
+//       return res.status(200).json({ message: 'Product deleted successfully' });
+//     } catch (error) {
+//       return handleErrors(res, error);
+//     }
+//   }
+// ];
+
+
+//***  Soft delete a product ***//
 exports.deleteProduct = [
-  validateAdminRole, // Ensure only admin can delete a product
+  validateAdminRole, 
   async (req, res) => {
     try {
-      const deleted = await Product.destroy({
-        where: { id: req.params.id }
-      });
+      const [deleted] = await Product.update(
+        { isDeleted: true },
+        { where: { id: req.params.id } }
+      );
 
       if (!deleted) {
         return res.status(404).json({ error: 'Product not found' });
       }
-      // return res.status(204).send();
-      return res.status(200).json({ message: 'Product deleted successfully' });
+      return res.status(200).json({ message: 'Product soft-deleted successfully' });
     } catch (error) {
       return handleErrors(res, error);
     }
