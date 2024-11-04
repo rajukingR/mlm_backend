@@ -44,9 +44,19 @@ exports.createCategory = [
 ];
 
 // Get all Categories
+// exports.getAllCategories = async (req, res) => {
+//   try {
+//     const categories = await Category.findAll();
+//     return res.status(200).json(categories);
+//   } catch (error) {
+//     return handleErrors(res, error);
+//   }
+// };
 exports.getAllCategories = async (req, res) => {
   try {
-    const categories = await Category.findAll();
+    const categories = await Category.findAll({
+      where: { is_deleted: false }
+    });
     return res.status(200).json(categories);
   } catch (error) {
     return handleErrors(res, error);
@@ -54,9 +64,22 @@ exports.getAllCategories = async (req, res) => {
 };
 
 // Get Category by ID
+// exports.getCategoryById = async (req, res) => {
+//   try {
+//     const category = await Category.findByPk(req.params.id);
+//     if (!category) {
+//       return res.status(404).json({ error: 'Category not found' });
+//     }
+//     return res.status(200).json(category);
+//   } catch (error) {
+//     return handleErrors(res, error);
+//   }
+// };
 exports.getCategoryById = async (req, res) => {
   try {
-    const category = await Category.findByPk(req.params.id);
+    const category = await Category.findOne({
+      where: { id: req.params.id, is_deleted: false }
+    });
     if (!category) {
       return res.status(404).json({ error: 'Category not found' });
     }
@@ -92,18 +115,37 @@ exports.updateCategory = [
 ];
 
 // Delete Category (Admin Only)
+// exports.deleteCategory = [
+//   validateAdminRole, // Only admin can delete
+//   async (req, res) => {
+//     try {
+//       const deleted = await Category.destroy({
+//         where: { id: req.params.id }
+//       });
+
+//       if (!deleted) {
+//         return res.status(404).json({ error: 'Category not found' });
+//       }
+//       return res.status(200).json({ message: 'Category deleted successfully' });
+//     } catch (error) {
+//       return handleErrors(res, error);
+//     }
+//   }
+// ];
+
 exports.deleteCategory = [
-  validateAdminRole, // Only admin can delete
+  validateAdminRole,
   async (req, res) => {
     try {
-      const deleted = await Category.destroy({
-        where: { id: req.params.id }
-      });
+      const [updated] = await Category.update(
+        { is_deleted: true },
+        { where: { id: req.params.id } }
+      );
 
-      if (!deleted) {
+      if (!updated) {
         return res.status(404).json({ error: 'Category not found' });
       }
-      return res.status(200).json({ message: 'Category deleted successfully' });
+      return res.status(200).json({ message: 'Category marked as deleted successfully' });
     } catch (error) {
       return handleErrors(res, error);
     }
