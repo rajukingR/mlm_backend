@@ -18,6 +18,7 @@ const clubRoutes = require('./routes/clubRoutes');
 const salesTargetrRoutes = require('./routes/salesTargetrRoutes');
 const minimumStockRoutes = require('./routes/minimumStockRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const userSalesDetailRoutes = require('./routes/userSalesDetailRoutes');
 
 
 
@@ -57,6 +58,7 @@ app.use('/salestarget', salesTargetrRoutes);
 app.use('/minimumstock', minimumStockRoutes);
 app.use('/feedback', feedbackRoutes);
 app.use('/api', userUpdateRoutes); // Use /api prefix for member update route
+app.use('/user_sales_detail',userSalesDetailRoutes)
 
 // Announcement routes
 app.use('/announcements', (req, res, next) => {
