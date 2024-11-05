@@ -81,7 +81,7 @@ exports.createAnnouncement = async (req, res) => {
       activateStatus,
       fromDate: autoUpdate ? fromDate : null, // Only save if autoUpdate is enabled
       toDate: autoUpdate ? toDate : null,       // Only save if autoUpdate is enabled
-      image: req.file ? req.file.filename : null,
+      image: req.file ? req.file.path : null, // Send the image path in the response
     });
 
     // Emit event for new announcement using `req.io`
