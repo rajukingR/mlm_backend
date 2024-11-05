@@ -19,8 +19,9 @@ exports.createOrder = async (req, res) => {
     // Determine user role
     const userRole = user.role_name; // Assuming role_name is how you identify user roles
 
-    // Initialize total amount and an array for order items
+    // Initialize total amount, total order quantity, and an array for order items
     let totalAmount = 0;
+    let totalOrderQuantity = 0;
     const orderItems = [];
 
     // Retrieve products in bulk
@@ -28,20 +29,28 @@ exports.createOrder = async (req, res) => {
     const products = await Product.findAll({ where: { id: productIds } });
     const productMap = new Map(products.map(product => [product.id, product]));
 
-    // Calculate total amount and prepare order items
+    // Calculate total amount, total order quantity, and prepare order items
     for (let item of items) {
       const product = productMap.get(item.product_id);
       if (!product) {
         return res.status(404).json({ message: `Product with ID ${item.product_id} not found` });
       }
-      totalAmount += product.price * item.quantity;
 
+      // Calculate order item total price and add to total amount
+      const itemTotalPrice = product.price * item.quantity;
+      totalAmount += itemTotalPrice;
+
+      // Calculate total order quantity based on productVolume and add to total
+      const itemTotalVolume = parseFloat(product.productVolume) * item.quantity;
+      totalOrderQuantity += itemTotalVolume;
+
+      // Prepare order item for bulk creation
       orderItems.push({
         product_id: product.id,
         quantity: item.quantity,
         quantity_type: product.quantity_type,
         baseprice: product.price,
-        final_price: product.price * item.quantity,
+        final_price: itemTotalPrice,
       });
     }
 
@@ -50,11 +59,9 @@ exports.createOrder = async (req, res) => {
 
     // Logic to determine the higher role ID based on user role
     let higherRoleId = null;
-
-    // Implementing higher role logic
     higherRoleId = await getSuperior(user.id, userRole);
 
-    // Create order
+    // Create order with total order quantity
     const order = await Order.create({
       user_id,
       total_amount: totalAmount,
@@ -64,6 +71,7 @@ exports.createOrder = async (req, res) => {
       status: 'Pending', // Default status is 'Pending'
       requested_by_role: userRole, // Track who made the request
       higher_role_id: higherRoleId, // Next superior role ID
+      total_order_quantity: totalOrderQuantity, // Store the total order quantity
     });
 
     // Bulk create order items
@@ -79,6 +87,7 @@ exports.createOrder = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
 
 // Implement this function to find the superior based on role
 const getSuperior = async (userId, userRole) => {
