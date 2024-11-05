@@ -21,6 +21,10 @@ const announcementRoutes = require('./routes/announcementRoutes');
 const documentRoutes = require('./routes/documentRoutes'); 
 const editRequestRoutes = require('./routes/editRequestRoutes'); 
 const userUpdateRoutes = require('./routes/userupdateRoutes');
+const requestRoutes = require('./routes/requestRoutes');
+const ordersRoutes = require('./routes/ordersRoutes'); // Ensure the path is correct
+const orderLimitRoutes = require('./routes/orderLimitRoutes'); // Adjust the path as necessary
+const path = require('path');
 
 const { authMiddleware } = require('./middlewares/authMiddleware');
 
@@ -37,7 +41,7 @@ const io = new Server(server, {
 
 app.use(cors());
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Pass `io` to the routes where needed
 app.use('/api/admin', adminRoutes);
@@ -52,6 +56,9 @@ app.use('/club', clubRoutes);
 app.use('/salestarget', salesTargetrRoutes);
 app.use('/minimumstock', minimumStockRoutes);
 app.use('/api', userUpdateRoutes); // Use /api prefix for member update route
+app.use('/api/requests', requestRoutes);
+app.use('/api/orders', ordersRoutes);
+app.use('/api/order-limits', orderLimitRoutes); // Mount the order limit routes
 
 // Announcement routes
 app.use('/announcements', (req, res, next) => {

@@ -89,7 +89,7 @@ exports.createDocument = async (req, res) => {
       activateStatus,
       fromDate: autoUpdate ? fromDate : null,
       toDate: autoUpdate ? toDate : null,
-      image: req.file ? req.file.filename : null,
+      image: req.file ? req.file.path : null, // Send the image path in the response
     });
 
     req.io.emit('new_document', document);
