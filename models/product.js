@@ -3,10 +3,9 @@
 module.exports = (sequelize, DataTypes) => {
   const Product = sequelize.define('Product', {
     image: {
-      type: DataTypes.STRING, // Change from Sequelize.STRING to DataTypes.STRING
-      allowNull: true,
+      type: DataTypes.STRING,
+      allowNull: false
     },
-    
     name: {
       type: DataTypes.STRING(100),
       allowNull: false
@@ -95,3 +94,5 @@ module.exports = (sequelize, DataTypes) => {
 
   return Product;
 };
+
+
