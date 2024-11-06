@@ -1,10 +1,10 @@
 'use strict';
-
-const { Product } = require('../models');
+const { Product } = require('../models'); // Import the Product model
 const { validationResult } = require('express-validator');
 const { body } = require('express-validator');
+
+// Product validation rules
 const productValidationRules = [
-  body('image').isURL().withMessage('Image URL must be a valid URL'),
   body('name').notEmpty().withMessage('Product name is required'),
   body('product_code').notEmpty().withMessage('Product Id is required'),
   body('productVolume').notEmpty().withMessage('Product volume must be a decimal number'),
@@ -31,38 +31,64 @@ const validateAdminRole = (req, res, next) => {
   next();
 };
 
-
-
+// Define your controller functions
 exports.createProduct = [
-    validateAdminRole, // Ensure only admin can create a product
-    ...productValidationRules,
-    async (req, res) => {
-      try {
-        // Validate request body
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-          return res.status(400).json({ errors: errors.array() });
-        }
-  
-        // Check if a product with the same name already exists
-        const existingProduct = await Product.findOne({
-          where: { name: req.body.name }
+  // Validate the request body
+  ...productValidationRules,
+  async (req, res) => {
+    try {
+      // Validate request body
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation errors',
+          errors: errors.array(),
         });
-        if (existingProduct) {
-          return res.status(400).json({ error: 'Product with this name already exists' });
-        }
-  
-        // Create the product with createdBy field
-        const newProduct = await Product.create({
-          ...req.body,
-          createdBy: req.user.id // Assuming req.user contains authenticated user data
-        });
-        return res.status(201).json(newProduct);
-      } catch (error) {
-        return handleErrors(res, error);
       }
+
+      const {
+        name, quantity_type, currency, product_code, description,
+        productVolume, price, adoPrice, mdPrice, sdPrice, distributorPrice, status
+      } = req.body;
+
+      // Check if product code already exists
+      const existingProduct = await Product.findOne({ where: { product_code } });
+      if (existingProduct) {
+        return res.status(400).json({
+          success: false,
+          message: 'Product code already exists.',
+        });
+      }
+
+      // Store product details in the database
+      const newProduct = await Product.create({
+        name,
+        quantity_type,
+        currency,
+        product_code,
+        description,
+        productVolume,
+        price,
+        adoPrice,
+        mdPrice,
+        sdPrice,
+        distributorPrice,
+        status,
+        image: req.file ? req.file.path : null, // Store the image path if uploaded
+        createdBy: req.user.id, // Assuming 'req.user.id' is the authenticated user ID
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: newProduct,
+      });
+    } catch (error) {
+      console.error(error); // Log the error for debugging
+      return res.status(500).json({ error: error.message }); // Respond with an error message
     }
-  ];
+  }
+];
 
 // Get all products
 exports.getAllProducts = async (req, res) => {
@@ -125,7 +151,6 @@ exports.deleteProduct = [
       if (!deleted) {
         return res.status(404).json({ error: 'Product not found' });
       }
-      // return res.status(204).send();
       return res.status(200).json({ message: 'Product deleted successfully' });
     } catch (error) {
       return handleErrors(res, error);
