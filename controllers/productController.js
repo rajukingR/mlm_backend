@@ -33,37 +33,32 @@ const validateAdminRole = (req, res, next) => {
 
 
 
-exports.createProduct = [
-    validateAdminRole, // Ensure only admin can create a product
-    ...productValidationRules,
-    async (req, res) => {
-      try {
-        // Validate request body
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-          return res.status(400).json({ errors: errors.array() });
-        }
-  
-        // Check if a product with the same name already exists
-        const existingProduct = await Product.findOne({
-          where: { name: req.body.name }
-        });
-        if (existingProduct) {
-          return res.status(400).json({ error: 'Product with this name already exists' });
-        }
-  
-        // Create the product with createdBy field
-        const newProduct = await Product.create({
-          ...req.body,
-          createdBy: req.user.id // Assuming req.user contains authenticated user data
-        });
-        return res.status(201).json(newProduct);
-      } catch (error) {
-        return handleErrors(res, error);
-      }
+exports.createProduct = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
-  ];
 
+    // Check if a product with the same name already exists
+    const existingProduct = await Product.findOne({
+      where: { name: req.body.name }
+    });
+    if (existingProduct) {
+      return res.status(400).json({ error: 'Product with this name already exists' });
+    }
+
+    // Create the product with the image path and createdBy field
+    const newProduct = await Product.create({
+      ...req.body,
+      image: req.file ? req.file.path : null, // Set image path if uploaded
+      createdBy: req.user.id // Assuming req.user contains authenticated user data
+    });
+    return res.status(201).json(newProduct);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
 // Get all products
 exports.getAllProducts = async (req, res) => {
   try {
