@@ -68,32 +68,27 @@ const updateAssignedOrders = async () => {
 // Express route handler to fetch pending orders
 exports.fetchOrders = async (req, res) => {
   try {
-    // Fetch all orders
-    const orders = await Order.findAll();
+    const userId = req.user.id; // Get the logged-in user's ID from req.user
 
-    const currentTime = new Date();
-    const timeLimit = new Date(currentTime.getTime() - 2 * 60 * 1000); // 2 minutes ago
-
-    // Initialize an empty array to hold filtered orders
-    const filteredOrders = [];
-
-    // Loop through each order to apply conditions
-    for (const order of orders) {
-      // Check if the order matches the criteria
-      if (
-        order.status === "Pending" &&
-        new Date(order.createdAt) <= timeLimit &&
-        order.higher_role_id === 55 // Adjust this condition as necessary based on your requirements
-      ) {
-        // Push the order to filtered array if it meets criteria
-        filteredOrders.push(order);
+    // Fetch all orders for the logged-in user where the status is 'Pending' and higher_role_id matches userId
+    const orders = await Order.findAll({
+      where: {
+        status: 'Pending',
+        higher_role_id: userId // Filter orders by the user's higher_role_id
       }
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No pending orders found for this user.'
+      });
     }
 
-    // Send response with filtered orders
+    // Send response with the found orders
     return res.status(200).json({
       success: true,
-      data: filteredOrders
+      data: orders
     });
   } catch (error) {
     return res.status(500).json({
