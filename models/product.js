@@ -4,7 +4,7 @@ module.exports = (sequelize, DataTypes) => {
   const Product = sequelize.define('Product', {
     image: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true
     },
     name: {
       type: DataTypes.STRING(100),
@@ -69,14 +69,14 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
-    category_id: { 
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: 'category',
-        key: 'id'
-      }
-    },
+    // category_id: { 
+    //   type: DataTypes.INTEGER,
+    //   allowNull: true,
+    //   references: {
+    //     model: 'category',
+    //     key: 'id'
+    //   }
+    // },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
