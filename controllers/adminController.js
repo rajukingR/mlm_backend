@@ -155,24 +155,26 @@ exports.getAdminDetails = async (req, res) => {
 
 
 
-//*** Update Admin Details ***//
 exports.updateAdmin = async (req, res) => {
   try {
-    const { username, email, pincode, state, city, street_name, building_no_name, mobile_number } = req.body;
-    const adminId = req.user.id; // ID from the token
+    // Destructure the necessary fields from the request body
+    const { full_name, email, pincode, state, city, street_name, building_no_name, mobile_number, country } = req.body;
 
-    // Validate required fields
-    if (!username || !email || !mobile_number) {
-      return res.status(400).json({ error: 'All required fields must be provided' });
-    }
+    // Get the admin ID from the token
+    const adminId = req.user.id;
 
-    // Find the admin by ID
+    // Get the image path from the multer upload (if file is uploaded)
+    const image = req.file ? req.file.path : null; // Image path is in req.file.path
+
+    // Find the admin by ID (adminId from the token)
     const admin = await User.findByPk(adminId);
+
+    // If admin not found, return an error
     if (!admin) {
       return res.status(404).json({ error: 'Admin not found' });
     }
 
-    // Check if the email or mobile number already exists for another user
+    // Check if the email or mobile number already exists for another user (not the current admin)
     const existingUser = await User.findOne({
       where: {
         [Op.or]: [
@@ -183,6 +185,7 @@ exports.updateAdmin = async (req, res) => {
       }
     });
 
+    // If email or mobile number already in use, return appropriate error
     if (existingUser) {
       if (existingUser.email === email) {
         return res.status(400).json({ error: 'Email already in use' });
@@ -192,20 +195,24 @@ exports.updateAdmin = async (req, res) => {
       }
     }
 
-    // Update the admin details
+    // Update the admin details (including full_name, excluding username, which is not editable)
     await admin.update({
-      username,
+      full_name,  // Update full name
       email,
       pincode,
       state,
       city,
       street_name,
       building_no_name,
-      mobile_number
+      mobile_number,
+      country,  // Update country
+      image     // Update image path if a new image was uploaded
     });
 
+    // Return the updated admin data
     res.status(200).json(admin);
   } catch (error) {
+    console.error(error);  // Log the error for debugging
     res.status(500).json({ error: error.message });
   }
 };
