@@ -1,6 +1,7 @@
 const { Order, OrderItem, Product, User } = require('../../models');
 
 // Create Order
+// Create Order
 exports.createOrder = async (req, res) => {
   const { user_id, items, coupon_code } = req.body; // coupon_code is optional
 
@@ -19,8 +20,9 @@ exports.createOrder = async (req, res) => {
     // Determine user role
     const userRole = user.role_name; // Assuming role_name is how you identify user roles
 
-    // Initialize total amount and an array for order items
+    // Initialize total amount, total order volume (in liters), and an array for order items
     let totalAmount = 0;
+    let totalOrderVolume = 0; // Store total volume in liters
     const orderItems = [];
 
     // Retrieve products in bulk
@@ -28,20 +30,31 @@ exports.createOrder = async (req, res) => {
     const products = await Product.findAll({ where: { id: productIds } });
     const productMap = new Map(products.map(product => [product.id, product]));
 
-    // Calculate total amount and prepare order items
+    // Calculate total amount, total order volume (in liters), and prepare order items
     for (let item of items) {
       const product = productMap.get(item.product_id);
       if (!product) {
         return res.status(404).json({ message: `Product with ID ${item.product_id} not found` });
       }
-      totalAmount += product.price * item.quantity;
 
+      const itemTotalPrice = product.price * item.quantity;
+      let itemVolume = parseFloat(product.productVolume) * item.quantity;
+
+      // Convert volume to liters
+      if (product.productVolume.includes("ml")) {
+        itemVolume = itemVolume / 1000; // Convert milliliters to liters
+      }
+
+      totalAmount += itemTotalPrice;
+      totalOrderVolume += itemVolume; // Add volume in liters
+    
       orderItems.push({
         product_id: product.id,
         quantity: item.quantity,
         quantity_type: product.quantity_type,
         baseprice: product.price,
-        final_price: product.price * item.quantity,
+        final_price: itemTotalPrice,
+        item_volume: itemVolume, // Include item_volume in OrderItem in liters
       });
     }
 
@@ -50,11 +63,9 @@ exports.createOrder = async (req, res) => {
 
     // Logic to determine the higher role ID based on user role
     let higherRoleId = null;
-
-    // Implementing higher role logic
     higherRoleId = await getSuperior(user.id, userRole);
 
-    // Create order
+    // Create order with total order volume in liters
     const order = await Order.create({
       user_id,
       total_amount: totalAmount,
@@ -64,6 +75,7 @@ exports.createOrder = async (req, res) => {
       status: 'Pending', // Default status is 'Pending'
       requested_by_role: userRole, // Track who made the request
       higher_role_id: higherRoleId, // Next superior role ID
+      total_order_quantity: totalOrderVolume, // Store the total order volume in liters
     });
 
     // Bulk create order items
@@ -79,6 +91,7 @@ exports.createOrder = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
 
 // Implement this function to find the superior based on role
 const getSuperior = async (userId, userRole) => {
@@ -120,7 +133,13 @@ exports.getOrdersByUser = async (req, res) => {
       include: [{
         model: OrderItem,
         as: 'OrderItems', // Make sure this matches the alias used in the Order model
-        required: false, // Include order items if they exist
+        required: false,
+        include: [
+          {
+            model: Product,
+            as: 'product',
+          },
+        ],
       }],
     });
 
@@ -167,7 +186,13 @@ exports.getOrdersBySubordinates = async (req, res) => {
       where: { user_id: subordinateIds },
       include: [{
         model: OrderItem,
-        as: 'OrderItems', // Specify the alias here
+        as: 'OrderItems',
+        include: [
+          {
+            model: Product,
+            as: 'product',
+          },
+        ], // Include order items if they exist
       }]
     });
 

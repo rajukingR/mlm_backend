@@ -34,6 +34,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
     },
+    item_volume: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    },
   }, {
     tableName: 'orderitems',
     timestamps: true,

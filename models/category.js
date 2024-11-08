@@ -13,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
         model: 'categories',
         key: 'id'
       }
+    },
+    is_deleted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false
     }
   }, {
     timestamps: true,

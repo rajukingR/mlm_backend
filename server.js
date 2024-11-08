@@ -17,6 +17,11 @@ const rolsRoutes = require('./routes/rolesRoutes');
 const clubRoutes = require('./routes/clubRoutes');
 const salesTargetrRoutes = require('./routes/salesTargetrRoutes');
 const minimumStockRoutes = require('./routes/minimumStockRoutes');
+const feedbackRoutes = require('./routes/feedbackRoutes');
+const userSalesDetailRoutes = require('./routes/userSalesDetailRoutes');
+
+
+
 const announcementRoutes = require('./routes/announcementRoutes');
 const documentRoutes = require('./routes/documentRoutes'); 
 const editRequestRoutes = require('./routes/editRequestRoutes'); 
@@ -55,7 +60,9 @@ app.use('/roles', rolsRoutes);
 app.use('/club', clubRoutes);
 app.use('/salestarget', salesTargetrRoutes);
 app.use('/minimumstock', minimumStockRoutes);
+app.use('/feedback', feedbackRoutes);
 app.use('/api', userUpdateRoutes); // Use /api prefix for member update route
+app.use('/user_sales_detail',userSalesDetailRoutes)
 app.use('/api/requests', requestRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/order-limits', orderLimitRoutes); // Mount the order limit routes
