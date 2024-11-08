@@ -51,7 +51,7 @@ exports.createProduct = async (req, res) => {
     // Create the product with the image path and createdBy field
     const newProduct = await Product.create({
       ...req.body,
-      image: req.file ? req.file.path : null, // Set image path if uploaded
+      image: req.body.image || null, // Use the image URL from the request body
       createdBy: req.user.id // Assuming req.user contains authenticated user data
     });
     return res.status(201).json(newProduct);
