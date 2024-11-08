@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
     },
+    total_order_quantity: { 
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+    },
     status: {
       type: DataTypes.ENUM('Pending', 'Completed', 'Cancelled'),
       allowNull: false,

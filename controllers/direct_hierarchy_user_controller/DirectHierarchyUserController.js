@@ -160,27 +160,27 @@ exports.getUserProfile = async (req, res) => {
     if (userRole === 2) { // ADO
       profile = await User.findOne({
         where: { id: userId },
-        attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'street_name', 'pincode', 'role_id']
+        // attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'street_name', 'pincode', 'role_id']
       });
     } else if (userRole === 3) { // MD (Master Distributor)
       profile = await User.findOne({
         where: { id: userId },
-        attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'superior_ado', 'role_id']
+        // attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'superior_ado', 'role_id']
       });
     } else if (userRole === 4) { // SD (Super Distributor)
       profile = await User.findOne({
         where: { id: userId },
-        attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'superior_md', 'role_id']
+        // attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'superior_md', 'role_id']
       });
     } else if (userRole === 5) { // D (Distributor)
       profile = await User.findOne({
         where: { id: userId },
-        attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'superior_sd', 'role_id']
+        // attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'superior_sd', 'role_id']
       });
     } else if (userRole === 6) { // C (Customer)
       profile = await User.findOne({
         where: { id: userId },
-        attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'superior_d', 'role_id']
+        // attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'superior_d', 'role_id']
       });
     } else {
       return res.status(400).json({ error: 'Invalid role or role not recognized' });
@@ -291,7 +291,7 @@ exports.getUserProfileByHierarchy = async (req, res) => {
 async function fetchUserProfile(userId) {
   return await User.findOne({
     where: { id: userId },
-    attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'street_name', 'pincode', 'role_id', 'superior_ado', 'superior_md', 'superior_sd', 'superior_d']
+    // attributes: ['username', 'email', 'full_name', 'mobile_number', 'state', 'city', 'street_name', 'pincode', 'role_id', 'superior_ado', 'superior_md', 'superior_sd', 'superior_d']
   });
 }
 
