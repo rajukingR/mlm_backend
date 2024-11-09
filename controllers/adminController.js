@@ -195,9 +195,8 @@ exports.updateAdmin = async (req, res) => {
       }
     }
 
-    // Update the admin details (including full_name, excluding username, which is not editable)
     await admin.update({
-      full_name,  // Update full name
+      full_name,
       email,
       pincode,
       state,
@@ -205,9 +204,10 @@ exports.updateAdmin = async (req, res) => {
       street_name,
       building_no_name,
       mobile_number,
-      country,  // Update country
-      image     // Update image path if a new image was uploaded
+      country,
+      image: image || admin.image // Only update image if a new image is provided, otherwise retain the existing one
     });
+    
 
     // Return the updated admin data
     res.status(200).json(admin);

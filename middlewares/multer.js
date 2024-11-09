@@ -1,8 +1,6 @@
-// middlewares/multer.js
 const multer = require('multer');
 const path = require('path');
 
-// Define storage options
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/'); // Store images in 'uploads/' directory
@@ -12,7 +10,6 @@ const storage = multer.diskStorage({
   }
 });
 
-// File filter to accept only images
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
@@ -21,7 +18,6 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configure multer middleware
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
