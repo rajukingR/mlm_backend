@@ -8,8 +8,10 @@ const updateAssignedOrders = async () => {
       order: [['createdAt', 'DESC']] // Assuming you want the latest record
     });
 
-    const hours = orderLimitRecord ? orderLimitRecord.hours : 48; // Default to 48 hours if not found
-    const timeLimit = new Date(Date.now() - hours * 60 * 60 * 1000); // Calculate time limit
+    // const hours = orderLimitRecord ? orderLimitRecord.hours : 48; // Default to 48 hours if not found
+
+    // const timeLimit = new Date(Date.now() - hours * 60 * 60 * 1000); // Calculate time limit
+    const timeLimit = new Date(Date.now() - 2 * 60 * 1000); // Calculate time limit
 
     // Fetch all orders with pending status
     const pendingOrders = await Order.findAll({
@@ -74,7 +76,7 @@ exports.fetchOrders = async (req, res) => {
     const orders = await Order.findAll({
       where: {
         status: 'Pending',
-        higher_role_id: userId // Filter orders by the user's higher_role_id
+        higher_role_id: 55 // Filter orders by the user's higher_role_id
       }
     });
 
