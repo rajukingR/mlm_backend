@@ -4,7 +4,15 @@ const { Product } = require('../models');
 const { validationResult } = require('express-validator');
 const { body } = require('express-validator');
 const productValidationRules = [
-  body('image').optional().isURL().withMessage('Image URL must be a valid URL'), // Optional for update
+  body('image')
+    .optional()
+    .custom((value) => {
+      // Allow image file path or a valid URL
+      if (value && !(value.startsWith('http://') || value.startsWith('https://') || value.endsWith('.jpg') || value.endsWith('.png'))) {
+        throw new Error('Image must be a valid URL or file path');
+      }
+      return true;
+    }),
   body('name').notEmpty().withMessage('Product name is required'),
   body('product_code').notEmpty().withMessage('Product Id is required'),
   body('productVolume').notEmpty().withMessage('Product volume must be a decimal number'),
@@ -15,6 +23,7 @@ const productValidationRules = [
   body('distributorPrice').isDecimal().withMessage('Distributor price must be a decimal number'),
   body('status').isBoolean().withMessage('Activate status must be a boolean'),
 ];
+
 
 
 // Utility function to handle errors
@@ -56,6 +65,33 @@ exports.createProduct = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+
+
+exports.updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch the existing product
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Update product details, including image if provided
+    const updatedProductData = {
+      ...req.body,
+      image: req.file ? req.file.path : product.image, // Use new image or keep existing one
+    };
+
+    await product.update(updatedProductData);
+    return res.status(200).json(product);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+
 // Get all products
 exports.getAllProducts = async (req, res) => {
   try {
@@ -85,36 +121,6 @@ exports.getProductById = async (req, res) => {
   }
 };
 
-exports.updateProduct = [
-  validateAdminRole, // Ensure only admin can update a product
-  ...productValidationRules,
-  async (req, res) => {
-    try {
-      // Validate request body
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-      }
-
-      // If a new image is uploaded, update the image field; otherwise, keep the existing one
-      const updatedProductData = req.body;
-      if (req.file) {
-        updatedProductData.image = req.file.path; // Update image if a new file is uploaded
-      }
-
-      const [updated] = await Product.update(updatedProductData, {
-        where: { id: req.params.id }
-      });
-
-      if (!updated) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      return res.status(200).json({ message: 'Product updated successfully' });
-    } catch (error) {
-      return handleErrors(res, error);
-    }
-  }
-];
 
 
 // Delete a product
