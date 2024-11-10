@@ -58,6 +58,96 @@ exports.signIn = async (req, res) => {
 
 
 ///// ************************User sign-up***********************************/////
+// exports.signUp = async (req, res) => {
+//   try {
+//     const {
+//       username,
+//       password,
+//       email,
+//       role_id,
+//       superior_id,
+//       pincode,
+//       state,
+//       city,
+//       street_name,
+//       building_no_name,
+//       mobile_number,
+//       full_name,
+//       gst_number
+//     } = req.body;
+
+//     // Validate role
+//     const role = await Role.findByPk(role_id);
+//     if (!role) {
+//       return res.status(400).json({ error: 'Invalid role ID' });
+//     }
+
+//     // Validate superior user (creator)
+//     const roleHierarchy = {
+//       1: ['2', '3', '4', '5', '6'],
+//       2: ['3', '4', '5', '6'],
+//       3: ['4', '5', '6'],
+//       4: ['5', '6'],
+//       5: ['6'],
+//       6: []
+//     };
+
+//     const creator = await User.findByPk(superior_id);
+//     if (!creator) {
+//       return res.status(400).json({ error: 'Invalid superior_id' });
+//     }
+
+//     // Ensure Admin cannot be assigned as a superior for hierarchical users
+//     if (creator.role_name === 'Admin') {
+//       return res.status(400).json({ error: 'Admin cannot be assigned as superior' });
+//     }
+
+//     const allowedRoles = roleHierarchy[creator.role_id];
+//     if (!allowedRoles.includes(role_id.toString())) {
+//       return res.status(400).json({ error: 'Superior user role cannot supervise this role' });
+//     }
+
+//     // Check for existing username, email, and mobile number
+//     const [existingUser, existingEmail, existingMobile] = await Promise.all([
+//       User.findOne({ where: { username } }),
+//       User.findOne({ where: { email } }),
+//       User.findOne({ where: { mobile_number } })
+//     ]);
+
+//     if (existingUser || existingEmail || existingMobile) {
+//       const errorMessages = [];
+//       if (existingUser) errorMessages.push('Username already exists');
+//       if (existingEmail) errorMessages.push('Email already exists');
+//       if (existingMobile) errorMessages.push('Mobile number already exists');
+//       return res.status(400).json({ error: errorMessages.join(', ') });
+//     }
+
+//     // Create the user after validation passes
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     const newUser = await User.create({
+//       username,
+//       password: hashedPassword,
+//       email,
+//       role_id,
+//       superior_id,
+//       role_name: role.role_name,
+//       pincode,
+//       state,
+//       city,
+//       street_name,
+//       building_no_name,
+//       mobile_number,
+//       full_name,
+//       gst_number
+//     });
+
+//     res.status(201).json(newUser);
+//   } catch (error) {
+//     console.error('Error creating user:', error);
+//     res.status(500).json({ error: 'Failed to create user' });
+//   }
+// };
+
 exports.signUp = async (req, res) => {
   try {
     const {
@@ -82,29 +172,35 @@ exports.signUp = async (req, res) => {
       return res.status(400).json({ error: 'Invalid role ID' });
     }
 
-    // Validate superior user (creator)
-    const roleHierarchy = {
-      1: ['2', '3', '4', '5', '6'],
-      2: ['3', '4', '5', '6'],
-      3: ['4', '5', '6'],
-      4: ['5', '6'],
-      5: ['6'],
-      6: []
-    };
+    // Check if the role is ADO (assuming 'ADO' is the name in your roles table)
+    let finalSuperiorId = superior_id;
+    if (role.role_name === 'Area Development Officer') {
+      finalSuperiorId = null;
+    } else {
+      // Validate superior user if not ADO
+      const creator = await User.findByPk(superior_id);
+      if (!creator) {
+        return res.status(400).json({ error: 'Invalid superior_id' });
+      }
 
-    const creator = await User.findByPk(superior_id);
-    if (!creator) {
-      return res.status(400).json({ error: 'Invalid superior_id' });
-    }
+      // Ensure Admin cannot be assigned as a superior for hierarchical users
+      if (creator.role_name === 'Admin') {
+        return res.status(400).json({ error: 'Admin cannot be assigned as superior' });
+      }
 
-    // Ensure Admin cannot be assigned as a superior for hierarchical users
-    if (creator.role_name === 'Admin') {
-      return res.status(400).json({ error: 'Admin cannot be assigned as superior' });
-    }
-
-    const allowedRoles = roleHierarchy[creator.role_id];
-    if (!allowedRoles.includes(role_id.toString())) {
-      return res.status(400).json({ error: 'Superior user role cannot supervise this role' });
+      // Define role hierarchy and validate based on it
+      const roleHierarchy = {
+        1: ['2', '3', '4', '5', '6'],
+        2: ['3', '4', '5', '6'],
+        3: ['4', '5', '6'],
+        4: ['5', '6'],
+        5: ['6'],
+        6: []
+      };
+      const allowedRoles = roleHierarchy[creator.role_id];
+      if (!allowedRoles.includes(role_id.toString())) {
+        return res.status(400).json({ error: 'Superior user role cannot supervise this role' });
+      }
     }
 
     // Check for existing username, email, and mobile number
@@ -129,7 +225,7 @@ exports.signUp = async (req, res) => {
       password: hashedPassword,
       email,
       role_id,
-      superior_id,
+      superior_id: finalSuperiorId, // Use finalSuperiorId here
       role_name: role.role_name,
       pincode,
       state,
@@ -147,6 +243,7 @@ exports.signUp = async (req, res) => {
     res.status(500).json({ error: 'Failed to create user' });
   }
 };
+
 
 
 
