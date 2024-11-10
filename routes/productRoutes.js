@@ -12,3 +12,6 @@ router.put('/:id', upload.single('image'), authMiddleware, isAdmin, productContr
 router.delete('/:id', productController.deleteProduct);
 
 module.exports = router;
+
+
+///product
