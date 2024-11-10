@@ -51,7 +51,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Pass `io` to the routes where needed
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
-app.use('/products', authMiddleware, productRoutes);
+app.use('/products', productRoutes);
 app.use('/category', authMiddleware, categoryRoutes);
 app.use('/members', memberRoutes);
 app.use('/directMembers', directMemberRoutes);
