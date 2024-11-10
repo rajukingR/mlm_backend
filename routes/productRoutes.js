@@ -8,7 +8,7 @@ const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
 router.get('/', productController.getAllProducts);
 router.get('/:id', productController.getProductById);
 router.post('/', upload.single('image'), authMiddleware, isAdmin, productController.createProduct);
-router.put('/:id', upload.single('image'), authMiddleware, isAdmin, productController.updateProduct);
+router.put('/:id', upload.single('image'), productController.updateProduct);
 router.delete('/:id', productController.deleteProduct);
 
 module.exports = router;
