@@ -62,8 +62,9 @@ exports.createOrder = async (req, res) => {
     const finalAmount = totalAmount;
 
     // Logic to determine the higher role ID based on user role
-    let higherRoleId = null;
-    higherRoleId = await getSuperior(user.id, userRole);
+    // let higherRoleId = null;
+    // higherRoleId = await getSuperior(user.id, userRole);
+    let higherRoleId = await getSuperior(user.id); 
 
     // Create order with total order volume in liters
     const order = await Order.create({
@@ -94,34 +95,41 @@ exports.createOrder = async (req, res) => {
 
 
 // Implement this function to find the superior based on role
-const getSuperior = async (userId, userRole) => {
-  // Find the user to get the superior IDs
+// const getSuperior = async (userId, userRole) => {
+//   // Find the user to get the superior IDs
+//   const user = await User.findByPk(userId);
+//   if (!user) {
+//     return null; // User not found, return null
+//   }
+
+//   switch (userRole) {
+//     case 'Customer': // Assuming Customers are under Distributors
+//       return user.superior_d || await getSuperior(user.superior_d, 'Distributor');
+//     case 'Distributor':
+//       return user.superior_sd || await getSuperior(user.superior_sd, 'Super Distributor');
+//     case 'Super Distributor':
+//       return user.superior_md || await getSuperior(user.superior_md, 'Master Distributor');
+//     case 'Master Distributor':
+//       return user.superior_ado || await getSuperior(user.superior_ado, 'Area Development Officer');
+//     case 'Area Development Officer':
+//       return user.superior_id; // Assuming this is the Admin or the direct superior
+//     default:
+//       return null; // No higher role found
+//   }
+// };
+const getSuperior = async (userId) => {
   const user = await User.findByPk(userId);
   if (!user) {
-    return null; // User not found, return null
+    return null; 
   }
 
-  switch (userRole) {
-    case 'Customer': // Assuming Customers are under Distributors
-      return user.superior_d || await getSuperior(user.superior_d, 'Distributor');
-    case 'Distributor':
-      return user.superior_sd || await getSuperior(user.superior_sd, 'Super Distributor');
-    case 'Super Distributor':
-      return user.superior_md || await getSuperior(user.superior_md, 'Master Distributor');
-    case 'Master Distributor':
-      return user.superior_ado || await getSuperior(user.superior_ado, 'Area Development Officer');
-    case 'Area Development Officer':
-      return user.superior_id; // Assuming this is the Admin or the direct superior
-    default:
-      return null; // No higher role found
-  }
+  return user.superior_id;
 };
 
 
 
 
-
-/////////////*********** */ Get Orders my**********//////////
+/////////////********** / Get Orders my**********//////////
 
 exports.getOrdersByUser = async (req, res) => {
   const { user_id } = req.params; // Expecting user_id as a URL parameter
@@ -209,28 +217,40 @@ exports.getOrdersBySubordinates = async (req, res) => {
 };
 
 // Helper function to find subordinates based on the user's role
-const findSubordinateUsers = async (userId, role) => {
-  let whereCondition = {};
+// const findSubordinateUsers = async (userId, role) => {
+//   let whereCondition = {};
 
-  switch (role) {
-    case 'Area Development Officer':
-      whereCondition = { superior_ado: userId };
-      break;
-    case 'Master Distributor':
-      whereCondition = { superior_md: userId };
-      break;
-    case 'Super Distributor':
-      whereCondition = { superior_sd: userId };
-      break;
-    case 'Distributor':
-      whereCondition = { superior_d: userId };
-      break;
-    default:
-      return []; // No subordinates for roles like Customer
+//   switch (role) {
+//     case 'Area Development Officer':
+//       whereCondition = { superior_ado: userId };
+//       break;
+//     case 'Master Distributor':
+//       whereCondition = { superior_md: userId };
+//       break;
+//     case 'Super Distributor':
+//       whereCondition = { superior_sd: userId };
+//       break;
+//     case 'Distributor':
+//       whereCondition = { superior_d: userId };
+//       break;
+//     default:
+//       return []; // No subordinates for roles like Customer
+//   }
+
+//   return await User.findAll({
+//     where: whereCondition
+//   });
+// };
+// Helper function to find subordinates based on the user's role
+const findSubordinateUsers = async (userId) => {
+  // Get the user's superior_id (they are subordinates under this ID)
+  const user = await User.findByPk(userId);
+  if (!user) {
+    return [];
   }
 
   return await User.findAll({
-    where: whereCondition
+    where: { superior_id: userId } // Fetch users whose superior_id is the logged-in user
   });
 };
 
