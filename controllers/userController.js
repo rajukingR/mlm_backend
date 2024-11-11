@@ -163,7 +163,8 @@ exports.signUp = async (req, res) => {
       building_no_name,
       mobile_number,
       full_name,
-      gst_number
+      gst_number,
+      image
     } = req.body;
 
     // Validate role
@@ -234,7 +235,8 @@ exports.signUp = async (req, res) => {
       building_no_name,
       mobile_number,
       full_name,
-      gst_number
+      gst_number,
+      image
     });
 
     res.status(201).json(newUser);
@@ -443,7 +445,7 @@ exports.getUsersByRole = async (req, res) => {
     // Fetch users with the provided role_id
     const users = await User.findAll({
       where: { role_id },
-      attributes: ['id', 'username', 'mobile_number', 'email', 'full_name', 'role_id', 'role_name', 'superior_id']
+      attributes: ['id', 'username', 'mobile_number', 'email', 'full_name', 'role_id', 'role_name', 'superior_id', 'image']
     });
 
     if (users.length === 0) {
