@@ -49,6 +49,8 @@ exports.getByIdAnnouncement = async (req, res) => {
   }
 };
 
+// controller.js
+
 // Create a new announcement
 exports.createAnnouncement = async (req, res) => {
   try {
@@ -60,8 +62,8 @@ exports.createAnnouncement = async (req, res) => {
       receiver,
       autoUpdate,
       activateStatus,
-      fromDate,  // Include fromDate
-      toDate,    // Include toDate
+      fromDate,
+      toDate,
     } = req.body;
 
     if (!documentID || !heading || !receiver) {
@@ -79,9 +81,9 @@ exports.createAnnouncement = async (req, res) => {
       receiver,
       autoUpdate,
       activateStatus,
-      fromDate: autoUpdate ? fromDate : null, // Only save if autoUpdate is enabled
-      toDate: autoUpdate ? toDate : null,       // Only save if autoUpdate is enabled
-      image: req.file ? req.file.path : null, // Send the image path in the response
+      fromDate: autoUpdate ? fromDate : null,
+      toDate: autoUpdate ? toDate : null,
+      image: req.file ? req.file.filename : null, // Save only the filename
     });
 
     // Emit event for new announcement using `req.io`
