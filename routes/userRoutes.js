@@ -3,9 +3,10 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const userHierarchyController = require('../controllers/hierarchy_user_controllers/userHierarchyController');
 const { authMiddleware,isAdmin } = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/multer'); // Multer middleware for file uploads
 
 // User routes
-router.post('/signup', userController.signUp);
+router.post('/signup',upload.single('image'), userController.signUp);
 router.post('/signin', userController.signIn);
 //
 router.put('/update/:userId', authMiddleware,isAdmin, userController.updateUser);
