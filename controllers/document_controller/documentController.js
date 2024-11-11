@@ -79,6 +79,16 @@ exports.createDocument = async (req, res) => {
   } = req.body;
 
   try {
+    // Image format validation
+    const allowedFormats = ['image/jpeg', 'image/png', 'image/gif'];
+    if (req.file && !allowedFormats.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image format. Only JPEG, PNG, and GIF are allowed.',
+      });
+    }
+
+    // Create the document
     const document = await Document.create({
       documentID,
       heading,
@@ -89,9 +99,10 @@ exports.createDocument = async (req, res) => {
       activateStatus,
       fromDate: autoUpdate ? fromDate : null,
       toDate: autoUpdate ? toDate : null,
-      image: req.file ? req.file.path : null, // Send the image path in the response
+      image: req.file ? req.file.filename : null, // Save only the filename
     });
 
+    // Emit event for new document
     req.io.emit('new_document', document);
 
     return res.status(201).json({
