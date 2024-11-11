@@ -7,8 +7,7 @@ const { authMiddleware,isAdmin } = require('../middlewares/authMiddleware');
 // User routes
 router.post('/signup', userController.signUp);
 router.post('/signin', userController.signIn);
-//router.post('/signup',upload.single('image'), userController.signUp);
-
+//
 router.put('/update/:userId', authMiddleware,isAdmin, userController.updateUser);
 router.delete('/delete/:userId', authMiddleware,isAdmin, userController.deleteUser);
 //
