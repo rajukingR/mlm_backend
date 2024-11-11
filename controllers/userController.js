@@ -204,6 +204,15 @@ exports.signUp = async (req, res) => {
       }
     }
 
+    // Image format validation
+    const allowedFormats = ['image/jpeg', 'image/png', 'image/gif'];
+    if (req.file && !allowedFormats.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image format. Only JPEG, PNG, and GIF are allowed.',
+      });
+    }
+
     // Check for existing username, email, and mobile number
     const [existingUser, existingEmail, existingMobile] = await Promise.all([
       User.findOne({ where: { username } }),
@@ -236,7 +245,7 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      image
+      image: req.file ? req.file.filename : image // Save only the filename
     });
 
     res.status(201).json(newUser);
@@ -245,7 +254,6 @@ exports.signUp = async (req, res) => {
     res.status(500).json({ error: 'Failed to create user' });
   }
 };
-
 
 
 
