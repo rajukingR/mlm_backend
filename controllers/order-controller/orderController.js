@@ -1,4 +1,4 @@
-const { Order, OrderItem, Product, User } = require('../../models');
+const { Order, OrderItem, Product, User, OrderLimit } = require('../../models');
 
 // Create Order
 // Create Order
@@ -168,7 +168,74 @@ exports.getOrdersByUser = async (req, res) => {
 //////////////////////////////////////////////////////
 
 
-// Fetch orders requested by lower hierarchy roles
+// Function to update assigned orders
+const updateAssignedOrders = async () => {
+  try {
+    // Fetch the order limit
+    const orderLimitRecord = await OrderLimit.findOne({
+      order: [['createdAt', 'DESC']] // Assuming you want the latest record
+    });
+
+    // Calculate time limit (for simplicity, we're using 1 minute here)
+    const timeLimit = new Date(Date.now() - 10 * 60 * 1000); // 1 minute time limit
+
+    // Fetch all orders with pending status
+    const pendingOrders = await Order.findAll({
+      where: { status: 'Pending' }
+    });
+
+    // Loop through each pending order
+    for (const order of pendingOrders) {
+      // Check if the order's createdAt is older than the calculated time limit
+      if (new Date(order.createdAt) <= timeLimit) {
+        // Fetch the user based on the current order's higher_role_id
+        const user = await User.findOne({
+          where: { id: order.higher_role_id }
+        });
+
+        if (user) {
+          const superiorId = user.superior_id; // Get the superior ID
+
+          if (superiorId) {
+            // Update higher_role_id to superiorId
+            await Order.update(
+              { higher_role_id: superiorId },
+              { where: { id: order.id } }
+            );
+
+            console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
+          } else {
+            // If no superior, cancel the order
+            await Order.update(
+              { status: 'Cancelled' },
+              { where: { id: order.id } }
+            );
+
+            console.log(`Order no ${order.id} cancelled as user has no superior.`);
+          }
+
+          // Check if requested_by_role is "Area Development Officer"
+          const requestedByRole = order.requested_by_role; // Adjust if needed
+          if (requestedByRole === "Area Development Officer" && !superiorId) {
+            console.log(`Order no ${order.id} status already updated to Cancelled.`);
+          }
+        } else {
+          console.log(`No user found with ID ${order.higher_role_id}.`);
+        }
+      } else {
+        console.log(`Order no ${order.id} was created recently, skipping update.`);
+      }
+    }
+
+  } catch (error) {
+    console.error('Error updating orders:', error.message);
+  }
+};
+
+// Set an interval to call the function every 30 seconds
+setInterval(updateAssignedOrders, 30 * 1000);
+
+// Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
   const userId = req.params.user_id; // The ID of the currently logged-in user
 

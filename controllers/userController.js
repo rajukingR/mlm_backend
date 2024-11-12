@@ -164,7 +164,7 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      image
+      // image
     } = req.body;
 
     // Validate role
@@ -245,7 +245,7 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      image: req.file ? req.file.filename : image // Save only the filename
+      image: req.file ? req.file.filename : null // Save only the filename
     });
 
     res.status(201).json(newUser);
