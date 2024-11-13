@@ -11,54 +11,58 @@ const updateAssignedOrders = async () => {
     // const hours = orderLimitRecord ? orderLimitRecord.hours : 48; // Default to 48 hours if not found
 
     // const timeLimit = new Date(Date.now() - hours * 60 * 60 * 1000); // Calculate time limit
-    const timeLimit = new Date(Date.now() - 2 * 60 * 1000); // Calculate time limit
+    const timeLimit = new Date(Date.now() - 24 * 60 * 60 * 1000); // Calculate time limit
 
     // Fetch all orders with pending status
     const pendingOrders = await Order.findAll({
       where: { status: 'Pending' }
     });
 
-    // Loop through each pending order
-    for (const order of pendingOrders) {
-      // Check if the order's createdAt is older than the calculated time limit
-      if (new Date(order.createdAt) <= timeLimit) {
-        // Fetch the user based on the current order's higher_role_id
-        const user = await User.findOne({
-          where: { id: order.higher_role_id }
-        });
+ // Loop through each pending order
+for (const order of pendingOrders) {
+  // Check if the order's createdAt is older than the calculated time limit
+  if (new Date(order.createdAt) <= timeLimit) {
+    // Fetch the user based on the current order's higher_role_id
+    const user = await User.findOne({
+      where: { id: order.higher_role_id }
+    });
 
-        if (user) {
-          const superiorId = user.superior_id; // Get the superior ID
-          const requestedByRole = user.role_name; // Get the user's role name
+    if (user) {
+      const superiorId = user.superior_id; // Get the superior ID
 
-          // Update the order's higher_role_id and requested_by_role
-          await Order.update(
-            {
-              higher_role_id: superiorId,
-              requested_by_role: requestedByRole // Update the requested_by_role
-            },
-            { where: { id: order.id } }
-          );
+      if (superiorId) {
+        // Update higher_role_id to superiorId
+        await Order.update(
+          {
+            higher_role_id: superiorId,
+          },
+          { where: { id: order.id } }
+        );
 
-          console.log(`Order no ${order.id} was assigned to superior ID ${superiorId} and requested by role updated to ${requestedByRole}`);
-
-          // Check if requested_by_role is "Area Development Officer"
-          if (requestedByRole === "Area Development Officer") {
-            // Update the order status to "Cancelled"
-            await Order.update(
-              { status: 'Cancelled' },
-              { where: { id: order.id } }
-            );
-
-            console.log(`Order no ${order.id} status updated to Cancelled.`);
-          }
-        } else {
-          console.log(`No user found with ID ${order.higher_role_id}.`);
-        }
+        console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
       } else {
-        console.log(`Order no ${order.id} was created within the last ${hours} hours, skipping update.`);
+        // If no superior, cancel the order
+        await Order.update(
+          { status: 'Cancelled' },
+          { where: { id: order.id } }
+        );
+
+        console.log(`Order no ${order.id} cancelled as user has no superior.`);
       }
+
+      // Check if requested_by_role is "Area Development Officer"
+      const requestedByRole = order.requested_by_role; // Adjust if needed
+      if (requestedByRole === "Area Development Officer" && !superiorId) {
+        console.log(`Order no ${order.id} status already updated to Cancelled.`);
+      }
+    } else {
+      console.log(`No user found with ID ${order.higher_role_id}.`);
     }
+  } else {
+    console.log(`Order no ${order.id} was created recently, skipping update.`);
+  }
+}
+
   } catch (error) {
     console.error('Error updating orders:', error.message);
   }
@@ -70,13 +74,13 @@ const updateAssignedOrders = async () => {
 // Express route handler to fetch pending orders
 exports.fetchOrders = async (req, res) => {
   try {
-    const userId = req.user.id; // Get the logged-in user's ID from req.user
+    const userId = 326; // Get the logged-in user's ID from req.user
 
     // Fetch all orders for the logged-in user where the status is 'Pending' and higher_role_id matches userId
     const orders = await Order.findAll({
       where: {
         status: 'Pending',
-        higher_role_id: 55 // Filter orders by the user's higher_role_id
+        higher_role_id: userId // Filter orders by the user's higher_role_id
       }
     });
 
