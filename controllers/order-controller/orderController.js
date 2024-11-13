@@ -167,8 +167,6 @@ exports.getOrdersByUser = async (req, res) => {
 /////////////see other member requested orderlist////////////
 //////////////////////////////////////////////////////
 
-
-// Function to update assigned orders
 const updateAssignedOrders = async () => {
   try {
     // Fetch the order limit
@@ -177,7 +175,7 @@ const updateAssignedOrders = async () => {
     });
 
     // Calculate time limit (for simplicity, we're using 1 minute here)
-    const timeLimit = new Date(Date.now() - 10 * 60 * 1000); // 1 minute time limit
+    const timeLimit = new Date(Date.now() -  2 * 60 * 1000); // 1 minute time limit
 
     // Fetch all orders with pending status
     const pendingOrders = await Order.findAll({
@@ -187,7 +185,7 @@ const updateAssignedOrders = async () => {
     // Loop through each pending order
     for (const order of pendingOrders) {
       // Check if the order's createdAt is older than the calculated time limit
-      if (new Date(order.createdAt) <= timeLimit) {
+      if (new Date(order.updatedAt) <= timeLimit) {
         // Fetch the user based on the current order's higher_role_id
         const user = await User.findOne({
           where: { id: order.higher_role_id }
@@ -195,23 +193,25 @@ const updateAssignedOrders = async () => {
 
         if (user) {
           const superiorId = user.superior_id; // Get the superior ID
+          const userRoleID = user.role_id; // Get the user role ID
 
+          // Make sure superiorId is not null before using it
           if (superiorId) {
-            // Update higher_role_id to superiorId
+            // Update higher_role_id to superiorId if available
             await Order.update(
               { higher_role_id: superiorId },
               { where: { id: order.id } }
             );
-
             console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
-          } else {
-            // If no superior, cancel the order
+          } else if (userRoleID) {
+            // If no superiorId, fallback to userRoleID
             await Order.update(
-              { status: 'Cancelled' },
+              { higher_role_id: userRoleID },
               { where: { id: order.id } }
             );
-
-            console.log(`Order no ${order.id} cancelled as user has no superior.`);
+            console.log(`Order no ${order.id} was assigned to role ID ${userRoleID}.`);
+          } else {
+            console.log(`No valid superior or user role ID found for order ${order.id}`);
           }
 
           // Check if requested_by_role is "Area Development Officer"
@@ -233,7 +233,7 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-setInterval(updateAssignedOrders, 30 * 1000);
+// setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -258,7 +258,7 @@ exports.getOrdersBySubordinates = async (req, res) => {
     // Fetch orders requested by subordinates
     const subordinateIds = subordinates.map(user => user.id); // Extract subordinate user IDs
     const orders = await Order.findAll({
-      where: { user_id: subordinateIds },
+      where: { higher_role_id: userId  },
       include: [{
         model: OrderItem,
         as: 'OrderItems',
