@@ -164,6 +164,7 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
+      club_id,  // Add club_id to the destructured request body
       // image
     } = req.body;
 
@@ -214,7 +215,7 @@ exports.signUp = async (req, res) => {
     }
 
     // Check for existing username, email, and mobile number
-    const [existingUser, existingEmail, existingMobile] = await Promise.all([
+    const [existingUser, existingEmail, existingMobile] = await Promise.all([ 
       User.findOne({ where: { username } }),
       User.findOne({ where: { email } }),
       User.findOne({ where: { mobile_number } })
@@ -245,6 +246,7 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
+      club_id,  // Store the club_id in the database
       image: req.file ? req.file.filename : null // Save only the filename
     });
 
@@ -254,7 +256,6 @@ exports.signUp = async (req, res) => {
     res.status(500).json({ error: 'Failed to create user' });
   }
 };
-
 
 
 
@@ -278,7 +279,8 @@ exports.updateUser = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      status
+      status,
+      club_id // Added club_id
     } = req.body;
 
     // Validate required fields
@@ -352,6 +354,19 @@ exports.updateUser = async (req, res) => {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
+    // Image format validation
+    const allowedFormats = ['image/jpeg', 'image/png', 'image/gif'];
+    let imageFilename = user.image; // Keep current image if no new one is uploaded
+    if (req.file) {
+      if (!allowedFormats.includes(req.file.mimetype)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid image format. Only JPEG, PNG, and GIF are allowed.',
+        });
+      }
+      imageFilename = req.file.filename; // Use the new uploaded image
+    }
+
     // Update user details
     await user.update({
       username,
@@ -368,7 +383,9 @@ exports.updateUser = async (req, res) => {
       full_name,
       gst_number,
       status,
+      club_id, // Save club_id
       role_name: role.role_name,
+      image: imageFilename, // Save the new image filename if provided
     });
 
     // Success response
@@ -390,6 +407,8 @@ exports.updateUser = async (req, res) => {
         full_name: user.full_name,
         gst_number: user.gst_number,
         status: user.status,
+        club_id: user.club_id, // Include club_id in response
+        image: user.image, // Include image in response
         updatedAt: user.updatedAt,
       },
     });
