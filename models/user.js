@@ -77,13 +77,17 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ENUM('admin', 'user'),
       allowNull: false
     },
-    country: { // New column
+    country: {
       type: DataTypes.STRING,
       allowNull: true
     },
-    image: { // Ensure image column exists
+    image: {
       type: DataTypes.STRING,
       allowNull: true
+    },
+    club_id: { // New column added for club_id without foreignKey or references
+      type: DataTypes.INTEGER,
+      allowNull: true,  // You can set it to false if it's required
     }
   }, {
     tableName: 'users',
@@ -99,6 +103,8 @@ module.exports = (sequelize, DataTypes) => {
     User.belongsTo(models.User, { foreignKey: 'superior_md', as: 'MdSuperior' });
     User.belongsTo(models.User, { foreignKey: 'superior_sd', as: 'SdSuperior' });
     User.belongsTo(models.User, { foreignKey: 'superior_d', as: 'DSuperior' });
+
+    // No association with the clubs table
   };
 
   return User;
