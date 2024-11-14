@@ -18,7 +18,7 @@ exports.getMasterDistributorsByADO = async (req, res) => {
       const masterDistributors = await User.findAll({
         where: {
           role_name: 'Master Distributor',  // Filter for Master Distributors
-          superior_ado: ado_id              // Filter by ADO ID
+          superior_id: ado_id              // Filter by ADO ID
         }
       });
   
@@ -46,7 +46,7 @@ exports.getMasterDistributorsByADO = async (req, res) => {
       const superDistributors = await User.findAll({
         where: {
           role_name: 'Super Distributor',  // Filter for Super Distributors
-          superior_md: md_id               // Filter by MD ID
+          superior_id: md_id               // Filter by MD ID
         }
       });
   
@@ -75,7 +75,7 @@ exports.getDistributorsBySD = async (req, res) => {
     const distributors = await User.findAll({
       where: {
         role_name: 'Distributor',  // Filter for Distributors
-        superior_sd: sd_id         // Filter by Super Distributor ID
+        superior_id: sd_id         // Filter by Super Distributor ID
       }
     });
 
@@ -101,7 +101,7 @@ exports.getCustomersByDistributor = async (req, res) => {
 
     // Fetch all users where the superior_d matches the given distributorId
     const customers = await User.findAll({
-      where: { superior_d: distributorId, role_name: 'Customer' },
+      where: { superior_id: distributorId, role_name: 'Customer' },
     });
 
     if (customers.length === 0) {
