@@ -175,7 +175,7 @@ const updateAssignedOrders = async () => {
     });
 
     // Calculate time limit (for simplicity, we're using 1 minute here)
-    const timeLimit = new Date(Date.now() -  2 * 60 * 1000); // 1 minute time limit
+    const timeLimit = new Date(Date.now() -  5 * 60 * 1000); // 1 minute time limit
 
     // Fetch all orders with pending status
     const pendingOrders = await Order.findAll({
