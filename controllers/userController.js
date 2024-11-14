@@ -301,9 +301,13 @@ exports.updateUser = async (req, res) => {
     }
 
     // Check if superior_id is valid and its role can supervise the current role
-    if (role.role_name !== 'Admin' && !superior_id) {
+    // if (role.role_name !== 'Admin' && !superior_id) {
+    //   return res.status(400).json({ error: 'Superior ID is required for hierarchical users.' });
+    // }
+    if (role.role_name !== 'Admin' && role.role_name !== 'Area Development Officer' && !superior_id) {
       return res.status(400).json({ error: 'Superior ID is required for hierarchical users.' });
     }
+    
 
     // If superior_id is provided, check if it's a valid user and their role allows them to supervise
     if (superior_id) {
@@ -366,14 +370,14 @@ exports.updateUser = async (req, res) => {
       }
       imageFilename = req.file.filename; // Use the new uploaded image
     }
-
+    const finalSuperiorId = role.role_name === 'Area Development Officer' ? null : superior_id;
     // Update user details
     await user.update({
       username,
       password: hashedPassword,
       email,
       role_id,
-      superior_id: role.role_name === 'Admin' ? null : superior_id,
+      superior_id: finalSuperiorId,
       pincode,
       state,
       city,
