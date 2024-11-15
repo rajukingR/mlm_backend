@@ -5,7 +5,7 @@ exports.getSalesTargetAndAchievement = async (req, res) => {
   const { role, user_id } = req.params;
 
   try {
-    // Fetch sales targets for the specified role
+    // Fetch all sales targets for the specified role
     const salesTargets = await SalesTarget.findAll({
       where: { role }
     });
@@ -18,9 +18,20 @@ exports.getSalesTargetAndAchievement = async (req, res) => {
       });
     }
 
-    // Extract target values from productData
-    const targets = salesTargets.flatMap((target) => {
-      return target.productData.map((product) => product.target); // Extract target values
+    // Calculate monthly target by aggregating values based on 'duration'
+    let totalMonthlyTarget = 0;
+
+    salesTargets.forEach((target) => {
+      target.productData.forEach((product) => {
+        const targetValue = parseFloat(product.target) || 0;
+        const duration = product.duration ? product.duration.toLowerCase() : "";
+
+        // Convert target to a monthly equivalent if needed
+        if (duration.includes("month")) {
+          const months = parseInt(duration); // Get the number of months from duration
+          totalMonthlyTarget += targetValue / (months || 1); // Calculate per month target
+        }
+      });
     });
 
     // Fetch all accepted orders for the specified user role
@@ -31,18 +42,22 @@ exports.getSalesTargetAndAchievement = async (req, res) => {
       }
     });
 
-    // Calculate total achievement volume
-    const totalAchievementVolume = acceptedOrders.reduce((total, order) => {
-      return total + (parseFloat(order.total_order_quantity) || 0);
+    // Calculate total achievement amount
+    const totalAchievementAmount = acceptedOrders.reduce((total, order) => {
+      return total + (parseFloat(order.total_amount) || 0);
     }, 0);
+
+    // Calculate the pending amount
+    const pendingAmount = totalMonthlyTarget - totalAchievementAmount;
 
     // Respond with combined data
     return res.status(200).json({
       success: true,
       role,
       user_id,
-      targets,
-      totalAchievementVolume
+      totalMonthlyTarget,
+      totalAchievementAmount,
+      pendingAmount
     });
 
   } catch (error) {
@@ -54,6 +69,8 @@ exports.getSalesTargetAndAchievement = async (req, res) => {
     });
   }
 };
+
+
 
 
 
