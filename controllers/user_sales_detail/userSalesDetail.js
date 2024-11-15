@@ -1,5 +1,4 @@
-// In userSalesDetail controller
-const { SalesTarget, Order } = require('../../models');
+const { SalesTarget, Order, Product, OrderItem, User } = require('../../models');
 
 exports.getSalesTargetAndAchievement = async (req, res) => {
   const { role, user_id } = req.params;
@@ -34,17 +33,72 @@ exports.getSalesTargetAndAchievement = async (req, res) => {
       });
     });
 
-    // Fetch all accepted orders for the specified user role
+    // Fetch all accepted orders for the specified user role and user_id
     const acceptedOrders = await Order.findAll({
       where: {
         higher_role_id: user_id,
         status: 'Accepted'
-      }
+      },
+      include: [
+        {
+          model: OrderItem, // Include OrderItems for each order
+          as: 'OrderItems',
+          include: {
+            model: Product, // Include Product data in OrderItems
+            as: 'product',
+            required: true,
+          },
+        }
+      ],
+    });
+
+    // Fetch role names for all unique higher_role_id values
+    const higherRoleIds = acceptedOrders.map(order => order.higher_role_id);
+    const userRoles = await User.findAll({
+      where: { id: higherRoleIds },
+      attributes: ['id', 'role_name'],
+    });
+
+    const roleMap = {};
+    userRoles.forEach(user => {
+      roleMap[user.id] = user.role_name;
     });
 
     // Calculate total achievement amount
     const totalAchievementAmount = acceptedOrders.reduce((total, order) => {
-      return total + (parseFloat(order.total_amount) || 0);
+      let price = 0;
+
+      // Determine the role_name from higher_role_id
+      const roleName = roleMap[order.higher_role_id];
+
+      // Determine the correct price based on roleName
+      order.OrderItems.forEach((orderItem) => {
+        const product = orderItem.product; // Get the product associated with the OrderItem
+
+        switch (roleName) {
+          case 'Super Distributor':
+            price = product.sdPrice || 0;
+            break;
+          case 'Distributor':
+            price = product.distributorPrice || 0;
+            break;
+          case 'Master Distributor':
+            price = product.mdPrice || 0;
+            break;
+          case 'Area Development Officer':
+            price = product.adoPrice || 0;
+            break;
+          default:
+            price = 0;
+            break;
+        }
+
+        // Calculate the total amount for the order (price * quantity)
+        const orderTotal = price * (parseInt(orderItem.quantity) || 0);
+        total += orderTotal;
+      });
+
+      return total;
     }, 0);
 
     // Calculate the pending amount
@@ -69,97 +123,3 @@ exports.getSalesTargetAndAchievement = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-// const { SalesTarget, Order} = require('../../models');
-
-// exports.getSalesTargetByRole = async (req, res) => {
-//     const { role } = req.params;
-  
-//     try {
-//       // Fetch sales targets with the specified role
-//       const salesTargets = await SalesTarget.findAll({
-//         where: { role }
-//       });
-  
-//       if (!salesTargets || salesTargets.length === 0) {
-//         return res.status(404).json({
-//           success: false,
-//           message: 'No sales targets found for the specified role',
-//         });
-//       }
-  
-//       // Extract target values from productData field without JSON.parse
-//       const targets = salesTargets.flatMap((target) => {
-//         // Assuming productData is already parsed as an array of objects
-//         return target.productData.map((product) => product.target); // Return only the target value from each product
-//       });
-  
-//       return res.status(200).json({
-//         success: true,
-//         role,
-//         targets,
-//       });
-//     } catch (error) {
-//       console.error('Error fetching sales targets by role:', error);
-//       return res.status(500).json({
-//         success: false,
-//         message: 'Failed to fetch sales targets',
-//         error: error.message,
-//       });
-//     }
-//   };
-
-
-
-//   /////////**User Achivement Calculation **//////////
-//   exports.calculateAchievement = async (req, res) => {
-//     const { user_id } = req.params;
-  
-//     try {
-//       // Fetch all accepted orders for the specified user role
-//       const acceptedOrders = await Order.findAll({
-//         where: {
-//           higher_role_id: user_id, // Filter by higher_role_id matching user_id
-//           status: 'Accepted'       // Only accepted orders
-//         }
-//       });
-  
-//       // If no orders found, return zero rather than null
-//       if (!acceptedOrders || acceptedOrders.length === 0) {
-//         return res.status(200).json({
-//           message: 'No accepted orders found for this user',
-//           user_id,
-//           totalAchievementVolume: 0
-//         });
-//       }
-  
-//       // Sum up total_order_quantity from orders matching conditions
-//       const totalAchievementVolume = acceptedOrders.reduce((total, order) => {
-//         // Ensuring value is numeric
-//         return total + (parseFloat(order.total_order_quantity) || 0);
-//       }, 0);
-  
-//       // Respond with the calculated achievement
-//       return res.status(200).json({
-//         message: 'Achievement Data',
-//         user_id,
-//         totalAchievementVolume
-//       });
-  
-//     } catch (error) {
-//       console.error(error);
-//       return res.status(500).json({ message: 'Internal server error', error: error.message });
-//     }
-//   };
-  
