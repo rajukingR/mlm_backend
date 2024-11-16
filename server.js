@@ -47,6 +47,8 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.urlencoded({ extended: true }));
+app.use('/salestarget', salesTargetrRoutes);
 
 // Pass `io` to the routes where needed
 app.use('/api/admin', adminRoutes);
@@ -58,7 +60,6 @@ app.use('/directMembers', directMemberRoutes);
 app.use('/orders', orderRoutes);
 app.use('/roles', rolsRoutes);
 app.use('/club', clubRoutes);
-app.use('/salestarget', salesTargetrRoutes);
 app.use('/minimumstock', minimumStockRoutes);
 app.use('/feedback', feedbackRoutes);
 app.use('/api', userUpdateRoutes); // Use /api prefix for member update route

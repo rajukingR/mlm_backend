@@ -1,13 +1,31 @@
-const { Announcement } = require('../../models');
+const { Announcement, User } = require('../../models');
+const { Op } = require('sequelize');
 
-// Get all announcements with optional filtering by receiver
 exports.getAnnouncements = async (req, res) => {
   try {
-    const { receiver } = req.query; // Get the receiver from the query params
-    const whereClause = receiver ? { receiver } : {}; // Set up the filtering condition
+    const user = req.user; 
+    const { role_name } = user;
+
+    // Set the where clause to include role_name and additional conditions for 'All Users'
+    const whereClause = {
+      [Op.or]: [
+        {
+          receiver: {
+            [Op.like]: `%${role_name}%` // Matches if role_name is part of the receiver string
+          }
+        },
+        {
+          receiver: {
+            [Op.like]: '%All Users%' // Matches if 'All Users' is part of the receiver string
+          }
+        },
+        { receiver: null },
+        { receiver: '' }
+      ]
+    };
 
     const announcements = await Announcement.findAll({
-      where: whereClause, // Apply the where clause if receiver is provided
+      where: whereClause, // Apply the dynamic filtering
     });
 
     return res.status(200).json({
@@ -22,6 +40,7 @@ exports.getAnnouncements = async (req, res) => {
     });
   }
 };
+
 
 // Get an announcement by ID
 exports.getByIdAnnouncement = async (req, res) => {
@@ -60,10 +79,7 @@ exports.createAnnouncement = async (req, res) => {
       description,
       link,
       receiver,
-      autoUpdate,
-      activateStatus,
-      fromDate,
-      toDate,
+      
     } = req.body;
 
     if (!documentID || !heading || !receiver) {
@@ -79,10 +95,7 @@ exports.createAnnouncement = async (req, res) => {
       description,
       link,
       receiver,
-      autoUpdate,
-      activateStatus,
-      fromDate: autoUpdate ? fromDate : null,
-      toDate: autoUpdate ? toDate : null,
+      
       image: req.file ? req.file.filename : null, // Save only the filename
     });
 
@@ -112,10 +125,7 @@ exports.updateByIdAnnouncement = async (req, res) => {
     description,
     link,
     receiver,
-    autoUpdate,
-    activateStatus,
-    fromDate,
-    toDate,
+    
   } = req.body;
 
   try {
@@ -134,13 +144,7 @@ exports.updateByIdAnnouncement = async (req, res) => {
     announcement.description = description || announcement.description;
     announcement.link = link || announcement.link;
     announcement.receiver = receiver || announcement.receiver;
-    announcement.autoUpdate = autoUpdate !== undefined ? autoUpdate : announcement.autoUpdate;
-    announcement.activateStatus = activateStatus !== undefined ? activateStatus : announcement.activateStatus;
-
-    if (announcement.autoUpdate) {
-      announcement.fromDate = fromDate || announcement.fromDate;
-      announcement.toDate = toDate || announcement.toDate;
-    }
+    
 
     // Handle file upload if present (assuming similar to document)
     if (req.file) {
