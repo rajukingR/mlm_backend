@@ -19,6 +19,7 @@ const salesTargetrRoutes = require('./routes/salesTargetrRoutes');
 const minimumStockRoutes = require('./routes/minimumStockRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const userSalesDetailRoutes = require('./routes/userSalesDetailRoutes');
+const sectorAdminRoutes = require('./routes/sectorRoutes');
 
 
 
@@ -80,6 +81,8 @@ app.use('/documents', (req, res, next) => {
 }, documentRoutes);
 
 app.use('/edit-requests', editRequestRoutes);
+//sector Routes
+app.use('/sectors',sectorAdminRoutes);
 
 
 
