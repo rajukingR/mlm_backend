@@ -4,18 +4,16 @@ module.exports = (sequelize, DataTypes) => {
   const OrderLimit = sequelize.define('OrderLimit', {
     hours: {
       type: DataTypes.INTEGER,
-      allowNull: false, // Ensure this field is required
-    }
+      allowNull: false,  // Ensure this field is required
+    },
+    role: {
+      type: DataTypes.STRING,
+      allowNull: false,  // Ensure role is a required field
+    },
   }, {
-    tableName: 'order_limits', // The actual table name in the database
-    timestamps: true // If you want Sequelize to manage createdAt and updatedAt
+    tableName: 'order_limits',
+    timestamps: true,  // If using createdAt and updatedAt fields
   });
-
-  // Define associations (if needed)
-  OrderLimit.associate = (models) => {
-    // Example of association (if needed)
-    // OrderLimit.hasMany(models.OtherModel, { foreignKey: 'order_limit_id' });
-  };
 
   return OrderLimit;
 };

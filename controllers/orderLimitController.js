@@ -11,15 +11,31 @@ const getOrderLimits = async (req, res) => {
 };
 
 const createOrderLimit = async (req, res) => {
-    const { hours } = req.body;
+    const { hours, role } = req.body;
+
+    // Log incoming data to make sure hours and role are coming in correctly
+    console.log('Received Data:', { hours, role });
+
+    // Validation for missing fields
+    if (!hours || !role) {
+        return res.status(400).json({ message: 'Hours and role are required' });
+    }
+
     try {
-        const newOrderLimit = await OrderLimit.create({ hours });
+        // Attempt to create the order limit
+        const newOrderLimit = await OrderLimit.create({ hours, role });
+        console.log('Order limit created successfully:', newOrderLimit); // Log the created record
         return res.status(201).json({ message: 'Order limit created successfully', data: newOrderLimit });
     } catch (error) {
-        console.error('Error creating order limit:', error);
-        return res.status(500).json({ message: 'Failed to create order limit' });
+        // Log the error details from Sequelize
+        console.error('Error creating order limit:', error);  // Detailed error log
+
+        // Send the error message to the client
+        return res.status(500).json({ message: 'Failed to create order limit', error: error.message });
     }
 };
+
+
 
 const updateOrderLimit = async (req, res) => {
     const { id } = req.params;

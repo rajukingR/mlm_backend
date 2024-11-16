@@ -1,4 +1,4 @@
-const { Document } = require('../../models');
+const { Document, User } = require('../../models');
 const { body, validationResult } = require('express-validator');
 
 // Validation rules
@@ -8,27 +8,41 @@ exports.validateCreateDocument = [
   body('receiver').notEmpty().withMessage('Receiver is required.'),
 ];
 
-// Get all documents with optional filtering by receiver
+// Get all documents with optional filtering by receiver and related user role data
 exports.getDocuments = async (req, res) => {
-    try {
-      const { receiver } = req.query; // Extract receiver from query params
-      const whereClause = receiver ? { receiver } : {}; // Set where clause based on receiver
+  try {
+    const { receiver } = req.query; // Extract receiver from query params
+    const whereClause = receiver ? { receiver } : {}; // Set where clause based on receiver
   
-      const documents = await Document.findAll({ where: whereClause });
+    // Find documents with optional receiver filter and include user details
+    const documents = await Document.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: User, // Include the related User model
+          as: 'user', // Alias for the join
+          attributes: ['id', 'username', 'full_name', 'role_name'], // Fields to fetch from the User table
+          where: {
+            role_name: receiver // Match the receiver with the user role_name
+          },
+          required: true, // Ensure that only documents with a matching user are returned
+        },
+      ],
+    });
   
-      return res.status(200).json({
-        success: true,
-        data: documents,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch documents',
-        error: error.message,
-      });
-    }
-  };
-  
+    return res.status(200).json({
+      success: true,
+      data: documents,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch documents',
+      error: error.message,
+    });
+  }
+};
+
 // Get a document by ID
 exports.getByIdDocument = async (req, res) => {
   const { id } = req.params;

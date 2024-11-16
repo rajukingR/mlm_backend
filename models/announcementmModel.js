@@ -25,26 +25,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    autoUpdate: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
-    },
-    activateStatus: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
+   
     image: {
       type: DataTypes.STRING,
       allowNull: true, // Store the file name or URL
     },
-    fromDate: {  // New field for From Date
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    toDate: {    // New field for To Date
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
+    
   }, {
     tableName: 'announcements',
     timestamps: true,

@@ -3,15 +3,14 @@
 module.exports = (sequelize, DataTypes) => {
   const Document = sequelize.define('Document', {
     id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true, // primary key set on id, not documentID
     },
     documentID: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
-      primaryKey: true, // Set this as the primary key
+      unique: true, // Keep documentID unique but not primary key
     },
     heading: {
       type: DataTypes.STRING,
@@ -26,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
     },
     receiver: {
-      type: DataTypes.ENUM('All Users', 'ADO', 'MD', 'SD', 'Distributor', 'Customers'),
+      type: DataTypes.ENUM('All Users', 'Area Development Officer', 'Master Distributor', 'Super Distributor', 'Distributor', 'Customer'),
       allowNull: false,
     },
     autoUpdate: {
@@ -55,7 +54,7 @@ module.exports = (sequelize, DataTypes) => {
     },
   }, {
     tableName: 'documents',
-    timestamps: true, 
+    timestamps: true,  // Automatically creates createdAt and updatedAt columns
   });
 
   return Document;

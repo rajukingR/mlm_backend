@@ -69,14 +69,14 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
-    // category_id: { 
-    //   type: DataTypes.INTEGER,
-    //   allowNull: true,
-    //   references: {
-    //     model: 'category',
-    //     key: 'id'
-    //   }
-    // },
+    fromDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    toDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
@@ -94,5 +94,3 @@ module.exports = (sequelize, DataTypes) => {
 
   return Product;
 };
-
-
