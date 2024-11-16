@@ -96,7 +96,24 @@ exports.updateProduct = async (req, res) => {
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.findAll({
-      where: { isDeleted: false } 
+      where: {
+         isDeleted: false
+         } 
+    });
+    return res.status(200).json(products);
+  } catch (error) {
+    return handleErrors(res, error);
+  }
+};
+
+// Get all products
+exports.getAllProductsForUser = async (req, res) => {
+  try {
+    const products = await Product.findAll({
+      where: {
+         isDeleted: false,
+         status: true
+         } 
     });
     return res.status(200).json(products);
   } catch (error) {
@@ -110,7 +127,28 @@ exports.getProductById = async (req, res) => {
     // const product = await Product.findByPk(req.params.id);
     // const product = await Product.findByPk({
      const product = await Product.findOne({
-       where: { id: req.params.id, isDeleted: false }
+       where: { 
+        id: req.params.id,
+         isDeleted: false,
+         }
+    });
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    return res.status(200).json(product);
+  } catch (error) {
+    return handleErrors(res, error);
+  }
+};
+
+exports.getProductByIdForUser = async (req, res) => {
+  try {
+     const product = await Product.findOne({
+       where: { 
+        id: req.params.id,
+         isDeleted: false,
+         status: true
+         }
     });
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });

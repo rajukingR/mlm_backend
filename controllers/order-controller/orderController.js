@@ -171,10 +171,15 @@ const updateAssignedOrders = async () => {
   try {
     const roleTimeLimits = await OrderLimit.findAll(); 
 
+<<<<<<< HEAD
     const roleTimeLimitMap = roleTimeLimits.reduce((acc, record) => {
       acc[record.role] = record.time_limit_hours;
       return acc;
     }, {});
+=======
+    // Calculate time limit (for simplicity, we're using 1 minute here)
+    const timeLimit = new Date(Date.now() -  5 * 60 * 1000); // 1 minute time limit
+>>>>>>> 8d480fef34010b8f7f29c002002c027282dee9c6
 
     // Fetch all orders with pending status
     const pendingOrders = await Order.findAll({
