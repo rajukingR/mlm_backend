@@ -20,6 +20,7 @@ const minimumStockRoutes = require('./routes/minimumStockRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const userSalesDetailRoutes = require('./routes/userSalesDetailRoutes');
 const sectorAdminRoutes = require('./routes/sectorRoutes');
+const notificationRoutes = require('./routes/monthly_notificationRoute/monthlyNotificationRoutes'); 
 
 
 
@@ -31,6 +32,8 @@ const requestRoutes = require('./routes/requestRoutes');
 const ordersRoutes = require('./routes/ordersRoutes'); // Ensure the path is correct
 const orderLimitRoutes = require('./routes/orderLimitRoutes'); // Adjust the path as necessary
 const path = require('path');
+const cron = require('node-cron');
+const { sendMonthlyNotifications } = require('./controllers/monthly_notification/sendMonthlyNotifications');
 
 const { authMiddleware } = require('./middlewares/authMiddleware');
 
@@ -93,6 +96,18 @@ io.on('connection', (socket) => {
     console.log('User disconnected:', socket.id);
   });
 });
+
+// Schedule monthly notification job
+cron.schedule('0 12 15 * *', async () => {
+  console.log('Running monthly notification job...');
+  try {
+    await sendMonthlyNotifications();
+  } catch (error) {
+    console.error('Error in monthly notification job:', error);
+  }
+});
+//**send-notifications don't call this api --> only for development**//
+app.use('/month_notifications', notificationRoutes);
 
 server.listen(port, async () => {
   try {
