@@ -55,7 +55,7 @@ app.use('/salestarget', salesTargetrRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
 app.use('/products', productRoutes);
-app.use('/category', authMiddleware, categoryRoutes);
+app.use('/category', categoryRoutes);
 app.use('/members', memberRoutes);
 app.use('/directMembers', directMemberRoutes);
 app.use('/orders', orderRoutes);
