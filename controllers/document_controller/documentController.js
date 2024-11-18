@@ -1,38 +1,71 @@
 const { Document } = require('../../models');
 const { Op } = require('sequelize');
+const moment = require('moment');
+
+const updateExpiredDocuments = async () => {
+  try {
+    const currentDate = moment().format('YYYY-MM-DD HH:mm:ss'); // Get current date and time
+
+    await Document.update(
+      {
+        autoUpdate: 0,
+        activateStatus: 0,
+      },
+      {
+        where: {
+          toDate: { [Op.lt]: currentDate }, 
+        },
+      });
+
+    console.log('Expired documents updated successfully');
+  } catch (error) {
+    console.error('Error updating expired documents:', error);
+  }
+};
+
+// setInterval(updateExpiredDocuments, 10000); 
 
 exports.getDocuments = async (req, res) => {
   try {
-    const { role_name } = req.user; // Assume role_name is available in req.user
+    const { role_name } = req.user;
+    const currentDate = moment().format('YYYY-MM-DD HH:mm:ss'); 
 
-    // Check if the user is an admin (this can be based on role_name or a specific flag like isAdmin)
+    let whereClause = {};
+
     if (role_name === 'Admin') {
-      // If admin, fetch all documents
-      const documents = await Document.findAll();
-
-      return res.status(200).json({
-        success: true,
-        data: documents,
-      });
+      whereClause = {
+        [Op.or]: [
+          {
+            fromDate: { [Op.lte]: currentDate }, 
+            toDate: { [Op.gte]: currentDate },  
+          },
+          {
+            toDate: { [Op.lt]: currentDate }, 
+          }
+        ]
+      };
+    } else {
+      whereClause = {
+        receiver: {
+          [Op.like]: `%${role_name}%`, 
+        },
+        [Op.or]: [
+          {
+            fromDate: { [Op.lte]: currentDate }, 
+            toDate: { [Op.gte]: currentDate },   
+          },
+        ]
+      };
     }
 
-    // For non-admin users, filter documents based on their role
-    const whereClause = {
-      receiver: {
-        [Op.like]: `%${role_name}%`, // Match role_name within the receiver string
-      },
-    };
-
-    // Fetch documents with the role_name condition
     const documents = await Document.findAll({
       where: whereClause,
     });
 
-    // Handle case where no documents match
     if (!documents.length) {
       return res.status(404).json({
         success: false,
-        message: 'No documents found for the user\'s role',
+        message: 'No documents found for the user\'s role or the selected time period',
       });
     }
 
