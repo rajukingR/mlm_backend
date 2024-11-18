@@ -46,27 +46,28 @@ exports.getByIdEditRequest = async (req, res) => {
   }
 };
 
-// Create a new edit request with validation
 exports.createEditRequest = [
-  // Validate input fields
+  // Validation middleware
   body('user_id').isInt().withMessage('User ID must be an integer'),
   body('role_id').isInt().withMessage('Role ID must be an integer'),
   body('request_reason').isString().notEmpty().withMessage('Request reason is required'),
 
   async (req, res) => {
-    // Check for validation errors
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({
         success: false,
         message: 'Validation failed',
-        errors: errors.array()
+        errors: errors.array(),
       });
     }
 
     const { user_id, role_id, request_reason, new_mobile_number, new_email_id, new_address } = req.body;
 
     try {
+      // Image format validation is handled in the `upload` middleware
+      const image = req.file ? req.file.filename : null;
+
       const newEditRequest = await EditRequest.create({
         user_id,
         role_id,
@@ -74,21 +75,23 @@ exports.createEditRequest = [
         new_mobile_number,
         new_email_id,
         new_address,
+        image,
       });
 
       return res.status(201).json({
         success: true,
         message: 'Edit request created successfully',
-        data: newEditRequest
+        data: newEditRequest,
       });
     } catch (error) {
+      console.error('Error creating edit request:', error);
       return res.status(500).json({
         success: false,
         message: 'Failed to create edit request',
-        error: error.message
+        error: error.message,
       });
     }
-  }
+  },
 ];
 
 // Update edit request by ID
