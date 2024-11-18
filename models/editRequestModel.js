@@ -37,6 +37,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.JSON, // Store address as JSON
       allowNull: true,
     },
+    image: {
+      type: DataTypes.STRING(555), // Image file name or URL
+      allowNull: true,
+    },
   }, {
     tableName: 'edit_requests',
     timestamps: true,
