@@ -1,40 +1,47 @@
-const { Document, User } = require('../../models');
-const { body, validationResult } = require('express-validator');
+const { Document } = require('../../models');
+const { Op } = require('sequelize');
 
-// Validation rules
-exports.validateCreateDocument = [
-  body('documentID').notEmpty().withMessage('Document ID is required.'),
-  body('heading').notEmpty().withMessage('Heading is required.'),
-  body('receiver').notEmpty().withMessage('Receiver is required.'),
-];
-
-// Get all documents with optional filtering by receiver and related user role data
 exports.getDocuments = async (req, res) => {
   try {
-    const { receiver } = req.query; // Extract receiver from query params
-    const whereClause = receiver ? { receiver } : {}; // Set where clause based on receiver
-  
-    // Find documents with optional receiver filter and include user details
+    const { role_name } = req.user; // Assume role_name is available in req.user
+
+    // Check if the user is an admin (this can be based on role_name or a specific flag like isAdmin)
+    if (role_name === 'Admin') {
+      // If admin, fetch all documents
+      const documents = await Document.findAll();
+
+      return res.status(200).json({
+        success: true,
+        data: documents,
+      });
+    }
+
+    // For non-admin users, filter documents based on their role
+    const whereClause = {
+      receiver: {
+        [Op.like]: `%${role_name}%`, // Match role_name within the receiver string
+      },
+    };
+
+    // Fetch documents with the role_name condition
     const documents = await Document.findAll({
       where: whereClause,
-      include: [
-        {
-          model: User, // Include the related User model
-          as: 'user', // Alias for the join
-          attributes: ['id', 'username', 'full_name', 'role_name'], // Fields to fetch from the User table
-          where: {
-            role_name: receiver // Match the receiver with the user role_name
-          },
-          required: true, // Ensure that only documents with a matching user are returned
-        },
-      ],
     });
-  
+
+    // Handle case where no documents match
+    if (!documents.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'No documents found for the user\'s role',
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: documents,
     });
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch documents',
@@ -42,6 +49,8 @@ exports.getDocuments = async (req, res) => {
     });
   }
 };
+
+
 
 // Get a document by ID
 exports.getByIdDocument = async (req, res) => {

@@ -4,38 +4,35 @@ const { Category } = require('../../models');
 const { validationResult } = require('express-validator');
 const { body } = require('express-validator');
 
+// Validation rules for category creation
 const categoryValidationRules = [
-  body('category_name').notEmpty().withMessage('Category name is required')
+  body('category_name').notEmpty().withMessage('Category name is required'),
+  body('sector_name').optional().isString().withMessage('Sector name must be a string'),
 ];
 
-// Utility function for handling errors
+// Utility function to handle errors
 const handleErrors = (res, error, statusCode = 500) => {
   return res.status(statusCode).json({ error: error.message || 'An error occurred' });
 };
 
-// Middleware to validate admin role
-const validateAdminRole = (req, res, next) => {
-  if (req.user.role_name !== 'Admin') {
-    return res.status(403).json({ error: 'Access denied. Admins only.' });
-  }
-  next();
-};
-
-// Create Category (Admin Only)
+// Create Category
 exports.createCategory = [
-  validateAdminRole, // Only admin can create
-  ...categoryValidationRules,
+  ...categoryValidationRules, // Validate request body
   async (req, res) => {
     try {
+      // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
 
+      // Create the category using the validated data
       const newCategory = await Category.create({
-        ...req.body
+        sector_name: req.body.sector_name, // optional
+        category_name: req.body.category_name // required
       });
 
+      // Respond with the newly created category
       return res.status(201).json(newCategory);
     } catch (error) {
       return handleErrors(res, error);
@@ -44,14 +41,6 @@ exports.createCategory = [
 ];
 
 // Get all Categories
-// exports.getAllCategories = async (req, res) => {
-//   try {
-//     const categories = await Category.findAll();
-//     return res.status(200).json(categories);
-//   } catch (error) {
-//     return handleErrors(res, error);
-//   }
-// };
 exports.getAllCategories = async (req, res) => {
   try {
     const categories = await Category.findAll({
@@ -64,17 +53,6 @@ exports.getAllCategories = async (req, res) => {
 };
 
 // Get Category by ID
-// exports.getCategoryById = async (req, res) => {
-//   try {
-//     const category = await Category.findByPk(req.params.id);
-//     if (!category) {
-//       return res.status(404).json({ error: 'Category not found' });
-//     }
-//     return res.status(200).json(category);
-//   } catch (error) {
-//     return handleErrors(res, error);
-//   }
-// };
 exports.getCategoryById = async (req, res) => {
   try {
     const category = await Category.findOne({
@@ -89,10 +67,9 @@ exports.getCategoryById = async (req, res) => {
   }
 };
 
-// Update Category (Admin Only)
+// Update Category
 exports.updateCategory = [
-  validateAdminRole, // Only admin can update
-  ...categoryValidationRules,
+  ...categoryValidationRules, // Validate request body
   async (req, res) => {
     try {
       const errors = validationResult(req);
@@ -114,27 +91,8 @@ exports.updateCategory = [
   }
 ];
 
-// Delete Category (Admin Only)
-// exports.deleteCategory = [
-//   validateAdminRole, // Only admin can delete
-//   async (req, res) => {
-//     try {
-//       const deleted = await Category.destroy({
-//         where: { id: req.params.id }
-//       });
-
-//       if (!deleted) {
-//         return res.status(404).json({ error: 'Category not found' });
-//       }
-//       return res.status(200).json({ message: 'Category deleted successfully' });
-//     } catch (error) {
-//       return handleErrors(res, error);
-//     }
-//   }
-// ];
-
+// Delete Category (Mark as deleted)
 exports.deleteCategory = [
-  validateAdminRole,
   async (req, res) => {
     try {
       const [updated] = await Category.update(
