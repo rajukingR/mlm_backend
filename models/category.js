@@ -2,6 +2,10 @@
 
 module.exports = (sequelize, DataTypes) => {
   const Category = sequelize.define('Category', {
+    sector_name: { 
+      type: DataTypes.STRING(225),
+      allowNull: true
+    },
     category_name: {
       type: DataTypes.STRING(255),
       allowNull: false

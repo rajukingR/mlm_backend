@@ -1,31 +1,31 @@
-const { Announcement, User } = require('../../models');
+const { Announcement } = require('../../models');
 const { Op } = require('sequelize');
 
 exports.getAnnouncements = async (req, res) => {
   try {
-    const user = req.user; 
-    const { role_name } = user;
+    const { role_name } = req.user; // Assume role_name is available in req.user
 
-    // Set the where clause to include role_name and additional conditions for 'All Users'
+    // Check if the user is an admin (this can be based on role_name or a specific flag like isAdmin)
+    if (role_name === 'Admin') {
+      // If admin, fetch all announcements
+      const announcements = await Announcement.findAll();
+
+      return res.status(200).json({
+        success: true,
+        data: announcements,
+      });
+    }
+
+    // For non-admin users, filter announcements based on their role
     const whereClause = {
-      [Op.or]: [
-        {
-          receiver: {
-            [Op.like]: `%${role_name}%` // Matches if role_name is part of the receiver string
-          }
-        },
-        {
-          receiver: {
-            [Op.like]: '%All Users%' // Matches if 'All Users' is part of the receiver string
-          }
-        },
-        { receiver: null },
-        { receiver: '' }
-      ]
+      receiver: {
+        [Op.like]: `%${role_name}%`, // Match role_name within the receiver string
+      },
     };
 
+    // Fetch announcements with the role_name condition
     const announcements = await Announcement.findAll({
-      where: whereClause, // Apply the dynamic filtering
+      where: whereClause,
     });
 
     return res.status(200).json({
