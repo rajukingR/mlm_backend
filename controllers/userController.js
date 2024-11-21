@@ -164,6 +164,8 @@ exports.signUp = async (req, res) => {
       full_name,
       gst_number,
       club_id,  
+      country,
+      district
       // image
     } = req.body;
 
@@ -260,7 +262,9 @@ exports.signUp = async (req, res) => {
       full_name,
       gst_number,
       club_id, 
-      image: req.file ? req.file.filename : null 
+      image: req.file ? req.file.filename : null,
+      country,
+      district
     });
 
     res.status(201).json(newUser);
@@ -294,6 +298,8 @@ exports.updateUser = async (req, res) => {
       gst_number,
       status,
       club_id, // Added club_id
+      country,
+      district
     } = req.body;
 
     // Validate required fields
@@ -404,6 +410,8 @@ exports.updateUser = async (req, res) => {
       club_id,
       role_name: role.role_name,
       image: imageFilename,
+      country,
+      district
     });
 
     return res.status(200).json({
@@ -426,6 +434,8 @@ exports.updateUser = async (req, res) => {
         status: user.status,
         club_id: user.club_id,
         image: user.image,
+        country:user.country,
+        district:user.district,
         updatedAt: user.updatedAt,
       },
     });
