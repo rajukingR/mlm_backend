@@ -43,14 +43,31 @@ exports.createCategory = [
 // Get all Categories
 exports.getAllCategories = async (req, res) => {
   try {
+    // Assuming req.user contains the user details, including the role
+    const { role_name } = req.user; 
+
+    // Check if the user has the "Admin" role
+    if (role_name !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only admins can view categories.',
+      });
+    }
+
+    // If the user is an admin, proceed with fetching categories
     const categories = await Category.findAll({
-      where: { is_deleted: false }
+      where: { is_deleted: false } // Fetch non-deleted categories
     });
-    return res.status(200).json(categories);
+
+    return res.status(200).json({
+      success: true,
+      data: categories, // Return the categories in the response
+    });
   } catch (error) {
-    return handleErrors(res, error);
+    return handleErrors(res, error); // Handle errors appropriately
   }
 };
+
 
 // Get Category by ID
 exports.getCategoryById = async (req, res) => {

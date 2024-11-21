@@ -1,8 +1,19 @@
 const { SalesTarget } = require('../../models'); // Adjust the path according to your project structure
 
-// Get all sales targets
+// Get all sales targets (Admin only)
 exports.getSalesTargets = async (req, res) => {
   try {
+    const { role_name } = req.user; // Assume role_name is part of req.user
+
+    // Check if the user has the "Admin" role
+    if (role_name !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only admins can view sales targets.',
+      });
+    }
+
+    // Fetch all sales targets for admin
     const targets = await SalesTarget.findAll();
     return res.status(200).json({
       success: true,
@@ -16,6 +27,7 @@ exports.getSalesTargets = async (req, res) => {
     });
   }
 };
+
 
 // Get sales target by product name
 exports.getSalesTargetByProductName = async (req, res) => {

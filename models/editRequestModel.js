@@ -41,6 +41,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(555), // Image file name or URL
       allowNull: true,
     },
+    status: {
+      type: DataTypes.ENUM('Pending', 'Rejected', 'Completed'),
+      allowNull: false,
+      defaultValue: 'Pending',
+    },
   }, {
     tableName: 'edit_requests',
     timestamps: true,

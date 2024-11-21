@@ -1,21 +1,33 @@
 const { Club } = require('../../models');
 
-// Get all clubs
+// Get all clubs (Admin only)
 exports.getClubs = async (req, res) => {
   try {
+    const { role_name } = req.user; // Assume role_name is part of req.user
+
+    // Check if the user has the "Admin" role
+    if (role_name !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Only admins can view clubs.',
+      });
+    }
+
+    // Fetch all clubs for admin
     const clubs = await Club.findAll();
     return res.status(200).json({
       success: true,
-      data: clubs
+      data: clubs,
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch clubs',
-      error: error.message
+      error: error.message,
     });
   }
 };
+
 
 // Get a club by ID
 exports.getByIdClubs = async (req, res) => {
