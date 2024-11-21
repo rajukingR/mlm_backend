@@ -163,8 +163,8 @@ exports.updateAdmin = async (req, res) => {
     // Get the admin ID from the token
     const adminId = req.user.id;
 
-    // Get the image path from the multer upload (if file is uploaded)
-    const image = req.file ? req.file.path : null; // Image path is in req.file.path
+    // Get the image filename from the multer upload (if file is uploaded)
+    const image = req.file ? req.file.filename : null; // Use req.file.filename to store only the filename
 
     // Find the admin by ID (adminId from the token)
     const admin = await User.findByPk(adminId);
@@ -195,6 +195,7 @@ exports.updateAdmin = async (req, res) => {
       }
     }
 
+    // Update the admin record
     await admin.update({
       full_name,
       email,
@@ -207,12 +208,11 @@ exports.updateAdmin = async (req, res) => {
       country,
       image: image || admin.image // Only update image if a new image is provided, otherwise retain the existing one
     });
-    
 
     // Return the updated admin data
-    res.status(200).json(admin);
+    res.status(200).json({ message: 'Admin updated successfully', admin });
   } catch (error) {
-    console.error(error);  // Log the error for debugging
+    console.error(error); // Log the error for debugging
     res.status(500).json({ error: error.message });
   }
 };

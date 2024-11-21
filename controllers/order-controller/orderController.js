@@ -167,15 +167,9 @@ exports.getOrdersByUser = async (req, res) => {
 /////////////see other member requested orderlist////////////
 //////////////////////////////////////////////////////
 
+
 const updateAssignedOrders = async () => {
   try {
-    const roleTimeLimits = await OrderLimit.findAll(); 
-
-    const roleTimeLimitMap = roleTimeLimits.reduce((acc, record) => {
-      acc[record.role] = record.time_limit_hours;
-      return acc;
-    }, {});
-
     // Fetch all orders with pending status
     const pendingOrders = await Order.findAll({
       where: { status: 'Pending' }
@@ -189,13 +183,14 @@ const updateAssignedOrders = async () => {
       });
 
       if (user) {
-        // Get the role and corresponding time limit for the current user
-        const userRole = user.role; 
-        const roleTimeLimit = roleTimeLimitMap[userRole];
+        // Fetch the time limit based on the user's role from the order_limits table
+        const roleTimeLimit = await OrderLimit.findOne({
+          where: { role: user.role_name }
+        });
 
         if (roleTimeLimit) {
-          // Calculate the time limit based on the user's role
-          const timeLimit = new Date(Date.now() - roleTimeLimit * 60 * 60 * 1000); 
+          // Calculate the time limit based on the role's time_limit_hours
+          const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 60 * 60 * 1000); 
 
           // Check if the order's updatedAt is older than the calculated time limit
           if (new Date(order.updatedAt) <= timeLimit) {
@@ -228,7 +223,7 @@ const updateAssignedOrders = async () => {
             console.log(`Order no ${order.id} was created recently, skipping update.`);
           }
         } else {
-          console.log(`No time limit found for the role ${userRole} in order ${order.id}.`);
+          console.log(`No time limit found for the role ${user.role} in order ${order.id}.`);
         }
       } else {
         console.log(`No user found with ID ${order.higher_role_id}.`);
@@ -238,7 +233,6 @@ const updateAssignedOrders = async () => {
     console.error('Error updating orders:', error.message);
   }
 };
-
 
 // Set an interval to call the function every 30 seconds
 // setInterval(updateAssignedOrders, 30 * 1000);
@@ -266,7 +260,7 @@ exports.getOrdersBySubordinates = async (req, res) => {
     // Fetch orders requested by subordinates
     const subordinateIds = subordinates.map(user => user.id); // Extract subordinate user IDs
     const orders = await Order.findAll({
-      where: { higher_role_id: userId  },
+      where: { higher_role_id: userId },
       include: [{
         model: OrderItem,
         as: 'OrderItems',

@@ -85,6 +85,28 @@ exports.getDocuments = async (req, res) => {
 
 
 
+// // Get all documents with optional filtering by receiver
+// exports.getDocuments = async (req, res) => {
+//   try {
+//     const { receiver } = req.query; // Extract receiver from query params
+//     const whereClause = receiver ? { receiver } : {}; // Set where clause based on receiver
+
+//     const documents = await Document.findAll({ where: whereClause });
+
+//     return res.status(200).json({
+//       success: true,
+//       data: documents,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Failed to fetch documents',
+//       error: error.message,
+//     });
+//   }
+// };
+
+
 // Get a document by ID
 exports.getByIdDocument = async (req, res) => {
   const { id } = req.params;
@@ -111,16 +133,13 @@ exports.getByIdDocument = async (req, res) => {
   }
 };
 
+
+
+
+
 // Create a new document
 exports.createDocument = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation errors',
-      errors: errors.array(),
-    });
-  }
+  
 
   const {
     documentID,

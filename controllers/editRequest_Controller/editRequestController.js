@@ -94,44 +94,6 @@ exports.createEditRequest = [
   },
 ];
 
-// Update edit request by ID
-exports.updateByIdEditRequest = async (req, res) => {
-  const { id } = req.params; // Get the ID from the URL
-  const { user_id, role_id, request_reason, new_mobile_number, new_email_id, new_address } = req.body;
-
-  try {
-    const editRequest = await EditRequest.findByPk(id); // Find by primary key
-
-    if (!editRequest) {
-      return res.status(404).json({
-        success: false,
-        message: 'Edit request not found'
-      });
-    }
-
-    // Update fields if provided
-    editRequest.user_id = user_id || editRequest.user_id;
-    editRequest.role_id = role_id || editRequest.role_id;
-    editRequest.request_reason = request_reason || editRequest.request_reason;
-    editRequest.new_mobile_number = new_mobile_number || editRequest.new_mobile_number;
-    editRequest.new_email_id = new_email_id || editRequest.new_email_id;
-    editRequest.new_address = new_address || editRequest.new_address;
-
-    await editRequest.save(); // Save changes to the database
-
-    return res.status(200).json({
-      success: true,
-      message: 'Edit request updated successfully',
-      data: editRequest
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to update edit request',
-      error: error.message
-    });
-  }
-};
 
 // Delete an edit request by ID
 exports.deleteByIdEditRequest = async (req, res) => {
@@ -161,3 +123,5 @@ exports.deleteByIdEditRequest = async (req, res) => {
     });
   }
 };
+
+

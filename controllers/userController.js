@@ -293,7 +293,7 @@ exports.updateUser = async (req, res) => {
       full_name,
       gst_number,
       status,
-      club_id // Added club_id
+      club_id, // Added club_id
     } = req.body;
 
     // Validate required fields
@@ -314,39 +314,31 @@ exports.updateUser = async (req, res) => {
     }
 
     // Check if superior_id is valid and its role can supervise the current role
-    // if (role.role_name !== 'Admin' && !superior_id) {
-    //   return res.status(400).json({ error: 'Superior ID is required for hierarchical users.' });
-    // }
-    if (role.role_name !== 'Admin' && role.role_name !== 'Area Development Officer' && !superior_id) {
+    if (role.role_name !== 'Admin' && !superior_id) {
       return res.status(400).json({ error: 'Superior ID is required for hierarchical users.' });
     }
-    
 
-    // If superior_id is provided, check if it's a valid user and their role allows them to supervise
     if (superior_id) {
       const superiorUser = await User.findByPk(superior_id);
       if (!superiorUser || superiorUser.role_name === 'Admin') {
         return res.status(400).json({ error: 'Invalid superior ID; cannot assign Admin as a superior.' });
       }
 
-      // Define the allowed role hierarchy for each role
       const roleHierarchy = {
-        1: ['2', '3', '4', '5', '6'],  // Admin can supervise any role
-        2: ['3', '4', '5', '6'],        // Role 2 can supervise Roles 3, 4, 5, 6
-        3: ['4', '5', '6'],             // Role 3 can supervise Roles 4, 5, 6
-        4: ['5', '6'],                  // Role 4 can supervise Roles 5, 6
-        5: ['6'],                       // Role 5 can supervise Role 6
-        6: []                           // Role 6 cannot supervise anyone
+        1: ['2', '3', '4', '5', '6'],
+        2: ['3', '4', '5', '6'],
+        3: ['4', '5', '6'],
+        4: ['5', '6'],
+        5: ['6'],
+        6: [],
       };
 
-      // Check if superior's role can supervise the new role
       const allowedRoles = roleHierarchy[superiorUser.role_id];
       if (!allowedRoles.includes(role_id.toString())) {
         return res.status(400).json({ error: 'Superior user role cannot supervise this role.' });
       }
     }
 
-    // Check if username, email, or mobile number is being updated and already exists in another user
     const existingUser = await User.findOne({
       where: {
         [Op.or]: [{ username }, { email }, { mobile_number }],
@@ -365,15 +357,13 @@ exports.updateUser = async (req, res) => {
       }
     }
 
-    // Hash the password if it's being updated
     let hashedPassword = user.password;
     if (password) {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
-    // Image format validation
     const allowedFormats = ['image/jpeg', 'image/png', 'image/gif'];
-    let imageFilename = user.image; // Keep current image if no new one is uploaded
+    let imageFilename = user.image;
     if (req.file) {
       if (!allowedFormats.includes(req.file.mimetype)) {
         return res.status(400).json({
@@ -381,10 +371,19 @@ exports.updateUser = async (req, res) => {
           message: 'Invalid image format. Only JPEG, PNG, and GIF are allowed.',
         });
       }
-      imageFilename = req.file.filename; // Use the new uploaded image
+
+      if (req.file.size > 2 * 1024 * 1024) {
+        return res.status(400).json({
+          success: false,
+          message: 'Image size exceeds 2MB limit.',
+        });
+      }
+
+      imageFilename = req.file.filename;
     }
+
     const finalSuperiorId = role.role_name === 'Area Development Officer' ? null : superior_id;
-    // Update user details
+
     await user.update({
       username,
       password: hashedPassword,
@@ -400,12 +399,11 @@ exports.updateUser = async (req, res) => {
       full_name,
       gst_number,
       status,
-      club_id, // Save club_id
+      club_id,
       role_name: role.role_name,
-      image: imageFilename, // Save the new image filename if provided
+      image: imageFilename,
     });
 
-    // Success response
     return res.status(200).json({
       message: 'User updated successfully.',
       user: {
@@ -424,8 +422,8 @@ exports.updateUser = async (req, res) => {
         full_name: user.full_name,
         gst_number: user.gst_number,
         status: user.status,
-        club_id: user.club_id, // Include club_id in response
-        image: user.image, // Include image in response
+        club_id: user.club_id,
+        image: user.image,
         updatedAt: user.updatedAt,
       },
     });
@@ -434,6 +432,7 @@ exports.updateUser = async (req, res) => {
     return res.status(500).json({ error: error.message || 'An error occurred while updating the user.' });
   }
 };
+
 
 
 // Admin Read API: Get all users in hierarchical format

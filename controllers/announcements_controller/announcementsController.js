@@ -125,7 +125,6 @@ exports.updateByIdAnnouncement = async (req, res) => {
     description,
     link,
     receiver,
-    
   } = req.body;
 
   try {
@@ -138,13 +137,20 @@ exports.updateByIdAnnouncement = async (req, res) => {
       });
     }
 
+    // Ensure description is not empty
+    if (!description || !description.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Description cannot be empty',
+      });
+    }
+
     // Update fields accordingly
     announcement.documentID = documentID || announcement.documentID;
     announcement.heading = heading || announcement.heading;
     announcement.description = description || announcement.description;
     announcement.link = link || announcement.link;
     announcement.receiver = receiver || announcement.receiver;
-    
 
     // Handle file upload if present (assuming similar to document)
     if (req.file) {

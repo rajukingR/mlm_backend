@@ -43,23 +43,26 @@ const validateAdminRole = (req, res, next) => {
 
 
 
-// controllers/productController.js
 exports.createProduct = async (req, res) => {
   try {
     // Check if a product with the same name already exists
     const existingProduct = await Product.findOne({
-      where: { name: req.body.name }
+      where: { name: req.body.name },
     });
     if (existingProduct) {
       return res.status(400).json({ error: 'Product with this name already exists' });
     }
 
-    // Create the product with the image path and createdBy field
+    // Extract the filename from the uploaded file
+    const imageFilename = req.file ? req.file.filename : null;
+
+    // Create the product with the image filename and createdBy field
     const newProduct = await Product.create({
       ...req.body,
-      image: req.file ? req.file.path : null, // Store image path in the database
-      createdBy: req.user.id // Assuming req.user contains authenticated user data
+      image: imageFilename, // Save only the image filename
+      createdBy: req.user.id, // Assuming req.user contains authenticated user data
     });
+
     return res.status(201).json(newProduct);
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -78,10 +81,13 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
+    // Extract the filename from the uploaded file
+    const imageFilename = req.file ? req.file.filename : product.image;
+
     // Update product details, including image if provided
     const updatedProductData = {
       ...req.body,
-      image: req.file ? req.file.path : product.image, // Use new image or keep existing one
+      image: imageFilename, // Use new image or keep existing one
     };
 
     await product.update(updatedProductData);
@@ -90,7 +96,6 @@ exports.updateProduct = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 // Get all products
 exports.getAllProducts = async (req, res) => {

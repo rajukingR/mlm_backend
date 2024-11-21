@@ -19,7 +19,7 @@ const updateMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found' });
     }
 
-    // Update member details
+    // Update member details, including setting approved to "Completed"
     await member.update({
       mobile_number,
       email,
@@ -27,14 +27,22 @@ const updateMember = async (req, res) => {
       city,
       street_name,
       pincode,
+      approved: 'Completed', // Set approved column to "Completed"
     });
 
-    return res.status(200).json({ success: true, message: 'Member updated successfully' });
+    return res.status(200).json({
+      success: true,
+      message: 'Member updated successfully',
+      member, // Include the updated member details in the response
+    });
   } catch (error) {
     console.error('Error updating member:', error);
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+
+
 
 module.exports = {
   updateMember,

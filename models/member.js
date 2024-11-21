@@ -34,6 +34,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    approved: {
+      type: DataTypes.ENUM('Pending', 'Rejected', 'Completed'),
+      allowNull: false,
+      defaultValue: 'Pending',
+    },
     createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
