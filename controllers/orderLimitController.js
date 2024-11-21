@@ -2,13 +2,25 @@ const { OrderLimit } = require('../models'); // Ensure the path is correct
 
 const getOrderLimits = async (req, res) => {
     try {
-        const orderLimits = await OrderLimit.findAll();
-        res.json({ data: orderLimits });
+      const { role_name } = req.user; // Assume role_name is part of req.user
+  
+      // Check if the user has the "Admin" role
+      if (role_name !== 'Admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. Only admins can view order limits.',
+        });
+      }
+  
+      // Proceed with fetching order limits if the user is an Admin
+      const orderLimits = await OrderLimit.findAll();
+      res.json({ data: orderLimits });
     } catch (error) {
-        console.error('Error fetching order limits:', error);
-        res.status(500).json({ error: 'Error fetching order limits' });
+      console.error('Error fetching order limits:', error);
+      res.status(500).json({ error: 'Error fetching order limits' });
     }
-};
+  };
+  
 
 const createOrderLimit = async (req, res) => {
     const { hours, role } = req.body;
