@@ -155,7 +155,7 @@ exports.createDocument = async (req, res) => {
 
   try {
     // Image format validation
-    const allowedFormats = ['image/jpeg', 'image/png', 'image/gif'];
+    const allowedFormats = ['image/*']; // Allow all image formats
     if (req.file && !allowedFormats.includes(req.file.mimetype)) {
       return res.status(400).json({
         success: false,
