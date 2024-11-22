@@ -4,9 +4,12 @@ const express = require('express');
 const router = express.Router();
 const documentController = require('../controllers/document_controller/documentController'); // Adjust the path as needed
 const upload = require('../middlewares/multer'); // Make sure multer is set up correctly
-const { authMiddleware } = require('../middlewares/authMiddleware');
+const { authMiddleware,isAdmin } = require('../middlewares/authMiddleware');
+const { authUserMiddleware } = require('../middlewares/authUserMiddleware'); // Import the authentication middleware
 
 router.get('/',authMiddleware, documentController.getDocuments);
+router.get('/admin',authMiddleware, documentController.getDocumentsAdmin);
+
 
 router.get('/:id', documentController.getByIdDocument);
 

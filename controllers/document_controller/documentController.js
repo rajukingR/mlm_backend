@@ -1,60 +1,28 @@
 const { Document } = require('../../models');
 const { Op } = require('sequelize');
-const moment = require('moment');
-
-const updateExpiredDocuments = async () => {
-  try {
-    const currentDate = moment().format('YYYY-MM-DD HH:mm:ss'); // Get current date and time
-
-    await Document.update(
-      {
-        autoUpdate: 0,
-        activateStatus: 0,
-      },
-      {
-        where: {
-          toDate: { [Op.lt]: currentDate }, 
-        },
-      });
-
-    console.log('Expired documents updated successfully');
-  } catch (error) {
-    console.error('Error updating expired documents:', error);
-  }
-};
-
-// setInterval(updateExpiredDocuments, 10000); 
 
 exports.getDocuments = async (req, res) => {
   try {
-    const { role_name } = req.user;
-    const currentDate = moment().format('YYYY-MM-DD HH:mm:ss'); 
+    const { role_name } = req.user;  // Get role directly from the token
 
     let whereClause = {};
 
     if (role_name === 'Admin') {
-      whereClause = {
-        [Op.or]: [
-          {
-            fromDate: { [Op.lte]: currentDate }, 
-            toDate: { [Op.gte]: currentDate },  
-          },
-          {
-            toDate: { [Op.lt]: currentDate }, 
-          }
-        ]
-      };
-    } else {
+      // Admin can view all documents
+      whereClause = {};
+    } else if (role_name === 'Distributor') {
+      // Filter documents for Distributor role
       whereClause = {
         receiver: {
-          [Op.like]: `%${role_name}%`, 
+          [Op.like]: '%Distributor%' // Only show documents with "Distributor" in the receiver field
         },
-        [Op.or]: [
-          {
-            fromDate: { [Op.lte]: currentDate }, 
-            toDate: { [Op.gte]: currentDate },   
-          },
-        ]
+      };
+    } else {
+      // Non-admin roles can only see documents relevant to them
+      whereClause = {
+        receiver: {
+          [Op.like]: `%${role_name}%`, // Check if the role is in the receiver field
+        },
       };
     }
 
@@ -65,13 +33,51 @@ exports.getDocuments = async (req, res) => {
     if (!documents.length) {
       return res.status(404).json({
         success: false,
-        message: 'No documents found for the user\'s role or the selected time period',
+        message: 'No documents found for the user\'s role',
+      });
+    }
+
+    // Ensure the receiver field is an array and validate against allowed roles
+    const allowedRoles = ['Area Development Officer', 'Master Distributor', 'Super Distributor', 'Distributor', 'Customer'];
+
+    const filteredDocuments = documents.filter(doc => {
+      let receivers;
+
+      try {
+        // Log the receiver field for debugging purposes
+        console.log("Receiver field:", doc.receiver);
+
+        // Try to parse the receiver field into an array if it's a string
+        if (typeof doc.receiver === 'string') {
+          receivers = JSON.parse(doc.receiver); // Try parsing if it's a string
+        } else if (Array.isArray(doc.receiver)) {
+          receivers = doc.receiver; // If it's already an array, use it directly
+        } else {
+          receivers = [];
+        }
+
+        // Log the parsed receivers array for debugging
+        console.log("Parsed receivers:", receivers);
+
+        // Check if the user's role exists in the receivers array
+        return receivers.some(receiver => receiver.trim() === role_name);  // Add .trim() to avoid issues with spaces
+      } catch (e) {
+        console.error("Error parsing receiver field:", e);
+        receivers = [];
+        return false;
+      }
+    });
+
+    if (!filteredDocuments.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'No documents found for the user\'s role',
       });
     }
 
     return res.status(200).json({
       success: true,
-      data: documents,
+      data: filteredDocuments,
     });
   } catch (error) {
     console.error(error);
@@ -84,6 +90,26 @@ exports.getDocuments = async (req, res) => {
 };
 
 
+// Get all documents with optional filtering by receiver
+exports.getDocumentsAdmin = async (req, res) => {
+  try {
+    const { receiver } = req.query; // Extract receiver from query params
+    const whereClause = receiver ? { receiver } : {}; // Set where clause based on receiver
+
+    const documents = await Document.findAll({ where: whereClause });
+
+    return res.status(200).json({
+      success: true,
+      data: documents,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch documents',
+      error: error.message,
+    });
+  }
+};
 
 // // Get all documents with optional filtering by receiver
 // exports.getDocuments = async (req, res) => {
@@ -154,14 +180,15 @@ exports.createDocument = async (req, res) => {
   } = req.body;
 
   try {
-    // Image format validation
-    const allowedFormats = ['image/*']; // Allow all image formats
-    if (req.file && !allowedFormats.includes(req.file.mimetype)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid image format. Only JPEG, PNG, and GIF are allowed.',
-      });
-    }
+    const allowedMimeType = 'image/';
+
+if (req.file && !req.file.mimetype.startsWith(allowedMimeType)) {
+  return res.status(400).json({
+    success: false,
+    message: 'Invalid image format. Only image files are allowed.',
+  });
+}
+
 
     // Create the document
     const document = await Document.create({
@@ -215,7 +242,7 @@ exports.updateByIdDocument = async (req, res) => {
     if (!document) {
       return res.status(404).json({
         success: false,
-        message: 'Document not found',
+        message: "Document not found",
       });
     }
 
@@ -223,9 +250,18 @@ exports.updateByIdDocument = async (req, res) => {
     document.heading = heading || document.heading;
     document.description = description || document.description;
     document.link = link || document.link;
-    document.receiver = receiver || document.receiver;
-    document.autoUpdate = autoUpdate !== undefined ? autoUpdate : document.autoUpdate;
-    document.activateStatus = activateStatus !== undefined ? activateStatus : document.activateStatus;
+
+    // Ensure receiver is always stored as an array
+    if (receiver) {
+      document.receiver = Array.isArray(receiver)
+        ? receiver
+        : JSON.parse(receiver);
+    }
+
+    document.autoUpdate =
+      autoUpdate !== undefined ? autoUpdate : document.autoUpdate;
+    document.activateStatus =
+      activateStatus !== undefined ? activateStatus : document.activateStatus;
 
     if (autoUpdate) {
       document.fromDate = fromDate || document.fromDate;
@@ -243,10 +279,10 @@ exports.updateByIdDocument = async (req, res) => {
       data: document,
     });
   } catch (error) {
-    console.error('Error updating document:', error);
+    console.error("Error updating document:", error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to update document',
+      message: "Failed to update document",
       error: error.message,
     });
   }
