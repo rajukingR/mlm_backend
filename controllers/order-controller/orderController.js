@@ -190,6 +190,11 @@ const updateAssignedOrders = async () => {
       });
 
       if (user) {
+        // Declare userRoleID here to ensure it's in scope for all conditions
+        const userRoleID = user.role_id;
+        const userRoleName = user.role_name;  
+        const superiorId = user.superior_id;
+
         // Fetch the time limit based on the user's role from the order_limits table
         const roleTimeLimit = await OrderLimit.findOne({
           where: { role: user.role_name }
@@ -201,26 +206,41 @@ const updateAssignedOrders = async () => {
 
           // Check if the order's updatedAt is older than the calculated time limit
           if (new Date(order.updatedAt) <= timeLimit) {
-            const superiorId = user.superior_id; 
-            const userRoleID = user.role_id;    
-
-            // If there's a valid superiorId, update the order
-            if (superiorId) {
+            // If the role name is "Admin", set higher_role_id to userRoleID
+            if (userRoleName === "Admin") {
               await Order.update(
-                { higher_role_id: superiorId },
+                { higher_role_id: userRoleID },  // Set higher_role_id to userRoleID
                 { where: { id: order.id } }
               );
-              console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
-            } else if (userRoleID) {
-              // If no superiorId, fallback to userRoleID
-              await Order.update(
-                { higher_role_id: userRoleID },
-                { where: { id: order.id } }
-              );
-              console.log(`Order no ${order.id} was assigned to role ID ${userRoleID}.`);
+              console.log(`Order no ${order.id} was assigned to Admin role ID ${userRoleID}.`);
             } else {
-              console.log(`No valid superior or user role ID found for order ${order.id}`);
+              // If there's a valid superiorId, update the order
+              if (superiorId) {
+                await Order.update(
+                  { higher_role_id: superiorId },
+                  { where: { id: order.id } }
+                );
+                console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
+              } else if (userRoleID) {
+                // If no superiorId, fallback to userRoleID
+                await Order.update(
+                  { higher_role_id: userRoleID },
+                  { where: { id: order.id } }
+                );
+                console.log(`Order no ${order.id} was assigned to role ID ${userRoleID}.`);
+              } else {
+                console.log(`No valid superior or user role ID found for order ${order.id}`);
+              }
             }
+
+            // Add a new notification entry after updating the order
+            const notificationMessage = `New order requested by User ${order.user_id}`;
+            await Notification.create({ 
+              user_id: order.user_id, // Requesting user
+              receive_user_id: superiorId || userRoleID, // The recipient (either superior or fallback userRoleID)
+              message: notificationMessage,
+            });
+            console.log(`Notification created for Order no ${order.id}: ${notificationMessage}`);
 
             // If the requested role is "Area Development Officer" and no superiorId, mark as Cancelled
             if (order.requested_by_role === "Area Development Officer" && !superiorId) {
@@ -230,7 +250,12 @@ const updateAssignedOrders = async () => {
             console.log(`Order no ${order.id} was created recently, skipping update.`);
           }
         } else {
-          console.log(`No time limit found for the role ${user.role} in order ${order.id}.`);
+          // If no time limit found, set higher_role_id to userRoleID
+          await Order.update(
+            { higher_role_id: userRoleID },  // Set higher_role_id to userRoleID
+            { where: { id: order.id } }
+          );
+          console.log(`No time limit found for the role ${user.role_name} in order ${order.id}.`);
         }
       } else {
         console.log(`No user found with ID ${order.higher_role_id}.`);
@@ -242,7 +267,7 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-// setInterval(updateAssignedOrders, 30 * 1000);
+setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -477,7 +502,122 @@ exports.acceptOrder = async (req, res) => {
 
 
 
+///ADMIN GET PENDING ORDERS
 
 
 
+exports.getOrdersBySubordinatesAdmin = async (req, res) => {
+  try {
+    // Fetch all orders where higher_role_id is 1 and status is 'Pending', 'Accepted', or 'Cancelled'
+    const orders = await Order.findAll({
+      where: {
+        higher_role_id: 1,  // higher_role_id should be 1
+        status: ['Pending', 'Accepted', 'Cancelled'],  // Status should be one of these
+      },
+      include: [
+        {
+          model: User,
+          as: 'customer',  // Alias for the User model representing the customer
+          attributes: ['full_name', 'image', 'mobile_number'], // Fetch customer name, image, and mobile number
+        },
+        {
+          model: OrderItem,
+          as: 'OrderItems',
+          include: [
+            {
+              model: Product,
+              as: 'product',  // Including product details if needed
+              attributes: ['name', 'image', 'price', 'description'], // Fetch product details
+            },
+          ], // Include order items if they exist
+        },
+      ],
+      attributes: ['id', 'total_amount', 'coupon_code', 'discount_applied', 'final_amount', 'total_order_quantity', 'status', 'createdAt', 'updatedAt'],
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ message: 'No orders found' });
+    }
+
+    // Format the response to include necessary details
+    const orderDetails = orders.map(order => ({
+      orderId: order.id,
+      userId: order.user_id,
+      totalAmount: order.total_amount,
+      couponCode: order.coupon_code,
+      discountApplied: order.discount_applied,
+      finalAmount: order.final_amount,
+      totalOrderQuantity: order.total_order_quantity,
+      status: order.status,
+      requestedByRole: order.requested_by_role,
+      higherRoleId: order.higher_role_id,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      customerName: order.customer.full_name,  // Customer name
+      customerImage: order.customer.image,    // Customer image
+      customerMobile: order.customer.mobile_number, // Customer mobile number
+      OrderItems: order.OrderItems.map(item => ({
+        itemId: item.id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        quantityType: item.quantity_type,
+        basePrice: item.baseprice,
+        finalPrice: item.final_price,
+        itemVolume: item.item_volume,
+        productName: item.product.name, // Product name
+        productImage: item.product.image, // Product image
+        productPrice: item.product.price, // Product price
+        productDescription: item.product.description, // Product description
+      }))
+    }));
+
+    return res.status(200).json({ orders: orderDetails });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error', error: error.message });
+  }
+};
+
+
+
+
+exports.acceptOrRejectOrder = async (req, res) => {
+  const { orderId } = req.params; // Get orderId from URL parameters
+  const { action } = req.body; // Get action from the request body ('accept' or 'reject')
+  
+  try {
+    // Find the order by its ID
+    const order = await Order.findByPk(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Ensure the order is in a valid state to accept/reject
+    if (order.status === 'Accepted' || order.status === 'Cancelled') {
+      return res.status(400).json({ message: 'Order already processed' });
+    }
+
+    // Check if the action is valid
+    if (action !== 'accept' && action !== 'reject') {
+      return res.status(400).json({ message: 'Invalid action' });
+    }
+
+    // Update the order status based on the action
+    if (action === 'accept') {
+      order.status = 'Accepted';
+    } else if (action === 'reject') {
+      order.status = 'Cancelled';
+    }
+
+    // Save the updated order status
+    await order.save();
+
+    return res.json({ message: `Order ${action}ed successfully` });
+  } catch (error) {
+    console.error('Error processing order:', error); // Log the full error
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
 
