@@ -1,13 +1,13 @@
 // const { Feedback, Order, User } = require('../../models');
-const { Feedback, Order, User } = require('../../models');
+const { Feedback, Order, User, Product} = require('../../models');
 const { Op } = require('sequelize');
 
 exports.createFeedback = async (req, res) => {
     try {
-        const { user_id, order_id, rating, comments } = req.body;
+        const { user_id, order_id, rating, comments, product_id } = req.body;
 
         // Check for required fields
-        if (!user_id || !order_id || !rating || !comments) {
+        if (!user_id || !order_id || !rating || !comments || !product_id) {
             return res.status(400).json({ message: "Missing required fields." });
         }
 
@@ -27,6 +27,17 @@ exports.createFeedback = async (req, res) => {
                 ]
             } 
         });
+
+        const product = await Product.findOne({
+            where: {
+                id: product_id,
+            }
+        })
+
+        if (!product) {
+            return res.status(400).json({ message: "Product Not Found This ID" });
+        }
+
         if (!order) {
             return res.status(400).json({ message: "Order not found or not completed." });
         }
@@ -43,6 +54,7 @@ exports.createFeedback = async (req, res) => {
         const feedback = await Feedback.create({
             user_id,
             order_id,
+            product_id,
             rating,
             comments,
             feedback_date: new Date(),
@@ -59,7 +71,7 @@ exports.createFeedback = async (req, res) => {
 
 
 ///////////////*************/////////////////////
-//////////////////////////////////////////////////
+//////////////////////////////////////////////////need product image name
 
 exports.getFeedbackForHigherRole = async (req, res) => {
     try {
@@ -75,8 +87,13 @@ exports.getFeedbackForHigherRole = async (req, res) => {
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'username', 'full_name'],
+                    attributes: ['id', 'username', 'full_name','image'],
                 },
+                {
+                    model: Product,
+                    as: 'product',
+                    attributes: ['id', 'name','image'],
+                }
             ],
         });
 

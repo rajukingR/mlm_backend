@@ -11,15 +11,15 @@ module.exports = (sequelize, DataTypes) => {
             },
             onDelete: 'CASCADE', 
         },
-        // product_id: {
-        //     type: DataTypes.INTEGER,
-        //     allowNull: false,
-        //     references: {
-        //         model: 'products',
-        //         key: 'id',
-        //     },
-        //     onDelete: 'CASCADE',
-        // },
+        product_id: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            references: {
+                model: 'products',
+                key: 'id',
+            },
+            onDelete: 'CASCADE',
+        },
         order_id: {
             type: DataTypes.INTEGER,
             allowNull: false,
@@ -56,6 +56,7 @@ module.exports = (sequelize, DataTypes) => {
         Feedback.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
         // Feedback.belongsTo(models.Product, { foreignKey: 'product_id', as: 'product' });
         Feedback.belongsTo(models.Order, { foreignKey: 'order_id', as: 'order' });
+        Feedback.belongsTo(models.Product, { foreignKey: 'product_id', as: 'product' });
     };
 
     return Feedback;
