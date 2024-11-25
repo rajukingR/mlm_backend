@@ -87,12 +87,12 @@ exports.getFeedbackForHigherRole = async (req, res) => {
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'username', 'full_name','image'],
+                    attributes: ['id', 'username', 'full_name','image','club_name'],
                 },
                 {
                     model: Product,
                     as: 'product',
-                    attributes: ['id', 'name','image'],
+                    attributes: ['id', 'name','image','product_code'],
                 }
             ],
         });
@@ -128,8 +128,13 @@ exports.getFeedbackForCustomer = async (req, res) => {
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'username', 'full_name'],  // Include customer details
+                    attributes: ['id', 'username', 'full_name','image','club_name'],  
                 },
+                {
+                    model: Product,
+                    as: 'product',
+                    attributes: ['id', 'name','image','product_code'],
+                }
             ],
         });
 
