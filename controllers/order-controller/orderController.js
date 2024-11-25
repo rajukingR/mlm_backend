@@ -235,7 +235,7 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-setInterval(updateAssignedOrders, 30 * 1000);
+// setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -257,27 +257,68 @@ exports.getOrdersBySubordinates = async (req, res) => {
       return res.status(404).json({ message: 'No subordinates found' });
     }
 
-    // Fetch orders requested by subordinates
+    // Fetch orders requested by subordinates, including customer name, image, mobile number, and order details
     const subordinateIds = subordinates.map(user => user.id); // Extract subordinate user IDs
     const orders = await Order.findAll({
       where: { higher_role_id: userId },
-      include: [{
-        model: OrderItem,
-        as: 'OrderItems',
-        include: [
-          {
-            model: Product,
-            as: 'product',
-          },
-        ], // Include order items if they exist
-      }]
+      include: [
+        {
+          model: User,
+          as: 'customer',  // Alias for the User model representing the customer
+          attributes: ['full_name', 'image', 'mobile_number'], // Fetch customer name, image, and mobile number
+        },
+        {
+          model: OrderItem,
+          as: 'OrderItems',
+          include: [
+            {
+              model: Product,
+              as: 'product',  // Including product details if needed
+              attributes: ['name', 'image', 'price', 'description'], // Fetch product details
+            },
+          ], // Include order items if they exist
+        },
+      ],
+      attributes: ['id', 'total_amount', 'coupon_code', 'discount_applied', 'final_amount', 'total_order_quantity', 'status', 'createdAt', 'updatedAt'],
     });
 
     if (orders.length === 0) {
       return res.status(404).json({ message: 'No orders found for subordinates' });
     }
 
-    return res.status(200).json({ orders });
+    // Format the response to include necessary details
+    const orderDetails = orders.map(order => ({
+      orderId: order.id,
+      userId: order.user_id,
+      totalAmount: order.total_amount,
+      couponCode: order.coupon_code,
+      discountApplied: order.discount_applied,
+      finalAmount: order.final_amount,
+      totalOrderQuantity: order.total_order_quantity,
+      status: order.status,
+      requestedByRole: order.requested_by_role,
+      higherRoleId: order.higher_role_id,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      customerName: order.customer.full_name,  // Customer name
+      customerImage: order.customer.image,    // Customer image
+      customerMobile: order.customer.mobile_number, // Customer mobile number
+      OrderItems: order.OrderItems.map(item => ({
+        itemId: item.id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        quantityType: item.quantity_type,
+        basePrice: item.baseprice,
+        finalPrice: item.final_price,
+        itemVolume: item.item_volume,
+        productName: item.product.name, // Product name
+        productImage: item.product.image, // Product image
+        productPrice: item.product.price, // Product price
+        productDescription: item.product.description, // Product description
+      }))
+    }));
+
+    return res.status(200).json({ orders: orderDetails });
 
   } catch (error) {
     console.error(error);
