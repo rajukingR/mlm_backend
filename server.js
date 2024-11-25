@@ -20,8 +20,7 @@ const minimumStockRoutes = require('./routes/minimumStockRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const userSalesDetailRoutes = require('./routes/userSalesDetailRoutes');
 const sectorAdminRoutes = require('./routes/sectorRoutes');
-const notificationRoutes = require('./routes/monthly_notificationRoute/monthlyNotificationRoutes'); 
-const notificationNewOrderRoutes = require('./routes/notification_new_orders/notificationNewOrdersRoutes'); 
+const notificationRoutes = require('./routes/monthly_notificationRoute/monthlyNotificationRoutes');  
 
 
 
@@ -109,7 +108,6 @@ cron.schedule('0 12 15 * *', async () => {
 });
 //**send-notifications don't call this api --> only for development**//
 app.use('/month_notifications', notificationRoutes);
-app.use('/order_notifications', notificationNewOrderRoutes);
 
 server.listen(port, async () => {
   try {
