@@ -1,4 +1,4 @@
-const { Order, OrderItem, Product, User, OrderLimit, NotificationOrder } = require('../../models');
+const { Order, OrderItem, Product, User, OrderLimit, Notification } = require('../../models');
 
 
 exports.createOrder = async (req, res) => {
@@ -86,8 +86,8 @@ exports.createOrder = async (req, res) => {
 
      // **New Logic: Add a notification entry**
      const notificationMessage = `New order requested by User ${user_id}`;
-     await NotificationOrder.create({
-       request_user_id: user_id,
+     await Notification.create({
+       user_id: user_id, // Requesting user
        receive_user_id: higherRoleId, 
        message: notificationMessage,
      });

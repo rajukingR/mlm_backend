@@ -11,6 +11,10 @@ module.exports = (sequelize, DataTypes) => {
           type: DataTypes.INTEGER,
           allowNull: false,
         },
+        receive_user_id: {
+          type: DataTypes.INTEGER,
+          allowNull: false, // Required field
+        },
         message: {
           type: DataTypes.TEXT,
           allowNull: false,
