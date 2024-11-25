@@ -90,6 +90,10 @@ module.exports = (sequelize, DataTypes) => {
     club_id: { // New column added for club_id without foreignKey or references
       type: DataTypes.INTEGER,
       allowNull: true,  // You can set it to false if it's required
+    },
+    club_name: { // New column added for club_name
+      type: DataTypes.STRING,
+      allowNull: true,  // You can set it to false if it's required
     }
   }, {
     tableName: 'users',
