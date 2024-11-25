@@ -1,7 +1,6 @@
-const { Order, OrderItem, Product, User, OrderLimit } = require('../../models');
+const { Order, OrderItem, Product, User, OrderLimit, Notification } = require('../../models');
 
-// Create Order
-// Create Order
+
 exports.createOrder = async (req, res) => {
   const { user_id, items, coupon_code } = req.body; // coupon_code is optional
 
@@ -84,6 +83,14 @@ exports.createOrder = async (req, res) => {
       ...item,
       order_id: order.id
     })));
+
+     // **New Logic: Add a notification entry**
+     const notificationMessage = `New order requested by User ${user_id}`;
+     await Notification.create({
+       user_id: user_id, // Requesting user
+       receive_user_id: higherRoleId, 
+       message: notificationMessage,
+     });
 
     return res.status(201).json({ message: 'Order created successfully', order });
 
