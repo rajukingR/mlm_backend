@@ -163,7 +163,7 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      club_id,  
+      club_name, // Add club_name here
       country,
       district
       // image
@@ -175,19 +175,19 @@ exports.signUp = async (req, res) => {
       return res.status(400).json({ error: 'Invalid role ID' });
     }
 
-        // Dynamically generate username based on role and mobile number
-        let username;
-          if (role.role_name === 'Area Development Officer') {
-          username = `ado_${mobile_number}`;
-        } else if (role.role_name === 'Master Distributor') {
-          username = `md_${mobile_number}`;
-        } else if (role.role_name === 'Super Distributor') {
-          username = `sd_${mobile_number}`;
-        } else if (role.role_name === 'Distributor') {
-          username = `d_${mobile_number}`;
-        } else if (role.role_name === 'Customer') {
-          username = `c_${mobile_number}`;
-        }
+    // Dynamically generate username based on role and mobile number
+    let username;
+    if (role.role_name === 'Area Development Officer') {
+      username = `ado_${mobile_number}`;
+    } else if (role.role_name === 'Master Distributor') {
+      username = `md_${mobile_number}`;
+    } else if (role.role_name === 'Super Distributor') {
+      username = `sd_${mobile_number}`;
+    } else if (role.role_name === 'Distributor') {
+      username = `d_${mobile_number}`;
+    } else if (role.role_name === 'Customer') {
+      username = `c_${mobile_number}`;
+    }
 
     // Check if the role is ADO (assuming 'ADO' is the name in your roles table)
     let finalSuperiorId = superior_id;
@@ -261,7 +261,7 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      club_id, 
+      club_name, // Add club_name here
       image: req.file ? req.file.filename : null,
       country,
       district
@@ -297,7 +297,7 @@ exports.updateUser = async (req, res) => {
       full_name,
       gst_number,
       status,
-      club_id, // Added club_id
+      club_name,
       country,
       district
     } = req.body;
@@ -407,7 +407,7 @@ exports.updateUser = async (req, res) => {
       full_name,
       gst_number,
       status,
-      club_id,
+      club_name,
       role_name: role.role_name,
       image: imageFilename,
       country,
@@ -432,7 +432,7 @@ exports.updateUser = async (req, res) => {
         full_name: user.full_name,
         gst_number: user.gst_number,
         status: user.status,
-        club_id: user.club_id,
+        club_name: user.club_name,
         image: user.image,
         country:user.country,
         district:user.district,

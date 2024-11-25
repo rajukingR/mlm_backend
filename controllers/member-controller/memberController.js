@@ -1,6 +1,3 @@
-const { Member } = require('../../models'); // Adjust the path to your member model
-
-// Update member details
 const updateMember = async (req, res) => {
   const memberId = req.params.id;
   const {
@@ -17,6 +14,24 @@ const updateMember = async (req, res) => {
     const member = await Member.findByPk(memberId);
     if (!member) {
       return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    // Check if mobile number already exists in the database (excluding the current member)
+    const existingMobileNumber = await Member.findOne({
+      where: { mobile_number, id: { [Op.ne]: memberId } },
+    });
+
+    if (existingMobileNumber) {
+      return res.status(400).json({ success: false, message: 'Mobile number already exists' });
+    }
+
+    // Check if email already exists in the database (excluding the current member)
+    const existingEmail = await Member.findOne({
+      where: { email, id: { [Op.ne]: memberId } },
+    });
+
+    if (existingEmail) {
+      return res.status(400).json({ success: false, message: 'Email already exists' });
     }
 
     // Update member details, including setting approved to "Completed"
@@ -40,9 +55,6 @@ const updateMember = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-
-
-
 
 module.exports = {
   updateMember,
