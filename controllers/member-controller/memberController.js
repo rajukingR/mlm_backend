@@ -1,3 +1,6 @@
+const { Member, EditRequest } = require('../../models'); // Import both Member and EditRequest models
+const { Op } = require('sequelize');
+
 const updateMember = async (req, res) => {
   const memberId = req.params.id;
   const {
@@ -45,9 +48,21 @@ const updateMember = async (req, res) => {
       approved: 'Completed', // Set approved column to "Completed"
     });
 
+    // Find the corresponding edit request for this member and update its status
+    const editRequest = await EditRequest.findOne({
+      where: { user_id: memberId, status: 'Pending' }, // Assuming the request is pending
+    });
+
+    if (editRequest) {
+      // Update the status of the corresponding edit request to "Completed"
+      await editRequest.update({
+        status: 'Completed',
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      message: 'Member updated successfully',
+      message: 'Member updated successfully, and edit request status updated to Completed',
       member, // Include the updated member details in the response
     });
   } catch (error) {
