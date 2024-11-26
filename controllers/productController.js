@@ -97,7 +97,7 @@ exports.updateProduct = async (req, res) => {
   }
 };
 
-// Get all products
+//***** Get all products Admin *****//
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.findAll({
@@ -111,7 +111,7 @@ exports.getAllProducts = async (req, res) => {
   }
 };
 
-// Get all products
+//**** Get all products *****//
 exports.getAllProductsForUser = async (req, res) => {
   try {
     const products = await Product.findAll({
@@ -126,11 +126,9 @@ exports.getAllProductsForUser = async (req, res) => {
   }
 };
 
-// Get a single product by ID
+//******  Get a single product by ID for Admin *****//
 exports.getProductById = async (req, res) => {
   try {
-    // const product = await Product.findByPk(req.params.id);
-    // const product = await Product.findByPk({
      const product = await Product.findOne({
        where: { 
         id: req.params.id,
@@ -146,6 +144,7 @@ exports.getProductById = async (req, res) => {
   }
 };
 
+//////***** User get id products *****////
 exports.getProductByIdForUser = async (req, res) => {
   try {
      const product = await Product.findOne({
@@ -165,44 +164,24 @@ exports.getProductByIdForUser = async (req, res) => {
 };
 
 
-
-// Delete a product
-exports.deleteProduct = [
-  validateAdminRole, // Ensure only admin can delete a product
-  async (req, res) => {
-    try {
-      const deleted = await Product.destroy({
-        where: { id: req.params.id }
-      });
-
-      if (!deleted) {
-        return res.status(404).json({ error: 'Product not found' });
-      }
-      // return res.status(204).send();
-      return res.status(200).json({ message: 'Product deleted successfully' });
-    } catch (error) {
-      return handleErrors(res, error);
-    }
-  }
-];
-
-
 // //***  Soft delete a product ***//
-// exports.deleteProduct = [
-//   validateAdminRole, 
-//   async (req, res) => {
-//     try {
-//       const [deleted] = await Product.update(
-//         { isDeleted: true },
-//         { where: { id: req.params.id } }
-//       );
+exports.deleteProduct = async (req, res) => {
+  try {
+    const [updatedRows] = await Product.update(
+      { isDeleted: 1 }, 
+      { where: { id: req.params.id, isDeleted: 0 } }
+    );
 
-//       if (!deleted) {
-//         return res.status(404).json({ error: 'Product not found' });
-//       }
-//       return res.status(200).json({ message: 'Product soft-deleted successfully' });
-//     } catch (error) {
-//       return handleErrors(res, error);
-//     }
-//   }
-// ];
+    if (updatedRows === 0) {
+      return res.status(404).json({ error: 'Product not found or already deleted' });
+    }
+
+    return res.status(200).json({ message: 'Product soft-deleted successfully' });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'An error occurred while deleting the product' });
+  }
+};
+
+
