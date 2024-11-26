@@ -148,7 +148,7 @@ exports.getProductById = async (req, res) => {
 exports.getProductByIdForUser = async (req, res) => {
   try {
      const product = await Product.findOne({
-       where: { 
+       where: {  
         id: req.params.id,
          isDeleted: false,
          status: true

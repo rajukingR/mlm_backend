@@ -11,7 +11,7 @@ router.post('/', upload.single('image'), authMiddleware, isAdmin, productControl
 router.put('/:id', upload.single('image'), productController.updateProduct);
 router.delete('/:id', authMiddleware, isAdmin, productController.deleteProduct);
 //
-// router.get('/user_product', productController.getAllProductsForUser);
+router.get('/user_product', productController.getAllProductsForUser);
 router.get('/user_product/:id', productController.getProductByIdForUser);
 
 module.exports = router;
