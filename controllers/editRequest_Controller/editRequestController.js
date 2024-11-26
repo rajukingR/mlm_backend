@@ -95,8 +95,8 @@ exports.createEditRequest = [
 ];
 
 
-// Delete an edit request by ID
-exports.deleteByIdEditRequest = async (req, res) => {
+// Update the status of an edit request to "Rejected"
+exports.rejectByIdEditRequest = async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -109,19 +109,22 @@ exports.deleteByIdEditRequest = async (req, res) => {
       });
     }
 
-    await editRequest.destroy();
+    // Update the status to "Rejected"
+    editRequest.status = 'Rejected';
+    await editRequest.save();  // Save the updated request
 
     return res.status(200).json({
       success: true,
-      message: 'Edit request deleted successfully'
+      message: 'Edit request marked as rejected successfully'
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: 'Failed to delete edit request',
+      message: 'Failed to update edit request status',
       error: error.message
     });
   }
 };
+
 
 
