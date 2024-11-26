@@ -26,6 +26,14 @@ exports.createCategory = [
         return res.status(400).json({ errors: errors.array() });
       }
 
+      const existingCategory = await Category.findOne({
+        where: { category_name: req.body.category_name }
+      });
+
+      if (existingCategory) {
+        return res.status(409).json({ error: 'Category with this name already exists' });
+      }
+
       // Create the category using the validated data
       const newCategory = await Category.create({
         sector_name: req.body.sector_name, // optional
@@ -75,6 +83,14 @@ exports.updateCategory = [
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
+      }
+
+      const existingCategory = await Category.findOne({
+        where: { category_name: req.body.category_name }
+      });
+
+      if (existingCategory) {
+        return res.status(409).json({ error: 'Category with this name already exists' });
       }
 
       const [updated] = await Category.update(req.body, {
