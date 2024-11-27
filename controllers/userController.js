@@ -283,7 +283,6 @@ exports.updateUser = async (req, res) => {
   try {
     const { userId } = req.params;
     const {
-      username,
       password,
       email,
       role_id,
@@ -299,12 +298,14 @@ exports.updateUser = async (req, res) => {
       status,
       club_name,
       country,
-      district
+      district,
     } = req.body;
 
     // Validate required fields
-    if (!username || !email || !role_id || !mobile_number) {
-      return res.status(400).json({ error: 'Required fields must be provided (username, email, role_id, mobile_number).' });
+    if (!email || !role_id || !mobile_number) {
+      return res.status(400).json({
+        error: 'Required fields must be provided: email, role_id, and mobile_number.',
+      });
     }
 
     // Find the user being updated
@@ -319,6 +320,36 @@ exports.updateUser = async (req, res) => {
       return res.status(400).json({ error: 'Invalid role ID.' });
     }
 
+    // Dynamically generate username based on role and mobile number
+    let username = user.username; // Default to current username
+    if (mobile_number) {
+      switch (role.role_name) {
+        case 'Area Development Officer':
+          username = `ado_${mobile_number}`;
+          break;
+        case 'Master Distributor':
+          username = `md_${mobile_number}`;
+          break;
+        case 'Super Distributor':
+          username = `sd_${mobile_number}`;
+          break;
+        case 'Distributor':
+          username = `d_${mobile_number}`;
+          break;
+        case 'Customer':
+          username = `c_${mobile_number}`;
+          break;
+        default:
+          username = mobile_number; // Fallback username
+      }
+    }
+
+    // Validate required fields
+    if (!username || !email || !role_id || !mobile_number) {
+      return res.status(400).json({ error: 'Required fields must be provided (username, email, role_id, mobile_number).' });
+    }
+
+    
     // Check if superior_id is valid and its role can supervise the current role
     if (role.role_name !== 'Admin' && role.role_name !== 'Area Development Officer' && !superior_id) {
       return res.status(400).json({ error: 'Superior ID is required for hierarchical users.' });
