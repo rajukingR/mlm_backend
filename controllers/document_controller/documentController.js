@@ -324,8 +324,6 @@ exports.deleteByIdDocument = async (req, res) => {
 
 //UPDATED DOCUMENTS BASED ON FROM DATE AND TO DATE
 
-
-
 const updateDocumentsPeriodically = () => {
   setInterval(async () => {
     try {
@@ -345,14 +343,18 @@ const updateDocumentsPeriodically = () => {
             doc.autoUpdate = 0;
             doc.fromDate = null;
             doc.toDate = null;
+            doc.status = 'Expired'; 
             await doc.save();
-            console.log(`Document ID ${doc.id} expired. autoUpdate=0, dates NULL.`);
-          } 
+            console.log(`Document ID ${doc.id} expired. autoUpdate=0, dates NULL, status set to 'Expired'.`);
+          } else {
+            doc.updatedAt = now;
+            await doc.save();
+            console.log(`Document ID ${doc.id} updated at ${doc.updatedAt}`);
+          }
         } catch (err) {
           console.error(`Error processing Document ID ${doc.id}:`, err);
         }
       }
-
     } catch (error) {
       console.error('Error updating documents:', error);
     }
