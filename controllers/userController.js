@@ -163,11 +163,13 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      club_name, // Add club_name here
+      club_name,
       country,
       district
-      // image
     } = req.body;
+
+    // Extract user ID from the authentication token (Admin's ID)
+    const loggedInUserId = req.user.id;  // Assuming `req.user.id` contains the logged-in user's ID from the token
 
     // Validate role
     const role = await Role.findByPk(role_id);
@@ -177,35 +179,47 @@ exports.signUp = async (req, res) => {
 
     // Dynamically generate username based on role and mobile number
     let username;
-    if (role.role_name === 'Area Development Officer') {
-      username = `ado_${mobile_number}`;
-    } else if (role.role_name === 'Master Distributor') {
-      username = `md_${mobile_number}`;
-    } else if (role.role_name === 'Super Distributor') {
-      username = `sd_${mobile_number}`;
-    } else if (role.role_name === 'Distributor') {
-      username = `d_${mobile_number}`;
-    } else if (role.role_name === 'Customer') {
-      username = `c_${mobile_number}`;
+    switch (role.role_name) {
+      case 'Area Development Officer':
+        username = `ado_${mobile_number}`;
+        break;
+      case 'Master Distributor':
+        username = `md_${mobile_number}`;
+        break;
+      case 'Super Distributor':
+        username = `sd_${mobile_number}`;
+        break;
+      case 'Distributor':
+        username = `d_${mobile_number}`;
+        break;
+      case 'Customer':
+        username = `c_${mobile_number}`;
+        break;
     }
 
-    // Check if the role is ADO (assuming 'ADO' is the name in your roles table)
     let finalSuperiorId = superior_id;
+
     if (role.role_name === 'Area Development Officer') {
-      finalSuperiorId = null;
+      // If superior_id is null or not provided, set superior_id to Admin's ID (Logged-in Admin)
+      if (!superior_id) {
+        finalSuperiorId = loggedInUserId;  // Use the logged-in Admin's ID
+      } else {
+        // Validate superior_id if provided
+        const adminUser = await User.findOne({ where: { role_name: 'Admin', id: superior_id } });
+        if (!adminUser) {
+          return res.status(400).json({ error: 'Admin ID not valid or Admin not found' });
+        }
+      }
     } else {
       // Validate superior user if not ADO
       const creator = await User.findByPk(superior_id);
       if (!creator) {
         return res.status(400).json({ error: 'Invalid superior_id' });
       }
-
-      // Ensure Admin cannot be assigned as a superior for hierarchical users
       if (creator.role_name === 'Admin') {
         return res.status(400).json({ error: 'Admin cannot be assigned as superior' });
       }
 
-      // Define role hierarchy and validate based on it
       const roleHierarchy = {
         1: ['2', '3', '4', '5', '6'],
         2: ['3', '4', '5', '6'],
@@ -220,16 +234,16 @@ exports.signUp = async (req, res) => {
       }
     }
 
-    // Image format validation
+    // Image validation
     const allowedFormats = ['image/jpeg', 'image/png', 'image/gif'];
     if (req.file && !allowedFormats.includes(req.file.mimetype)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid image format. Only JPEG, PNG, and GIF are allowed.',
+        message: 'Invalid image format. Only JPEG, PNG, and GIF are allowed.'
       });
     }
 
-    // Check for existing username, email, and mobile number
+    // Check for existing user, email, and mobile number
     const [existingUser, existingEmail, existingMobile] = await Promise.all([ 
       User.findOne({ where: { username } }),
       User.findOne({ where: { email } }),
@@ -251,7 +265,7 @@ exports.signUp = async (req, res) => {
       password: hashedPassword,
       email,
       role_id,
-      superior_id: finalSuperiorId,
+      superior_id: finalSuperiorId,  // Use the final superior_id which is now handled correctly
       role_name: role.role_name,
       pincode,
       state,
@@ -261,7 +275,7 @@ exports.signUp = async (req, res) => {
       mobile_number,
       full_name,
       gst_number,
-      club_name, // Add club_name here
+      club_name,
       image: req.file ? req.file.filename : null,
       country,
       district
@@ -273,7 +287,6 @@ exports.signUp = async (req, res) => {
     res.status(500).json({ error: 'Failed to create user' });
   }
 };
-
 
 
 ////////////***************** Optimized User Update Controller   ***********/////////////
@@ -344,40 +357,65 @@ exports.updateUser = async (req, res) => {
       }
     }
 
-    // Validate required fields
+    // Validate required fields for username, email, role_id, and mobile_number
     if (!username || !email || !role_id || !mobile_number) {
       return res.status(400).json({ error: 'Required fields must be provided (username, email, role_id, mobile_number).' });
     }
 
-    
-    // Check if superior_id is valid and its role can supervise the current role
+    // Handle superior_id validation based on the role
+    let finalSuperiorId = superior_id;
+
+    // Ensure that only the Admin or higher roles can have a superior_id
     if (role.role_name !== 'Admin' && role.role_name !== 'Area Development Officer' && !superior_id) {
       return res.status(400).json({ error: 'Superior ID is required for hierarchical users.' });
     }
-    
 
-    // If superior_id is provided, check if it's a valid user and their role allows them to supervise
-    if (superior_id) {
-      const superiorUser = await User.findByPk(superior_id);
-      if (!superiorUser || superiorUser.role_name === 'Admin') {
-        return res.status(400).json({ error: 'Invalid superior ID; cannot assign Admin as a superior.' });
-      }
-
-      const roleHierarchy = {
-        1: ['2', '3', '4', '5', '6'],
-        2: ['3', '4', '5', '6'],
-        3: ['4', '5', '6'],
-        4: ['5', '6'],
-        5: ['6'],
-        6: [],
-      };
-
-      const allowedRoles = roleHierarchy[superiorUser.role_id];
-      if (!allowedRoles.includes(role_id.toString())) {
-        return res.status(400).json({ error: 'Superior user role cannot supervise this role.' });
+    // If role is 'Area Development Officer', ensure the superior_id is either Admin or a valid supervisor
+    if (role.role_name === 'Area Development Officer') {
+      if (!superior_id) {
+        finalSuperiorId = loggedInUserId; // Use the logged-in Admin's ID
+      } else {
+        // Validate superior_id if provided
+        const adminUser = await User.findOne({ where: { role_name: 'Admin', id: superior_id } });
+        if (!adminUser) {
+          return res.status(400).json({ error: 'Admin ID not valid or Admin not found.' });
+        }
       }
     }
 
+    // Check if superior_id is provided and ensure it belongs to a valid user
+    if (superior_id) {
+      const superiorUser = await User.findByPk(superior_id);
+      if (!superiorUser) {
+        return res.status(400).json({ error: 'Superior user not found.' });
+      }
+
+      // Ensure that Admin is not assigned as a superior for certain roles
+      if (superiorUser.role_name === 'Admin') {
+        // Admin can supervise only specific roles
+        const allowedRolesForAdmin = ['Area Development Officer', 'Master Distributor', 'Super Distributor'];
+        if (!allowedRolesForAdmin.includes(role.role_name)) {
+          return res.status(400).json({ error: 'Invalid superior ID; Admin cannot supervise this role.' });
+        }
+      } else {
+        // Other regular roles should follow the role hierarchy
+        const roleHierarchy = {
+          1: ['2', '3', '4', '5', '6'],  // Admin can supervise all roles
+          2: ['3', '4', '5', '6'],        // Area Development Officer can supervise lower roles
+          3: ['4', '5', '6'],             // Master Distributor can supervise certain lower roles
+          4: ['5', '6'],                  // Super Distributor can supervise Distributor and Customer
+          5: ['6'],                       // Distributor can only supervise Customer
+          6: [],                          // Customer cannot supervise anyone
+        };
+
+        const allowedRoles = roleHierarchy[superiorUser.role_id];
+        if (!allowedRoles.includes(role_id.toString())) {
+          return res.status(400).json({ error: 'Superior user role cannot supervise this role.' });
+        }
+      }
+    }
+
+    // Check for unique username, email, and mobile_number
     const existingUser = await User.findOne({
       where: {
         [Op.or]: [{ username }, { email }, { mobile_number }],
@@ -396,11 +434,13 @@ exports.updateUser = async (req, res) => {
       }
     }
 
+    // Hash the password if provided
     let hashedPassword = user.password;
     if (password) {
       hashedPassword = await bcrypt.hash(password, 10);
     }
 
+    // Validate and process image file (if provided)
     const allowedFormats = ['image/jpeg', 'image/png', 'image/gif'];
     let imageFilename = user.image;
     if (req.file) {
@@ -421,8 +461,7 @@ exports.updateUser = async (req, res) => {
       imageFilename = req.file.filename;
     }
 
-    const finalSuperiorId = role.role_name === 'Area Development Officer' ? null : superior_id;
-
+    // Update user with new data
     await user.update({
       username,
       password: hashedPassword,
@@ -442,7 +481,7 @@ exports.updateUser = async (req, res) => {
       role_name: role.role_name,
       image: imageFilename,
       country,
-      district
+      district,
     });
 
     return res.status(200).json({
@@ -465,8 +504,8 @@ exports.updateUser = async (req, res) => {
         status: user.status,
         club_name: user.club_name,
         image: user.image,
-        country:user.country,
-        district:user.district,
+        country: user.country,
+        district: user.district,
         updatedAt: user.updatedAt,
       },
     });
@@ -475,7 +514,6 @@ exports.updateUser = async (req, res) => {
     return res.status(500).json({ error: error.message || 'An error occurred while updating the user.' });
   }
 };
-
 
 
 // Admin Read API: Get all users in hierarchical format
