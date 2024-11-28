@@ -1,5 +1,6 @@
 const { Document } = require('../../models');
 const { Op } = require('sequelize');
+const moment = require('moment');  // Import moment.js
 
 exports.getDocuments = async (req, res) => {
   try {
@@ -317,3 +318,45 @@ exports.deleteByIdDocument = async (req, res) => {
     });
   }
 };
+
+
+
+
+//UPDATED DOCUMENTS BASED ON FROM DATE AND TO DATE
+
+
+
+const updateDocumentsPeriodically = () => {
+  setInterval(async () => {
+    try {
+      const now = moment().format('YYYY-MM-DD HH:mm:ss'); 
+
+      const documentsToUpdate = await Document.findAll({
+        where: {
+          autoUpdate: 1,
+          fromDate: { [Op.lte]: now },
+          toDate: { [Op.gte]: now },
+        },
+      });
+
+      for (const doc of documentsToUpdate) {
+        try {
+          if (moment(now).isAfter(moment(doc.toDate))) {
+            doc.autoUpdate = 0;
+            doc.fromDate = null;
+            doc.toDate = null;
+            await doc.save();
+            console.log(`Document ID ${doc.id} expired. autoUpdate=0, dates NULL.`);
+          } 
+        } catch (err) {
+          console.error(`Error processing Document ID ${doc.id}:`, err);
+        }
+      }
+
+    } catch (error) {
+      console.error('Error updating documents:', error);
+    }
+  }, 30000); 
+};
+
+updateDocumentsPeriodically();
