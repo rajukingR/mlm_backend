@@ -361,4 +361,4 @@ const updateDocumentsPeriodically = () => {
   }, 30000); 
 };
 
-updateDocumentsPeriodically();
+// updateDocumentsPeriodically();
