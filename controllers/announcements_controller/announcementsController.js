@@ -1,4 +1,4 @@
-const { Announcement } = require('../../models');
+const { Announcement, User, Notification } = require('../../models');
 const { Op } = require('sequelize');
 
 exports.getAnnouncements = async (req, res) => {
@@ -101,6 +101,31 @@ exports.createAnnouncement = async (req, res) => {
 
     // Emit event for new announcement using `req.io`
     req.io.emit('new_announcement', announcement);
+
+    ///////////////
+    const parsedReceiver = typeof receiver === 'string' ? JSON.parse(receiver) : receiver;
+
+    if (parsedReceiver.length > 0) {
+      // Find all users whose roles match the roles in `receiver`
+      const users = await User.findAll({
+        where: {
+          role_name: {
+            [Op.in]: parsedReceiver, // Match role names in the `receiver` array
+          },
+        },
+      });
+
+      const notifications = users.map((user) => ({
+        user_id: user.id, 
+        message: `New Announcement: ${heading}`, 
+        is_read: false, 
+        created_at: new Date(), 
+      }));
+
+      // Insert notifications in bulk
+      await Notification.bulkCreate(notifications);
+    }
+
 
     return res.status(201).json({
       success: true,

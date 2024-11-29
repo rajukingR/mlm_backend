@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         receive_user_id: {
           type: DataTypes.INTEGER,
-          allowNull: false, // Required field
+          allowNull: true, // Required field
         },
         message: {
           type: DataTypes.TEXT,

@@ -1,5 +1,5 @@
 const express = require('express');
-const sendMonthlyNotifications  = require('../../controllers/monthly_notification/sendMonthlyNotifications');
+const sendMonthlyNotifications  = require('../../controllers/notification/monthly_notification/sendMonthlyNotifications');
 const router = express.Router();
 
 //** Route to trigger notifications manually --> Only for development **//
