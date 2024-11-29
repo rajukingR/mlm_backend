@@ -21,7 +21,7 @@ exports.createOrder = async (req, res) => {
 
     // Initialize total amount, total order volume (in liters), and an array for order items
     let totalAmount = 0;
-    let totalOrderVolume = 0; // Store total volume in liters
+    let totalQuantity = 0; // Store total volume in liters
     const orderItems = [];
 
     // Retrieve products in bulk
@@ -37,15 +37,15 @@ exports.createOrder = async (req, res) => {
       }
 
       const itemTotalPrice = product.price * item.quantity;
-      let itemVolume = parseFloat(product.productVolume) * item.quantity;
+      // let itemVolume = parseFloat(product.productVolume) * item.quantity;
 
       // Convert volume to liters
-      if (product.productVolume.includes("ml")) {
-        itemVolume = itemVolume / 1000; // Convert milliliters to liters
-      }
+      // if (product.productVolume.includes("ml")) {
+      //   itemVolume = itemVolume / 1000; // Convert milliliters to liters
+      // }
 
       totalAmount += itemTotalPrice;
-      totalOrderVolume += itemVolume; // Add volume in liters
+      totalQuantity += item.quantity; 
     
       orderItems.push({
         product_id: product.id,
@@ -53,7 +53,7 @@ exports.createOrder = async (req, res) => {
         quantity_type: product.quantity_type,
         baseprice: product.price,
         final_price: itemTotalPrice,
-        item_volume: itemVolume, // Include item_volume in OrderItem in liters
+        item_volume: parseFloat(product.productVolume) * item.quantity, 
       });
     }
 
@@ -75,7 +75,7 @@ exports.createOrder = async (req, res) => {
       status: 'Pending', // Default status is 'Pending'
       requested_by_role: userRole, // Track who made the request
       higher_role_id: higherRoleId, // Next superior role ID
-      total_order_quantity: totalOrderVolume, // Store the total order volume in liters
+      total_order_quantity: totalQuantity, // Store the total order volume in liters
     });
 
     // Bulk create order items
