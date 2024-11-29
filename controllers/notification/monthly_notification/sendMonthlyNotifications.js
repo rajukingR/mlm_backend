@@ -152,36 +152,74 @@ exports.getNotifications = async (req, res) => {
   
   /////////////as readed? ////////////////
   // Notification controller to mark notifications as read
-  exports.markNotificationsAsRead = async (req, res) => {
-    const { user_id } = req.params;
+  // exports.markNotificationsAsRead = async (req, res) => {
+  //   const { user_id } = req.params;
   
+  //   try {
+  //     // Update all unread notifications for the user to be read
+  //     const updatedNotifications = await Notification.update(
+  //       { is_read: true },
+  //       { where: { user_id, is_read: false } }
+  //     );
+  
+  //     // If no notifications were updated
+  //     if (updatedNotifications[0] === 0) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: 'No unread notifications found.',
+  //       });
+  //     }
+  
+  //     return res.status(200).json({
+  //       success: true,
+  //       message: 'Notifications marked as read.',
+  //     });
+  //   } catch (error) {
+  //     console.error('Error marking notifications as read:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to mark notifications as read.',
+  //       error: error.message,
+  //     });
+  //   }
+  // };
+
+  exports.markNotificationAsRead = async (req, res) => {
+    const { user_id, notification_id } = req.params; // Extract user_id and notification_id from params
+    
     try {
-      // Update all unread notifications for the user to be read
-      const updatedNotifications = await Notification.update(
-        { is_read: true },
-        { where: { user_id, is_read: false } }
-      );
+      // Find the notification by user_id and notification_id
+      const notification = await Notification.findOne({
+        where: { user_id, id: notification_id, is_read: false }
+      });
   
-      // If no notifications were updated
-      if (updatedNotifications[0] === 0) {
+      // If notification not found
+      if (!notification) {
         return res.status(404).json({
           success: false,
-          message: 'No unread notifications found.',
+          message: 'Notification not found or already marked as read.',
         });
       }
   
+      // Mark the specific notification as read
+      await Notification.update(
+        { is_read: true },
+        { where: { id: notification_id } }
+      );
+  
       return res.status(200).json({
         success: true,
-        message: 'Notifications marked as read.',
+        message: 'Notification marked as read.',
       });
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      console.error('Error marking notification as read:', error);
       return res.status(500).json({
         success: false,
-        message: 'Failed to mark notifications as read.',
+        message: 'Failed to mark notification as read.',
         error: error.message,
       });
     }
   };
+  
   
   

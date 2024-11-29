@@ -14,6 +14,8 @@ router.get('/send-notifications', async (req, res) => {
 });
 // **Notification Get&Update api**//
 router.get('/notifications/:user_id', sendMonthlyNotifications.getNotifications);
-router.put('/notifications/read/:user_id', sendMonthlyNotifications.markNotificationsAsRead);
+// router.put('/notifications/read/:user_id', sendMonthlyNotifications.markNotificationsAsRead);
+router.put('/notifications/read/:user_id/:notification_id', sendMonthlyNotifications.markNotificationAsRead);
+
 
 module.exports = router;
