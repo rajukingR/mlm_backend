@@ -621,3 +621,50 @@ exports.acceptOrRejectOrder = async (req, res) => {
   }
 };
 
+
+
+
+
+
+// exports.getOrdersByUser = async (req, res) => {
+//   const { user_id } = req.params; // Expecting user_id as a URL parameter
+
+//   try {
+//     // Check if user exists
+//     const orders = await Order.findAll({
+//       where: { user_id },
+//       include: [{
+//         model: OrderItem,
+//         as: 'OrderItems', // Make sure this matches the alias used in the Order model
+//         required: false,
+//         include: [
+//           {
+//             model: Product,
+//             as: 'product',
+//           },
+//         ],
+//       }],
+//     });
+
+//     if (orders.length === 0) {
+//       return res.status(404).json({ message: 'No orders found for this user' });
+//     }
+
+//     // Calculate total quantity for each order
+//     const ordersWithTotalQuantity = orders.map(order => {
+//       // Calculate total order quantity by summing up the quantity of all OrderItems
+//       const totalOrderQuantity = order.OrderItems.reduce((total, item) => total + item.quantity, 0);
+
+//       return {
+//         ...order.toJSON(), // Convert Sequelize model instance to plain object
+//         total_order_quantity: totalOrderQuantity,
+//       };
+//     });
+
+//     return res.status(200).json({ orders: ordersWithTotalQuantity });
+
+//   } catch (error) {
+//     console.error(error);
+//     return res.status(500).json({ message: 'Internal server error', error: error.message });
+//   }
+// };
