@@ -31,7 +31,7 @@ exports.createCategory = [
       });
 
       if (existingCategory) {
-        return res.status(409).json({ error: 'Category with this name already exists' });
+        return res.status(409).json({ error: 'Category name is already exists' });
       }
 
       // Create the category using the validated data
@@ -89,9 +89,14 @@ exports.updateCategory = [
         where: { category_name: req.body.category_name }
       });
 
-      if (existingCategory) {
+      if (!existingCategory) {
         return res.status(409).json({ error: 'Category with this name already exists' });
       }
+      else{
+        return res.status(409).json({ error: 'Category with this name already exists' });
+
+      }
+      
 
       const [updated] = await Category.update(req.body, {
         where: { id: req.params.id }
