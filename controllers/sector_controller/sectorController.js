@@ -1,9 +1,20 @@
 const { Sector } = require('../../models');
+const { Op } = require('sequelize'); // Import Sequelize operators
 
 // Create a new sector
 exports.createSector = async (req, res) => {
   try {
     const { sector_name } = req.body;
+
+    // Check if the sector name already exists in the database
+    const existingSector = await Sector.findOne({ where: { sector_name } });
+
+    if (existingSector) {
+      // If the sector name already exists, send an error response
+      return res.status(400).json({ message: 'Sector name already exists' });
+    }
+
+    // If no existing sector found, create the new sector
     const sector = await Sector.create({ sector_name });
     res.status(201).json({ message: 'Sector created successfully', sector });
   } catch (error) {
@@ -11,6 +22,7 @@ exports.createSector = async (req, res) => {
     res.status(500).json({ message: 'Error creating sector', error });
   }
 };
+
 
 // Get all sectors
 exports.getSectors = async (req, res) => {
@@ -37,7 +49,6 @@ exports.getSectorById = async (req, res) => {
   }
 };
 
-// Update a sector
 exports.updateSector = async (req, res) => {
   try {
     const sector = await Sector.findByPk(req.params.id);
@@ -46,6 +57,17 @@ exports.updateSector = async (req, res) => {
     }
 
     const { sector_name } = req.body;
+
+    // Check if a sector with the same name already exists (excluding the current sector)
+    const existingSector = await Sector.findOne({
+      where: { sector_name, id: { [Op.ne]: req.params.id } } // Exclude the current sector being updated
+    });
+
+    if (existingSector) {
+      return res.status(400).json({ message: 'Sector name already exists' });
+    }
+
+    // Update the sector details
     sector.sector_name = sector_name || sector.sector_name;
 
     await sector.save();
