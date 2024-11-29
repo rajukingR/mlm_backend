@@ -1,4 +1,5 @@
 const { Club } = require('../../models');
+const { Op } = require('sequelize'); // Import Sequelize operators
 
 // Get all clubs (Admin only)
 exports.getClubs = async (req, res) => {
@@ -89,18 +90,30 @@ exports.createClub = async (req, res) => {
   }
 };
 
-// Update a club by ID
 exports.updateByIdClubs = async (req, res) => {
   const { id } = req.params;
   const { club_name, litre_quantity } = req.body;
 
   try {
+    // Find the club to update
     const club = await Club.findByPk(id);
 
     if (!club) {
       return res.status(404).json({
         success: false,
         message: 'Club not found'
+      });
+    }
+
+    // Check if the new club_name already exists for another club
+    const existingClub = await Club.findOne({
+      where: { club_name, id: { [Op.ne]: id } } // Check for a different club with the same name
+    });
+
+    if (existingClub) {
+      return res.status(400).json({
+        success: false,
+        message: 'Club name already exists'
       });
     }
 
@@ -123,6 +136,7 @@ exports.updateByIdClubs = async (req, res) => {
     });
   }
 };
+
 
 // Delete a club by ID
 exports.deleteByIdClubs = async (req, res) => {

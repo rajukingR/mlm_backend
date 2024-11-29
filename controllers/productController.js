@@ -3,6 +3,10 @@
 const { Product } = require('../models');
 const { validationResult } = require('express-validator');
 const { body } = require('express-validator');
+const { Op } = require('sequelize'); // Import Sequelize operators
+const { Sequelize } = require('sequelize'); // Import Sequelize
+
+
 const productValidationRules = [
   body('image')
     .optional()
@@ -50,7 +54,7 @@ exports.createProduct = async (req, res) => {
       where: { name: req.body.name },
     });
     if (existingProduct) {
-      return res.status(400).json({ error: 'Product with this name already exists' });
+      return res.status(400).json({ error: 'Product name is already exists' });
     }
 
     // Extract the filename from the uploaded file
@@ -74,6 +78,7 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
+    const { name } = req.body;
 
     // Fetch the existing product
     const product = await Product.findByPk(id);
@@ -81,7 +86,19 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Extract the filename from the uploaded file
+    // Check if the new product name already exists (excluding the current product)
+    const existingProduct = await Product.findOne({
+      where: {
+        name,
+        id: { [Sequelize.Op.ne]: id }, // Exclude current product by ID
+      },
+    });
+
+    if (existingProduct) {
+      return res.status(400).json({ error: 'Product name is already exists.' });
+    }
+
+    // Extract the filename from the uploaded file or use the existing image
     const imageFilename = req.file ? req.file.filename : product.image;
 
     // Update product details, including image if provided
@@ -96,7 +113,6 @@ exports.updateProduct = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-
 //***** Get all products Admin *****//
 exports.getAllProducts = async (req, res) => {
   try {
