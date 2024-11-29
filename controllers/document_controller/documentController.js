@@ -166,8 +166,6 @@ exports.getByIdDocument = async (req, res) => {
 
 // Create a new document
 exports.createDocument = async (req, res) => {
-  
-
   const {
     documentID,
     heading,
@@ -178,18 +176,21 @@ exports.createDocument = async (req, res) => {
     activateStatus,
     fromDate,
     toDate,
+    status, // Ensure status is included in the request body
   } = req.body;
 
   try {
+    // Set the default status if not provided
+    const documentStatus = status || 'active'; // Default status to 'active'
+
     const allowedMimeType = 'image/';
 
-if (req.file && !req.file.mimetype.startsWith(allowedMimeType)) {
-  return res.status(400).json({
-    success: false,
-    message: 'Invalid image format. Only image files are allowed.',
-  });
-}
-
+    if (req.file && !req.file.mimetype.startsWith(allowedMimeType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image format. Only image files are allowed.',
+      });
+    }
 
     // Create the document
     const document = await Document.create({
@@ -200,6 +201,7 @@ if (req.file && !req.file.mimetype.startsWith(allowedMimeType)) {
       receiver,
       autoUpdate,
       activateStatus,
+      status: documentStatus, // Use the default or provided status
       fromDate: autoUpdate ? fromDate : null,
       toDate: autoUpdate ? toDate : null,
       image: req.file ? req.file.filename : null, // Save only the filename
