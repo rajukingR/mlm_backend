@@ -33,7 +33,7 @@ const ordersRoutes = require('./routes/ordersRoutes'); // Ensure the path is cor
 const orderLimitRoutes = require('./routes/orderLimitRoutes'); // Adjust the path as necessary
 const path = require('path');
 const cron = require('node-cron');
-const { sendMonthlyNotifications } = require('./controllers/monthly_notification/sendMonthlyNotifications');
+const { sendMonthlyNotifications } = require('./controllers/notification/monthly_notification/sendMonthlyNotifications');
 
 const { authMiddleware } = require('./middlewares/authMiddleware');
 

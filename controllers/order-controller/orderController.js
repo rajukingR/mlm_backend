@@ -87,9 +87,10 @@ exports.createOrder = async (req, res) => {
      // **New Logic: Add a notification entry**
      const notificationMessage = `New order requested by User ${user_id}`;
      await Notification.create({
-       user_id: user_id, // Requesting user
-       receive_user_id: higherRoleId, 
-       message: notificationMessage,
+      //  user_id: user_id,
+      //  receive_user_id: higherRoleId, 
+      user_id: higherRoleId,
+      message: notificationMessage,
      });
 
     return res.status(201).json({ message: 'Order created successfully', order });
@@ -236,8 +237,9 @@ const updateAssignedOrders = async () => {
             // Add a new notification entry after updating the order
             const notificationMessage = `New order requested by User ${order.user_id}`;
             await Notification.create({ 
-              user_id: order.user_id, // Requesting user
-              receive_user_id: superiorId || userRoleID, // The recipient (either superior or fallback userRoleID)
+              // user_id: order.user_id, 
+              // receive_user_id: superiorId || userRoleID, 
+              user_id: superiorId || userRoleID, 
               message: notificationMessage,
             });
             console.log(`Notification created for Order no ${order.id}: ${notificationMessage}`);

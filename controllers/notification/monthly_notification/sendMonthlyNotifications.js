@@ -1,4 +1,4 @@
-const { SalesTarget, Order, Product, OrderItem, User, Notification } = require('../../models');
+const { SalesTarget, Order, Product, OrderItem, User, Notification } = require('../../../models');
 const { Op } = require('sequelize');
 
 exports.sendMonthlyNotifications = async () => {
