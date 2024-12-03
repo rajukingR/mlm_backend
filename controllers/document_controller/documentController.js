@@ -349,43 +349,47 @@ exports.deleteByIdDocument = async (req, res) => {
 
 
 
-//UPDATED DOCUMENTS BASED ON FROM DATE AND TO DATE
-
-const updateDocumentsPeriodically = () => {
+// Function to check for expired documents and update them every 10 seconds
+function autoUpdateDocuments() {
   setInterval(async () => {
     try {
-      const now = moment().format('YYYY-MM-DD HH:mm:ss'); 
+      const now = moment().startOf('day').toDate();  // Local time (start of the day)
 
       const documentsToUpdate = await Document.findAll({
         where: {
-          autoUpdate: 1,
-          fromDate: { [Op.lte]: now },
-          toDate: { [Op.gte]: now },
-        },
+          autoUpdate: 1,  // Filter for documents with autoUpdate set to 1
+          toDate: {
+            [Op.lt]: now  // Fetch documents where toDate is less than current date (expired)
+          }
+        }
       });
 
-      for (const doc of documentsToUpdate) {
-        try {
-          if (moment(now).isAfter(moment(doc.toDate))) {
-            doc.autoUpdate = 0;
-            doc.fromDate = null;
-            doc.toDate = null;
-            doc.status = 'Expired'; 
-            await doc.save();
-            console.log(`Document ID ${doc.id} expired. autoUpdate=0, dates NULL, status set to 'Expired'.`);
-          } else {
-            doc.updatedAt = now;
-            await doc.save();
-            console.log(`Document ID ${doc.id} updated at ${doc.updatedAt}`);
+      // Update the documents
+      const result = await Document.update(
+        {
+          autoUpdate: 0,  
+          fromDate: null,  
+          toDate: null,   
+          status: "Expired"  
+        },
+        {
+          where: {
+            autoUpdate: 1,  
+            toDate: {
+              [Op.lt]: now  
+            }
           }
-        } catch (err) {
-          console.error(`Error processing Document ID ${doc.id}:`, err);
-        }
-      }
+        });
+
+      // Log the updates for each document
+      documentsToUpdate.forEach(document => {
+        console.log(`Document ID ${document.id} updated successfully.`);
+      });
+
     } catch (error) {
       console.error('Error updating documents:', error);
     }
-  }, 30000); 
-};
+  }, 2 * 1000);  // Call the function every 10 seconds
+}
 
-// updateDocumentsPeriodically();
+// autoUpdateDocuments();  // Uncomment this line to start the auto-updating process
