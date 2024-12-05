@@ -2,6 +2,23 @@ const { User, Role } = require('../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
+//
+const crypto = require('crypto'); 
+const secretKey = 'mttmtt4699';
+
+const encryptPassword = (password) => {
+  const cipher = crypto.createCipher('aes-256-cbc', secretKey);
+  let encrypted = cipher.update(password, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+};
+
+const decryptPassword = (encryptedPassword) => {
+  const decipher = crypto.createDecipher('aes-256-cbc', secretKey);
+  let decrypted = decipher.update(encryptedPassword, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+};
 
 // User sign-up
 exports.signUp = async (req, res) => {
@@ -59,12 +76,13 @@ exports.signUp = async (req, res) => {
     }
 
     // Hash the password before saving it to the database
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // const hashedPassword = await bcrypt.hash(password, 10);
+    const encryptedPassword = encryptPassword(password);
 
     // Create a new user
     const newUser = await User.create({
       username,
-      password: hashedPassword,
+      password: encryptedPassword,
       email,
       role_id,
       pincode,
@@ -102,11 +120,15 @@ exports.signIn = async (req, res) => {
     }
 
     // Compare the provided password with the stored hashed password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // const isPasswordValid = await bcrypt.compare(password, user.password);
+    const decryptedPassword = decryptPassword(user.password); 
 
     // If password is incorrect, return an error
-    if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+    // if (!isPasswordValid) {
+    //   return res.status(401).json({ error: 'Invalid email or password' });
+    // }
+    if (password !== decryptedPassword) {
+      return res.status(401).json({ error: 'Invalid mobile or password' });
     }
 
     // Generate a JWT token
