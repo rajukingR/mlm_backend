@@ -389,7 +389,7 @@ function autoUpdateDocuments() {
     } catch (error) {
       console.error('Error updating documents:', error);
     }
-  }, 2 * 1000);  // Call the function every 10 seconds
+  }, 30 * 1000);  // Call the function every 10 seconds
 }
 
-// autoUpdateDocuments();  // Uncomment this line to start the auto-updating process
+autoUpdateDocuments();  // Uncomment this line to start the auto-updating process
