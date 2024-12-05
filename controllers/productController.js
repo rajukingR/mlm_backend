@@ -323,4 +323,4 @@ function autoUpdateProducts() {
   }, 30 * 1000);  
 }
 
-autoUpdateProducts();
+// autoUpdateProducts();
