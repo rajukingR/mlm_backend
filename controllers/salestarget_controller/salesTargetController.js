@@ -73,6 +73,16 @@ exports.createSalesTarget = async (req, res) => {
   }
 
   try {
+    // Check if the product already exists
+    const existingProduct = await SalesTarget.findOne({ where: { product_name } });
+
+    if (existingProduct) {
+      return res.status(400).json({
+        success: false,
+        message: 'Sales targets for this product already exist.',
+      });
+    }
+
     const createdTargets = [];
 
     // Loop through each target entry
@@ -116,6 +126,7 @@ exports.createSalesTarget = async (req, res) => {
     });
   }
 };
+
 
 
 exports.updateSalesTarget = async (req, res) => {
