@@ -1,5 +1,6 @@
-const { Order, OrderItem, Product, User, OrderLimit, Notification } = require('../../models');
+const { Order, OrderItem, Product, User, OrderLimit } = require('../../models');
 
+const { Notification } = require('../../models');
 
 exports.createOrder = async (req, res) => {
   const { user_id, items, coupon_code } = req.body; // coupon_code is optional
@@ -88,15 +89,35 @@ exports.createOrder = async (req, res) => {
 
     // **New Logic: Add a notification entry**
     const notificationMessage = `New order requested by User ${user.full_name}`;
-    await Notification.create({
+    const gallery = `1733391557532.jpeg`;
+
+    console.log('Creating notification with:', {
       user_id: higherRoleId,
       message: notificationMessage,
+      photo: gallery ,
       detail: {
         user_name: user.full_name,
         final_amount: finalAmount,
-        type: 'order_request'
+        type: 'order_request',
       },
     });
+    
+    try {
+      await Notification.create({
+        user_id: higherRoleId,
+        message: notificationMessage,
+        photo: "1733391557532.jpeg",
+        detail: {
+          user_name: user.full_name,
+          final_amount: finalAmount,
+          type: 'order_request',
+        },
+      });
+      console.log('Notification created successfully.');
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+    
 
     return res.status(201).json({ message: 'Order created successfully', order });
 
@@ -274,7 +295,7 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-setInterval(updateAssignedOrders, 30 * 1000);
+// setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -515,6 +536,8 @@ exports.acceptOrder = async (req, res) => {
 
     //******Notification *****///
     const notificationMessage = `Order ID: ${orderId} has been accepted by ${higherRoleUser.full_name}`;
+    const gallery = `1733391571619.jpeg`;
+
     const notificationDetails = {
       user_name:orderCreator.full_name, 
       accepted_by: higherRoleUser.full_name,
@@ -525,6 +548,7 @@ exports.acceptOrder = async (req, res) => {
     await Notification.create({
       user_id: order.user_id,
       message: notificationMessage,
+      photo:gallery,
       is_read: false,
       created_at: new Date(),
       detail: notificationDetails,

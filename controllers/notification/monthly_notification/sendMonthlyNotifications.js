@@ -95,11 +95,13 @@ exports.sendMonthlyNotifications = async () => {
         )}% of your target this month. Please aim to achieve the remaining ${(
           100 - achievementAmountPercent
         ).toFixed(2)}%.`;
+        const gallery = `1733391593433.jpeg`;
 
         await Notification.create({
           user_id,
           message,
           is_read: false,
+          photo:gallery,
           created_at: new Date(),
           detail: {
             totalMonthlyTarget,
