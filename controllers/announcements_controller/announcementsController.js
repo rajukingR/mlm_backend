@@ -113,13 +113,21 @@ exports.createAnnouncement = async (req, res) => {
             [Op.in]: parsedReceiver, // Match role names in the `receiver` array
           },
         },
+        attributes: ['id', 'username', 'full_name'],
       });
 
       const notifications = users.map((user) => ({
         user_id: user.id, 
-        message: `New Announcement: ${heading}`, 
+        message: `New Announcement is recived:: ${heading}`, 
         is_read: false, 
         created_at: new Date(), 
+        detail: {
+          link,
+          receiver: parsedReceiver,
+          user_name:user.full_name,
+          image: req.file ? req.file.filename : null,
+          type:"announcement"
+        },
       }));
 
       // Insert notifications in bulk

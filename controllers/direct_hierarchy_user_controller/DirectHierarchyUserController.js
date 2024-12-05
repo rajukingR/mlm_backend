@@ -1,4 +1,21 @@
 const { User } = require('../../models');
+const crypto = require('crypto'); 
+const secretKey = 'mttmtt4699';
+
+
+
+const encryptPassword = (password) => {
+  const cipher = crypto.createCipher('aes-256-cbc', secretKey);
+  let encrypted = cipher.update(password, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+};
+const decryptPassword = (encryptedPassword) => {
+  const decipher = crypto.createDecipher('aes-256-cbc', secretKey);
+  let decrypted = decipher.update(encryptedPassword, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+};
 
 //******** Dynamic function to get users by ADO and role  ***********//
 exports.getUsersByADOAndRole = async (req, res) => {
@@ -89,7 +106,16 @@ exports.getUserProfile = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.status(200).json(user);
+        // Decrypt the password
+        const decryptedPassword = decryptPassword(user.password);
+           // Construct the response object with decrypted password
+    const userProfile = {
+      ...user.toJSON(), // Spread the user data
+      password: decryptedPassword 
+    };
+
+    // res.status(200).json(user);
+    res.status(200).json(userProfile);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -110,12 +136,19 @@ exports.getUserProfileByHierarchy = async (req, res) => {
     if (!targetUser) {
       return res.status(404).json({ error: 'Target user not found' });
     }
+    const decryptedPassword = decryptPassword(targetUser.password);
+    
+    const targetUserProfile = {
+      ...targetUser.toJSON(), // Spread the user data
+      password: decryptedPassword // Replace the password with the decrypted password
+    };
 
     if (targetUser.superior_id !== loggedInUserId && loggedInUser.role_id !== 1) {
       return res.status(403).json({ error: 'You are not authorized to view this user profile.' });
     }
 
-    res.status(200).json(targetUser);
+    // res.status(200).json(targetUser);
+    res.status(200).json(targetUserProfile);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -136,7 +169,15 @@ exports.getUserProfileByAdmin = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.status(200).json(user);
+    const decryptedPassword = decryptPassword(user.password);
+    
+    const targetUserProfile = {
+      ...user.toJSON(), 
+      password: decryptedPassword // Replace the password with the decrypted password
+    };
+
+    // res.status(200).json(user);
+    res.status(200).json(targetUserProfile);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

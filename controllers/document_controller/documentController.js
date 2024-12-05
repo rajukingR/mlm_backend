@@ -221,14 +221,26 @@ exports.createDocument = async (req, res) => {
             [Op.in]: parsedReceiver, // Match role names in the `receiver` array
           },
         },
+        attributes: ['id', 'username', 'full_name'],
       });
 
       const notifications = users.map((user) => ({
-        user_id: user.id, 
-        message: `New Document: ${heading}`, 
-        is_read: false, 
-        created_at: new Date(), 
+        user_id: user.id,
+        message: `New Document is recived:"${heading}" `,
+        is_read: false,
+        created_at: new Date(),
+        detail: { 
+          link,
+          receiver: parsedReceiver,
+          user_name:user.full_name,
+          image: req.file ? req.file.filename : null,
+          type:"document"
+        },
       }));
+      
+
+      console.log(notifications,"DDDDDDDDDDDDD");
+      
 
       // Insert notifications in bulk
       await Notification.bulkCreate(notifications);
