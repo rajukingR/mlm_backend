@@ -534,26 +534,37 @@ exports.acceptOrder = async (req, res) => {
     order.status = 'Accepted';
     await order.save();
 
-    //******Notification *****///
+    //****** Notification Logic ******//
     const notificationMessage = `Order ID: ${orderId} has been accepted by ${higherRoleUser.full_name}`;
-    const gallery = `1733391571619.jpeg`;
+    const gallery = "1733391571619.jpeg"; // Image filename for accepted orders
 
     const notificationDetails = {
-      user_name:orderCreator.full_name, 
+      user_name: orderCreator.full_name,
       accepted_by: higherRoleUser.full_name,
       total_amount: order.total_amount,
-              type: 'order_accept'
+      type: 'order_accept',
     };
 
+    // Debugging the gallery value
+    console.log("Gallery value being inserted:", gallery);
+
+    // Create the notification
     await Notification.create({
       user_id: order.user_id,
       message: notificationMessage,
-      photo:gallery,
+      photo: gallery, // Ensure the gallery value is passed
       is_read: false,
       created_at: new Date(),
       detail: notificationDetails,
-    });
+    })
+      .then(() => {
+        console.log("Notification created successfully with photo:", gallery);
+      })
+      .catch((err) => {
+        console.error("Error inserting notification photo:", err);
+      });
 
+    // Response for successful order acceptance
     res.status(200).json({ message: "Order accepted successfully.", order });
   } catch (error) {
     console.error("Error while accepting order:", error);
