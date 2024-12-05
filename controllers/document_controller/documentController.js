@@ -173,7 +173,6 @@ exports.createDocument = async (req, res) => {
     link,
     receiver,
     autoUpdate,
-    activateStatus,
     fromDate,
     toDate,
     status, // Ensure status is included in the request body
@@ -200,7 +199,6 @@ exports.createDocument = async (req, res) => {
       link,
       receiver,
       autoUpdate,
-      activateStatus,
       status: documentStatus, // Use the default or provided status
       fromDate: autoUpdate ? fromDate : null,
       toDate: autoUpdate ? toDate : null,
