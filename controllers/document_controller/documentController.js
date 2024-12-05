@@ -259,7 +259,6 @@ exports.updateByIdDocument = async (req, res) => {
     link,
     receiver,
     autoUpdate,
-    activateStatus,
     fromDate,
     toDate,
   } = req.body;
@@ -274,12 +273,13 @@ exports.updateByIdDocument = async (req, res) => {
       });
     }
 
+    document.status = "active"; 
+
     document.documentID = documentID || document.documentID;
     document.heading = heading || document.heading;
     document.description = description || document.description;
     document.link = link || document.link;
 
-    // Ensure receiver is always stored as an array
     if (receiver) {
       document.receiver = Array.isArray(receiver)
         ? receiver
@@ -288,8 +288,6 @@ exports.updateByIdDocument = async (req, res) => {
 
     document.autoUpdate =
       autoUpdate !== undefined ? autoUpdate : document.autoUpdate;
-    document.activateStatus =
-      activateStatus !== undefined ? activateStatus : document.activateStatus;
 
     if (autoUpdate) {
       document.fromDate = fromDate || document.fromDate;
