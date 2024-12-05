@@ -1,13 +1,13 @@
-const { Document, User, Notification  } = require('../../models');
+const { Document, User, Notification } = require('../../models');
 const { Op } = require('sequelize');
 const moment = require('moment');  // Import moment.js
 
 exports.getDocuments = async (req, res) => {
   try {
     const { role_name } = req.user;  // Get role directly from the token
-
     let whereClause = {};
 
+    // Check the role and set the where clause for filtering
     if (role_name === 'Admin') {
       // Admin can view all documents
       whereClause = {};
@@ -27,6 +27,19 @@ exports.getDocuments = async (req, res) => {
       };
     }
 
+    // Add date range filtering: Ensure that the document is active within the date range
+    whereClause = {
+      ...whereClause,
+      fromDate: {
+        [Op.lte]: moment().toDate(), // fromDate should be less than or equal to current date
+      },
+      toDate: {
+        [Op.gte]: moment().toDate(), // toDate should be greater than or equal to current date
+      },
+      status: 'active', // Only active documents
+    };
+
+    // Fetch documents from database based on the whereClause
     const documents = await Document.findAll({
       where: whereClause,
     });
@@ -34,7 +47,7 @@ exports.getDocuments = async (req, res) => {
     if (!documents.length) {
       return res.status(404).json({
         success: false,
-        message: 'No documents found for the user\'s role',
+        message: "No documents found for the user's role",
       });
     }
 
@@ -43,7 +56,6 @@ exports.getDocuments = async (req, res) => {
 
     const filteredDocuments = documents.filter(doc => {
       let receivers;
-
       try {
         // Log the receiver field for debugging purposes
         console.log("Receiver field:", doc.receiver);
@@ -72,7 +84,7 @@ exports.getDocuments = async (req, res) => {
     if (!filteredDocuments.length) {
       return res.status(404).json({
         success: false,
-        message: 'No documents found for the user\'s role',
+        message: "No documents found for the user's role",
       });
     }
 
@@ -173,7 +185,6 @@ exports.createDocument = async (req, res) => {
     link,
     receiver,
     autoUpdate,
-    activateStatus,
     fromDate,
     toDate,
     status, // Ensure status is included in the request body
@@ -200,7 +211,6 @@ exports.createDocument = async (req, res) => {
       link,
       receiver,
       autoUpdate,
-      activateStatus,
       status: documentStatus, // Use the default or provided status
       fromDate: autoUpdate ? fromDate : null,
       toDate: autoUpdate ? toDate : null,
@@ -221,26 +231,14 @@ exports.createDocument = async (req, res) => {
             [Op.in]: parsedReceiver, // Match role names in the `receiver` array
           },
         },
-        attributes: ['id', 'username', 'full_name'],
       });
 
       const notifications = users.map((user) => ({
-        user_id: user.id,
-        message: `New Document is recived:"${heading}" `,
-        is_read: false,
-        created_at: new Date(),
-        detail: { 
-          link,
-          receiver: parsedReceiver,
-          user_name:user.full_name,
-          image: req.file ? req.file.filename : null,
-          type:"document"
-        },
+        user_id: user.id, 
+        message: `New Document: ${heading}`, 
+        is_read: false, 
+        created_at: new Date(), 
       }));
-      
-
-      console.log(notifications,"DDDDDDDDDDDDD");
-      
 
       // Insert notifications in bulk
       await Notification.bulkCreate(notifications);
@@ -402,4 +400,4 @@ function autoUpdateDocuments() {
   }, 30 * 1000);  // Call the function every 10 seconds
 }
 
-autoUpdateDocuments();  // Uncomment this line to start the auto-updating process
+// autoUpdateDocuments();  // Uncomment this line to start the auto-updating process
