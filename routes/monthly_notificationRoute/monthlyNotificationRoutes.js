@@ -1,8 +1,8 @@
 const express = require('express');
-const sendMonthlyNotifications  = require('../../controllers/notification/monthly_notification/sendMonthlyNotifications');
+const { sendMonthlyNotifications, getNotifications, markNotificationAsRead } = require('../../controllers/notification/monthly_notification/sendMonthlyNotifications');
 const router = express.Router();
 
-//** Route to trigger notifications manually --> Only for development **//
+// Route to trigger notifications manually
 router.get('/send-notifications', async (req, res) => {
   try {
     await sendMonthlyNotifications();
@@ -12,10 +12,11 @@ router.get('/send-notifications', async (req, res) => {
     res.status(500).send({ error: 'Failed to send notifications' });
   }
 });
-// **Notification Get&Update api**//
-router.get('/notifications/:user_id', sendMonthlyNotifications.getNotifications);
-// router.put('/notifications/read/:user_id', sendMonthlyNotifications.markNotificationsAsRead);
-router.put('/notifications/read/:user_id/:notification_id', sendMonthlyNotifications.markNotificationAsRead);
 
+// Route to get notifications
+router.get('/notifications/:user_id', getNotifications);
+
+// Route to mark notifications as read
+router.put('/notifications/read/:user_id/:notification_id', markNotificationAsRead);
 
 module.exports = router;
