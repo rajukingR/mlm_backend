@@ -101,6 +101,11 @@ exports.sendMonthlyNotifications = async () => {
           message,
           is_read: false,
           created_at: new Date(),
+          detail: {
+            totalMonthlyTarget,
+            achievementAmountPercent,
+            type:"achivement"
+          },
         });
 
         console.log(`Notification sent to user ID: ${user_id}`);

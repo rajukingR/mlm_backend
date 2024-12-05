@@ -272,12 +272,16 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
         }, Promise.resolve(0));
 
         // Calculate pending amount
-        const pendingAmount = totalMonthlyTarget - totalAchievementAmount;
+        // Cap totalAchievementAmount to totalMonthlyTarget for calculations
+        const cappedAchievementAmount = Math.min(totalAchievementAmount, totalMonthlyTarget);
+
+        // Calculate pending amount (non-negative)
+        const pendingAmount = totalMonthlyTarget - cappedAchievementAmount;
 
         // Calculate achievement and unachievement percentages
         const achievementAmountPercent =
-          totalMonthlyTarget > 0 ? (totalAchievementAmount / totalMonthlyTarget) * 100 : 0;
-        const unachievementAmountPercent = 100 - achievementAmountPercent;
+        totalMonthlyTarget > 0 ? (cappedAchievementAmount / totalMonthlyTarget) * 100 : 0;
+      const unachievementAmountPercent = 100 - achievementAmountPercent;
 
         monthlyDetails.push({
           month: startOfMonth.toLocaleString('default', { month: 'long' }),

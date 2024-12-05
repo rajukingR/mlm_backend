@@ -2,6 +2,24 @@ const { User, Role } = require('../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
+//
+const crypto = require('crypto'); 
+const secretKey = 'mttmtt4699';
+
+
+const encryptPassword = (password) => {
+  const cipher = crypto.createCipher('aes-256-cbc', secretKey);
+  let encrypted = cipher.update(password, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+};
+
+const decryptPassword = (encryptedPassword) => {
+  const decipher = crypto.createDecipher('aes-256-cbc', secretKey);
+  let decrypted = decipher.update(encryptedPassword, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+};
 
 
 
@@ -24,10 +42,14 @@ exports.signIn = async (req, res) => {
     }
 
     // Compare the provided password with the stored hashed password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // const isPasswordValid = await bcrypt.compare(password, user.password);
+    const decryptedPassword = decryptPassword(user.password); 
 
     // If password is incorrect, return an error
-    if (!isPasswordValid) {
+    // if (!isPasswordValid) {
+    //   return res.status(401).json({ error: 'Invalid mobile or password' });
+    // }
+    if (password !== decryptedPassword) {
       return res.status(401).json({ error: 'Invalid mobile or password' });
     }
 
@@ -259,10 +281,12 @@ exports.signUp = async (req, res) => {
     }
 
     // Create the user after validation passes
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // const hashedPassword = await bcrypt.hash(password, 10);
+    const encryptedPassword = encryptPassword(password);
+
     const newUser = await User.create({
       username,
-      password: hashedPassword,
+      password: encryptedPassword,
       email,
       role_id,
       superior_id: finalSuperiorId,  // Use the final superior_id which is now handled correctly
@@ -435,9 +459,13 @@ exports.updateUser = async (req, res) => {
     }
 
     // Hash the password if provided
-    let hashedPassword = user.password;
+    // let hashedPassword = user.password;
+    // if (password) {
+    //   hashedPassword = await bcrypt.hash(password, 10);
+    // }
+    let encryptedPassword = user.password; // Use the existing encrypted password
     if (password) {
-      hashedPassword = await bcrypt.hash(password, 10);
+      encryptedPassword = encryptPassword(password);
     }
 
     // Validate and process image file (if provided)
@@ -464,7 +492,8 @@ exports.updateUser = async (req, res) => {
     // Update user with new data
     await user.update({
       username,
-      password: hashedPassword,
+      // password: hashedPassword,
+      password: encryptedPassword,
       email,
       role_id,
       superior_id: finalSuperiorId,
