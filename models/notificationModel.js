@@ -11,10 +11,6 @@ module.exports = (sequelize, DataTypes) => {
           type: DataTypes.INTEGER,
           allowNull: false,
         },
-        receive_user_id: {
-          type: DataTypes.INTEGER,
-          allowNull: true, // Required field
-        },
         message: {
           type: DataTypes.TEXT,
           allowNull: false,
@@ -26,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
         created_at: {
           type: DataTypes.DATE,
           defaultValue: DataTypes.NOW, // Use DataTypes.NOW for default value
+        },
+        detail: {
+          type: DataTypes.JSON,
+          allowNull: true, // Set to false if it must always have a value
         },
       },
       {

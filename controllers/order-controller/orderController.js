@@ -6,7 +6,9 @@ exports.createOrder = async (req, res) => {
 
   try {
     // Check if user exists
-    const user = await User.findByPk(user_id);
+    const user = await User.findByPk(user_id, {
+      attributes: ['id', 'username', 'full_name', 'role_name'],
+    });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -45,15 +47,15 @@ exports.createOrder = async (req, res) => {
       // }
 
       totalAmount += itemTotalPrice;
-      totalQuantity += item.quantity; 
-    
+      totalQuantity += item.quantity;
+
       orderItems.push({
         product_id: product.id,
         quantity: item.quantity,
         quantity_type: product.quantity_type,
         baseprice: product.price,
         final_price: itemTotalPrice,
-        item_volume: parseFloat(product.productVolume) * item.quantity, 
+        item_volume: parseFloat(product.productVolume) * item.quantity,
       });
     }
 
@@ -63,7 +65,7 @@ exports.createOrder = async (req, res) => {
     // Logic to determine the higher role ID based on user role
     // let higherRoleId = null;
     // higherRoleId = await getSuperior(user.id, userRole);
-    let higherRoleId = await getSuperior(user.id); 
+    let higherRoleId = await getSuperior(user.id);
 
     // Create order with total order volume in liters
     const order = await Order.create({
@@ -84,14 +86,17 @@ exports.createOrder = async (req, res) => {
       order_id: order.id
     })));
 
-     // **New Logic: Add a notification entry**
-     const notificationMessage = `New order requested by User ${user_id}`;
-     await Notification.create({
-      //  user_id: user_id,
-      //  receive_user_id: higherRoleId, 
+    // **New Logic: Add a notification entry**
+    const notificationMessage = `New order requested by User ${user.full_name}`;
+    await Notification.create({
       user_id: higherRoleId,
       message: notificationMessage,
-     });
+      detail: {
+        user_name: user.full_name,
+        final_amount: finalAmount,
+        type: 'order_request'
+      },
+    });
 
     return res.status(201).json({ message: 'Order created successfully', order });
 
@@ -128,7 +133,7 @@ exports.createOrder = async (req, res) => {
 const getSuperior = async (userId) => {
   const user = await User.findByPk(userId);
   if (!user) {
-    return null; 
+    return null;
   }
 
   return user.superior_id;
@@ -193,7 +198,7 @@ const updateAssignedOrders = async () => {
       if (user) {
         // Declare userRoleID here to ensure it's in scope for all conditions
         const userRoleID = user.role_id;
-        const userRoleName = user.role_name;  
+        const userRoleName = user.role_name;
         const superiorId = user.superior_id;
 
         // Fetch the time limit based on the user's role from the order_limits table
@@ -203,7 +208,7 @@ const updateAssignedOrders = async () => {
 
         if (roleTimeLimit) {
           // Calculate the time limit based on the role's time_limit_hours
-          const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 60 * 60 * 1000); 
+          const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 60 * 60 * 1000);
 
           // Check if the order's updatedAt is older than the calculated time limit
           if (new Date(order.updatedAt) <= timeLimit) {
@@ -236,10 +241,10 @@ const updateAssignedOrders = async () => {
 
             // Add a new notification entry after updating the order
             const notificationMessage = `New order requested by User ${order.user_id}`;
-            await Notification.create({ 
+            await Notification.create({
               // user_id: order.user_id, 
               // receive_user_id: superiorId || userRoleID, 
-              user_id: superiorId || userRoleID, 
+              user_id: superiorId || userRoleID,
               message: notificationMessage,
             });
             console.log(`Notification created for Order no ${order.id}: ${notificationMessage}`);
@@ -472,33 +477,64 @@ exports.cancelOrder = async (req, res) => {
 //////////////Accepted means sended //////////////////////////
 // In your orderController.js
 exports.acceptOrder = async (req, res) => {
-    const { orderId } = req.params;
-    const { id: userId } = req.user; // Extract 'id' from req.user (the logged-in user's ID)
+  const { orderId } = req.params;
+  const { id: userId } = req.user; // Extract 'id' from req.user (the logged-in user's ID)
 
-    try {
-        // Log the orderId and userId for debugging
-        console.log("Accepting Order - Order ID:", orderId, "User ID:", userId);
+  try {
+    // Log the orderId and userId for debugging
+    console.log("Accepting Order - Order ID:", orderId, "User ID:", userId);
 
-        if (!userId) {
-            return res.status(401).json({ message: "Unauthorized. No user ID found." });
-        }
-
-        // Find the order by its ID and ensure the logged-in user is the 'higher_role_id' (the person the order was requested to)
-        const order = await Order.findOne({ where: { id: orderId, higher_role_id: userId } });
-
-        if (!order) {
-            return res.status(404).json({ message: "Order not found or you are not authorized to accept this order." });
-        }
-
-        // Update order status to 'Accepted'
-        order.status = 'Accepted';
-        await order.save();
-
-        res.status(200).json({ message: "Order accepted successfully.", order });
-    } catch (error) {
-        console.error("Error while accepting order:", error);
-        res.status(500).json({ message: "Internal server error", error });
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized. No user ID found." });
     }
+
+    // Find the order by its ID and ensure the logged-in user is the 'higher_role_id' (the person the order was requested to)
+    const order = await Order.findOne({ where: { id: orderId, higher_role_id: userId } });
+
+    if (!order) {
+      return res.status(404).json({ message: "Order not found or you are not authorized to accept this order." });
+    }
+
+    // Fetch the username of the user who created the order
+    const orderCreator = await User.findByPk(order.user_id, { attributes: ['username', 'full_name'] });
+
+    if (!orderCreator) {
+      return res.status(404).json({ message: "Order creator not found." });
+    }
+
+    // Fetch the username of the higher role user (the one accepting the order)
+    const higherRoleUser = await User.findByPk(userId, { attributes: ['username', 'full_name'] });
+
+    if (!higherRoleUser) {
+      return res.status(404).json({ message: "Higher role user not found." });
+    }
+
+    // Update order status to 'Accepted'
+    order.status = 'Accepted';
+    await order.save();
+
+    //******Notification *****///
+    const notificationMessage = `Order ID: ${orderId} has been accepted by ${higherRoleUser.full_name}`;
+    const notificationDetails = {
+      user_name:orderCreator.full_name, 
+      accepted_by: higherRoleUser.full_name,
+      total_amount: order.total_amount,
+              type: 'order_accept'
+    };
+
+    await Notification.create({
+      user_id: order.user_id,
+      message: notificationMessage,
+      is_read: false,
+      created_at: new Date(),
+      detail: notificationDetails,
+    });
+
+    res.status(200).json({ message: "Order accepted successfully.", order });
+  } catch (error) {
+    console.error("Error while accepting order:", error);
+    res.status(500).json({ message: "Internal server error", error });
+  }
 };
 
 
@@ -587,7 +623,7 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
 exports.acceptOrRejectOrder = async (req, res) => {
   const { orderId } = req.params; // Get orderId from URL parameters
   const { action } = req.body; // Get action from the request body ('accept' or 'reject')
-  
+
   try {
     // Find the order by its ID
     const order = await Order.findByPk(orderId);
