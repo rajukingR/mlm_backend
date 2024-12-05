@@ -3,11 +3,11 @@
 const { Category } = require('../../models');
 const { validationResult } = require('express-validator');
 const { body } = require('express-validator');
+const { Op } = require('sequelize'); // Add this line to import Op
 
 // Validation rules for category creation
 const categoryValidationRules = [
   body('category_name').notEmpty().withMessage('Category name is required'),
-  body('sector_name').optional().isString().withMessage('Sector name must be a string'),
 ];
 
 // Utility function to handle errors
@@ -80,31 +80,33 @@ exports.updateCategory = [
   ...categoryValidationRules, // Validate request body
   async (req, res) => {
     try {
+      // Check validation errors
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
 
+      const categoryId = req.params.id;
+      const categoryName = req.body.category_name;
+
+      // Check if the category already exists (except for the current category)
       const existingCategory = await Category.findOne({
-        where: { category_name: req.body.category_name }
+        where: { category_name: categoryName, id: { [Op.ne]: categoryId } }, // Exclude the current category
       });
 
-      if (!existingCategory) {
+      if (existingCategory) {
         return res.status(409).json({ error: 'Category with this name already exists' });
       }
-      else{
-        return res.status(409).json({ error: 'Category with this name already exists' });
 
-      }
-      
-
+      // Update category if no conflict with name
       const [updated] = await Category.update(req.body, {
-        where: { id: req.params.id }
+        where: { id: categoryId },
       });
 
       if (!updated) {
         return res.status(404).json({ error: 'Category not found' });
       }
+
       return res.status(200).json({ message: 'Category updated successfully' });
     } catch (error) {
       return handleErrors(res, error);
