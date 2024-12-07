@@ -9,7 +9,7 @@ const upload = require('../middlewares/multer'); // Make sure multer is set up c
 router.post('/signup', adminController.signUp); // Admin sign-up
 router.post('/signin', adminController.signIn); // Admin sign-in
 router.put('/update', upload.single('image'),authMiddleware, adminController.updateAdmin);
-router.get('/admin-details' ,authMiddleware,isAdmin,adminController.getAdminDetails);
+router.get('/admin-details' ,authMiddleware,adminController.getAdminDetails);
 // router.get('/update-admin' ,authMiddleware,isAdmin,adminController.updateAdmin);
 
 
