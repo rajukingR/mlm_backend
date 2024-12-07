@@ -101,7 +101,8 @@ exports.createSalesTarget = async (req, res) => {
       const formattedProductData = targetData.map((data) => ({
         role: role, // Set role inside each target
         target: data.target, // Preserve target value
-        duration: data.duration, // Preserve duration value
+        duration: data.duration,
+        stock_target: data.stock_target,
       }));
 
       // Create sales target entry
@@ -183,6 +184,7 @@ exports.updateSalesTarget = async (req, res) => {
           // Update the target and duration for the matching role
           matchingItem.target = updatedData.target;
           matchingItem.duration = updatedData.duration;
+          matchingItem.stock_target = updatedData.stock_target;
         }
       }
 
