@@ -16,10 +16,9 @@ exports.getAnnouncements = async (req, res) => {
       });
     }
 
-    // For non-admin users, filter announcements based on their role
     const whereClause = {
       receiver: {
-        [Op.like]: `%${role_name}%`, // Match role_name within the receiver string
+        [Op.like]: `%${role_name}%`, 
       },
     };
 

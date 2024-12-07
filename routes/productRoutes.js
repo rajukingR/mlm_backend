@@ -5,8 +5,8 @@ const upload = require('../middlewares/multer'); // Multer middleware for file u
 const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
 
 // Routes for CRUD operations
-router.get('/admin_product',authMiddleware, isAdmin, productController.getAllProducts);
-router.get('/admin_product/:id',authMiddleware, isAdmin, productController.getProductById);
+router.get('/admin_product',authMiddleware, productController.getAllProducts);
+router.get('/admin_product/:id',authMiddleware, productController.getProductById);
 router.post('/', upload.single('image'), authMiddleware, isAdmin, productController.createProduct);
 router.put('/:id', upload.single('image'), productController.updateProduct);
 router.delete('/:id', authMiddleware, isAdmin, productController.deleteProduct);
