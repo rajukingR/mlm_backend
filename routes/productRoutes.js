@@ -17,4 +17,3 @@ router.get('/user_product/:id', productController.getProductByIdForUser);
 module.exports = router;
 
 
-///product
