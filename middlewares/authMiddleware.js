@@ -12,7 +12,7 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     console.log('Decoded Token:', decoded);
 
-    const user = await User.findByPk(decoded.id);
+    const user = await User.findByPk(decoded.id); 
     if (!user) {
       console.error('User not found in database');
       return res.status(401).json({ error: 'User not found' });
@@ -26,14 +26,13 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-// Middleware to check if the user is authorized based on role_id
+// Middleware to check if the user is an admin based on role_id
 const isAdmin = (req, res, next) => {
-  // Allow access for users with role_id 1, 2, 3, 4, or 5
-  const allowedRoles = [1, 2, 3, 4, 5];
-  if (!allowedRoles.includes(req.user.role_id)) {
-    return res.status(403).json({ error: 'Access denied. Only specific roles are allowed.' });
+  // Check if the user's role_id is 1 (admin)
+  if (req.user.role_id !== 1) {
+    return res.status(403).json({ error: 'Access denied. Admins only.' });
   }
   next();
 };
 
-module.exports = { authMiddleware, isAdmin };
+module.exports = { authMiddleware, isAdmin};
