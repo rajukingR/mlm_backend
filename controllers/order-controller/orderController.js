@@ -31,6 +31,76 @@ exports.createOrder = async (req, res) => {
     const productIds = items.map(item => item.product_id);
     const products = await Product.findAll({ where: { id: productIds } });
     const productMap = new Map(products.map(product => [product.id, product]));
+    ////////////
+    const rolePriceColumn = {
+      'Area Development Officer': product => {
+        if (
+          product.autoUpdate &&
+          product.fromDate &&
+          product.toDate &&
+          isCurrentDateWithinRange(product.fromDate, product.toDate)
+        ) {
+          return product.ADO_price; // Use updated price if conditions are met
+        }
+        return product.adoPrice; // Default price
+      },
+      'Master Distributor': product => {
+        if (
+          product.autoUpdate &&
+          product.fromDate &&
+          product.toDate &&
+          isCurrentDateWithinRange(product.fromDate, product.toDate)
+        ) {
+          return product.MD_price;
+        }
+        return product.mdPrice;
+      },
+      'Super Distributor': product => {
+        if (
+          product.autoUpdate &&
+          product.fromDate &&
+          product.toDate &&
+          isCurrentDateWithinRange(product.fromDate, product.toDate)
+        ) {
+          return product.SD_price;
+        }
+        return product.sdPrice;
+      },
+      'Distributor': product => {
+        if (
+          product.autoUpdate &&
+          product.fromDate &&
+          product.toDate &&
+          isCurrentDateWithinRange(product.fromDate, product.toDate)
+        ) {
+          return product.distributor_price;
+        }
+        return product.distributorPrice;
+      },
+      'Customer': product => {
+        if (
+          product.autoUpdate &&
+          product.fromDate &&
+          product.toDate &&
+          isCurrentDateWithinRange(product.fromDate, product.toDate)
+        ) {
+          return product.customer_price;
+        }
+        return product.price;
+      },
+    };
+
+// Helper function for date range check
+function isCurrentDateWithinRange(fromDate, toDate) {
+  const currentDate = new Date();
+  const startDate = new Date(fromDate);
+  const endDate = new Date(toDate);
+
+  return currentDate >= startDate && currentDate <= endDate;
+}
+    
+    
+
 
     // Calculate total amount, total order volume (in liters), and prepare order items
     for (let item of items) {
@@ -39,7 +109,22 @@ exports.createOrder = async (req, res) => {
         return res.status(404).json({ message: `Product with ID ${item.product_id} not found` });
       }
 
-      const itemTotalPrice = product.price * item.quantity;
+      // const price = rolePriceColumn(product);
+
+  // Correct role price calculation
+  if (!rolePriceColumn[userRole]) {
+    return res.status(400).json({ message: `Role ${userRole} pricing configuration is missing` });
+  }
+
+
+  const basePrice = rolePriceColumn[userRole](product);
+
+  if (basePrice === null || basePrice === undefined) {
+    return res.status(500).json({ message: `Pricing not configured for product ID ${item.product_id}` });
+  }
+
+      // const itemTotalPrice = product.price * item.quantity;
+      const itemTotalPrice = basePrice * item.quantity;
       // let itemVolume = parseFloat(product.productVolume) * item.quantity;
 
       // Convert volume to liters
@@ -54,7 +139,8 @@ exports.createOrder = async (req, res) => {
         product_id: product.id,
         quantity: item.quantity,
         quantity_type: product.quantity_type,
-        baseprice: product.price,
+        // baseprice: product.price,
+        baseprice: basePrice,
         final_price: itemTotalPrice,
         item_volume: parseFloat(product.productVolume) * item.quantity,
       });
