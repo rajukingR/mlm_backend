@@ -1,6 +1,7 @@
 'use strict';
 
-const { Product } = require('../models');
+// const { Product } = require('../models');
+const { Product, Order, OrderItem } = require('../models');
 const { validationResult } = require('express-validator');
 const { body } = require('express-validator');
 const { Op } = require('sequelize'); // Correct import for Sequelize operators
@@ -115,23 +116,107 @@ exports.updateProduct = async (req, res) => {
   }
 };
 //***** Get all products Admin *****//
+// exports.getAllProducts = async (req, res) => {
+//   try {
+//     const products = await Product.findAll({
+//       where: {
+//          isDeleted: false
+//          } 
+//     });
+//     return res.status(200).json(products);
+//   } catch (error) {
+//     return handleErrors(res, error);
+//   }
+// };
 exports.getAllProducts = async (req, res) => {
   try {
+    const userId = req.user.id;
+
+    // Get all products
     const products = await Product.findAll({
-      where: {
-         isDeleted: false
-         } 
+      where: { isDeleted: false },
+      raw: true,
     });
-    return res.status(200).json(products);
+
+    // Fetch orders for the logged-in user (both received and sold)
+    // Received orders (user_id matches)
+    const receivedOrders = await OrderItem.findAll({
+      where: {
+        '$order.status$': 'Accepted',
+        '$order.user_id$': userId,
+      },
+      attributes: ['product_id', 'quantity'],  // Assuming quantity represents total_order_quantity
+      include: [{
+        model: Order,
+        as: 'order',
+        where: { status: 'Accepted', user_id: userId },
+        attributes: [],  // Exclude unnecessary attributes from the order
+      }],
+    });
+
+    // Sold orders (higher_role_id matches)
+    const soldOrders = await OrderItem.findAll({
+      where: {
+        '$order.status$': 'Accepted',
+        '$order.higher_role_id$': userId,
+      },
+      attributes: ['product_id', 'quantity'],  // Assuming quantity represents total_order_quantity
+      include: [{
+        model: Order,
+        as: 'order',
+        where: { status: 'Accepted', higher_role_id: userId },
+        attributes: [],  // Exclude unnecessary attributes from the order
+      }],
+    });
+
+    // Calculate stock quantity dynamically
+    const productStockMap = {};
+
+    // Aggregate received quantities
+    receivedOrders.forEach((order) => {
+      if (!productStockMap[order.product_id]) {
+        productStockMap[order.product_id] = 0;
+      }
+      productStockMap[order.product_id] += parseFloat(order.quantity || 0);
+    });
+
+    // Aggregate sold quantities
+    soldOrders.forEach((order) => {
+      if (!productStockMap[order.product_id]) {
+        productStockMap[order.product_id] = 0;
+      }
+      productStockMap[order.product_id] -= parseFloat(order.quantity || 0);
+    });
+
+    // Update product stock dynamically
+    // const updatedProducts = products.map((product) => {
+    //   const dynamicStock =
+    //     product.stock_quantity + (productStockMap[product.id] || 0);
+    //   return {
+    //     ...product,
+    //     dynamic_stock_quantity: dynamicStock,
+    //   };
+    // });
+
+    // Update stock_quantity dynamically
+    const updatedProducts = products.map((product) => {
+      product.stock_quantity += productStockMap[product.id] || 0;
+      return product;
+    });
+
+    return res.status(200).json(updatedProducts);
   } catch (error) {
-    return handleErrors(res, error);
+    console.error('Error fetching products:', error);
+    return res.status(500).json({ message: 'Internal server error', error });
   }
 };
+
 
 // Get all products for the user
 exports.getAllProductsForUser = async (req, res) => {
   try {
-    const { role_name } = req.user; // Assuming the user's role is available in req.user
+    const { role_name,id } = req.user; // Assuming the user's role is available in req.user
+
 
     // Get the current date for checking the price validity
     const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -144,9 +229,60 @@ exports.getAllProductsForUser = async (req, res) => {
       },
     });
 
+        // Received orders (user_id matches)
+        const receivedOrders = await OrderItem.findAll({
+          where: {
+            '$order.status$': 'Accepted',
+            '$order.user_id$': id,
+          },
+          attributes: ['product_id', 'quantity'],  // Assuming quantity represents total_order_quantity
+          include: [{
+            model: Order,
+            as: 'order',
+            where: { status: 'Accepted', user_id: id },
+            attributes: [],  // Exclude unnecessary attributes from the order
+          }],
+        });
+    
+        // Sold orders (higher_role_id matches)
+        const soldOrders = await OrderItem.findAll({
+          where: {
+            '$order.status$': 'Accepted',
+            '$order.higher_role_id$': id,
+          },
+          attributes: ['product_id', 'quantity'],  // Assuming quantity represents total_order_quantity
+          include: [{
+            model: Order,
+            as: 'order',
+            where: { status: 'Accepted', higher_role_id: id },
+            attributes: [],  // Exclude unnecessary attributes from the order
+          }],
+        });
+
+            // Calculate stock quantity dynamically
+    const productStockMap = {};
+
+    // Aggregate received quantities
+    receivedOrders.forEach((order) => {
+      if (!productStockMap[order.product_id]) {
+        productStockMap[order.product_id] = 0;
+      }
+      productStockMap[order.product_id] += parseFloat(order.quantity || 0);
+    });
+
+    // Aggregate sold quantities
+    soldOrders.forEach((order) => {
+      if (!productStockMap[order.product_id]) {
+        productStockMap[order.product_id] = 0;
+      }
+      productStockMap[order.product_id] -= parseFloat(order.quantity || 0);
+    });
+
     // Map over the products to check for auto-update prices
     const productsWithPrices = products.map((product) => {
       let priceDetails = {};
+      const stockQuantity = productStockMap[product.id] || 0;
+      
 
       // Ensure `fromDate` and `toDate` are properly formatted for comparison
       const fromDate = new Date(product.fromDate).toISOString().split('T')[0];
@@ -207,6 +343,9 @@ exports.getAllProductsForUser = async (req, res) => {
         name: product.name,
         image: product.image,
         super1: priceDetails.super,
+        // stock_quantity: product.stock_quantity,
+        stock_quantity:stockQuantity
+
       };
     });
 
