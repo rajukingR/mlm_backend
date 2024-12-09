@@ -325,7 +325,7 @@ function autoUpdateProducts() {
     } catch (error) {
       console.error('Error updating products:', error);
     }
-  }, 30 * 1000);  
+  }, 2 * 1000);  
 }
 
 autoUpdateProducts();
