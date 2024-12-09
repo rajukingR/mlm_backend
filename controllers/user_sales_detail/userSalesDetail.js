@@ -198,6 +198,7 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
 
     for (const user of lowerHierarchyUsers) {
       const role = user.role_name;
+      const photo = user.image;
       const userCreatedAt = new Date(user.createdAt);
       const currentDate = new Date();
 
@@ -323,6 +324,8 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
       result.push({
         user_id: user.id,
         full_name: user.full_name,
+        image: photo,
+
         monthlyDetails,
       });
     }
