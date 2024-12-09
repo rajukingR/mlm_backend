@@ -146,7 +146,10 @@ exports.getAllProductsForUser = async (req, res) => {
 
     // Map over the products to check for auto-update prices
     const productsWithPrices = products.map((product) => {
-      let priceDetails = {};
+      let priceDetails = {
+        offerPrice: null,   // Default to null
+        originalPrice: product.price, // Default original price to the base price
+      };
 
       // Ensure `fromDate` and `toDate` are properly formatted for comparison
       const fromDate = new Date(product.fromDate).toISOString().split('T')[0];
@@ -155,58 +158,59 @@ exports.getAllProductsForUser = async (req, res) => {
       // Check if auto-update is enabled and within the valid date range
       const isOfferValid = product.autoUpdate === true && currentDate >= fromDate && currentDate <= toDate;
 
-      // Determine the price based on the role and whether the offer is valid
       if (isOfferValid) {
+        // Set offer price based on role if offer is valid
         switch (role_name) {
           case 'Super Distributor':
-            priceDetails = { super: product.SD_price };
+            priceDetails.offerPrice = product.SD_price;
             break;
           case 'Distributor':
-            priceDetails = { super: product.distributor_price };
+            priceDetails.offerPrice = product.distributor_price;
             break;
           case 'Master Distributor':
-            priceDetails = { super: product.MD_price };
+            priceDetails.offerPrice = product.MD_price;
             break;
           case 'Area Development Officer':
-            priceDetails = { super: product.ADO_price };
+            priceDetails.offerPrice = product.ADO_price;
             break;
           case 'Customer':
-            priceDetails = { super: product.customer_price };
+            priceDetails.offerPrice = product.customer_price;
             break;
           default:
-            priceDetails = { super: product.price };
-            break;
-        }
-      } else {
-        // Set price based on the role for original prices if autoUpdate is false or outside the date range
-        switch (role_name) {
-          case 'Super Distributor':
-            priceDetails = { super: product.sdPrice };
-            break;
-          case 'Distributor':
-            priceDetails = { super: product.distributorPrice };
-            break;
-          case 'Master Distributor':
-            priceDetails = { super: product.mdPrice };
-            break;
-          case 'Area Development Officer':
-            priceDetails = { super: product.adoPrice };
-            break;
-          case 'Customer':
-            priceDetails = { super: product.price };
-            break;
-          default:
-            priceDetails = { super: product.price };
+            priceDetails.offerPrice = product.price;
             break;
         }
       }
 
-      // Return the final product details with the correct price for the role
+      // Determine original price based on the role
+      switch (role_name) {
+        case 'Super Distributor':
+          priceDetails.originalPrice = product.sdPrice;
+          break;
+        case 'Distributor':
+          priceDetails.originalPrice = product.distributorPrice;
+          break;
+        case 'Master Distributor':
+          priceDetails.originalPrice = product.mdPrice;
+          break;
+        case 'Area Development Officer':
+          priceDetails.originalPrice = product.adoPrice;
+          break;
+        case 'Customer':
+          priceDetails.originalPrice = product.price;
+          break;
+        default:
+          priceDetails.originalPrice = product.price;
+          break;
+      }
+
+      // Return the final product details with both offer price and original price
       return {
         id: product.id,
         name: product.name,
         image: product.image,
-        super1: priceDetails.super,
+        super1: priceDetails.offerPrice,
+        originalPrice: priceDetails.originalPrice,
       };
     });
 
@@ -217,6 +221,7 @@ exports.getAllProductsForUser = async (req, res) => {
     return handleErrors(res, error);
   }
 };
+
 
 
 //******  Get a single product by ID for Admin *****//
