@@ -698,7 +698,6 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
       return res.status(404).json({ message: 'No orders found' });
     }
 
-    // Format the response to include necessary details
     const orderDetails = orders.map(order => ({
       orderId: order.id,
       userId: order.user_id,
@@ -712,9 +711,9 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
       higherRoleId: order.higher_role_id,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      customerName: order.customer.full_name,  // Customer name
-      customerImage: order.customer.image,    // Customer image
-      customerMobile: order.customer.mobile_number, // Customer mobile number
+      customerName: order.customer ? order.customer.full_name : null,  // Check if customer exists
+      customerImage: order.customer ? order.customer.image : null,    // Check if customer exists
+      customerMobile: order.customer ? order.customer.mobile_number : null, // Check if customer exists
       OrderItems: order.OrderItems.map(item => ({
         itemId: item.id,
         productId: item.product_id,
@@ -729,6 +728,7 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
         productDescription: item.product.description, // Product description
       }))
     }));
+    
 
     return res.status(200).json({ orders: orderDetails });
 
