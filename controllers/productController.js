@@ -149,6 +149,11 @@ exports.getAllProductsForUser = async (req, res) => {
       let priceDetails = {
         offerPrice: null,   // Default to null
         originalPrice: product.price, // Default original price to the base price
+        Status: product.status, // Correctly assigning status
+        Category: product.category_name, // Correctly assigning category name
+        productVolume: product.productVolume, // Correctly assigning category name
+        quantity_type: product.quantity_type, // Correctly assigning category name
+
       };
 
       // Ensure `fromDate` and `toDate` are properly formatted for comparison
@@ -211,6 +216,10 @@ exports.getAllProductsForUser = async (req, res) => {
         image: product.image,
         super1: priceDetails.offerPrice,
         originalPrice: priceDetails.originalPrice,
+        category_name: product.category_name, // Correctly assigning category name
+        status: product.status, // Correctly assigning status
+        productVolume: product.productVolume, // Correctly assigning status
+        quantity_type: product.quantity_type, // Correctly assigning status
       };
     });
 
