@@ -1,8 +1,8 @@
-const { SalesTarget, Order, Product, OrderItem, User } = require('../../models');
+const { Order, Product, OrderItem, User, SalesStockTarget } = require('../../models');
 const { Op } = require('sequelize');
 
 exports.getMonthlySalesDetails = async (req, res) => {
-  const { role, user_id } = req.params;
+  const { role_id, user_id } = req.params;
 
   try {
     // Fetch user details for creation date
@@ -14,6 +14,20 @@ exports.getMonthlySalesDetails = async (req, res) => {
     const userCreatedAt = new Date(user.createdAt);
     const currentDate = new Date();
 
+    // Fetch SalesStockTarget based on user's role_name
+    const roleTarget = await SalesStockTarget.findOne({
+      where: {
+        role_name: user.role_name,
+      },
+    });
+
+    if (!roleTarget) {
+      return res.status(404).json({ success: false, message: 'Role target not found' });
+    }
+
+    const totalMonthlyTarget = parseFloat(roleTarget.target) || 0;
+    const totalStockTarget = parseFloat(roleTarget.stock_target) || 0;
+
     // Initialize results
     const monthlyDetails = [];
 
@@ -22,38 +36,6 @@ exports.getMonthlySalesDetails = async (req, res) => {
     while (targetDate <= currentDate) {
       const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
       const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
-
-      // Fetch sales targets for all roles
-      const salesTargets = await SalesTarget.findAll();
-      let totalMonthlyTarget = 0;
-      let totalStockTarget = 0;
-
-      salesTargets.forEach((target) => {
-        let productData;
-
-        // Parse product_data based on its actual type
-        if (typeof target.product_data === 'string') {
-          productData = JSON.parse(target.product_data); // Parse if it's a JSON string
-        } else {
-          productData = target.product_data; // Use directly if it's already JSON
-        }
-
-        productData.forEach((data) => {
-          if (data.role === role) {
-            const targetValue = parseFloat(data.target) || 0;
-            const stockTargetValue = parseFloat(data.stock_target) || 0;
-            const duration = data.duration ? data.duration.toLowerCase() : '';
-
-            // Convert target to a monthly equivalent if needed
-            if (duration.includes('month')) {
-              // const months = parseInt(duration) || 1; 
-              const months = duration.includes('month') ? parseInt(duration) || 1 : 1;
-              totalMonthlyTarget += targetValue / months;
-              totalStockTarget += stockTargetValue / months;
-            }
-          }
-        });
-      });
 
       // Fetch all accepted orders for the user within the target month
       const acceptedOrders = await Order.findAll({
@@ -114,7 +96,7 @@ exports.getMonthlySalesDetails = async (req, res) => {
         return total;
       }, Promise.resolve(0));
 
-      //
+      // Calculate total stock achievement
       const totalStockAchievement = acceptedOrders.reduce((total, order) => {
         return total + order.OrderItems.reduce((subtotal, item) => subtotal + (parseInt(item.quantity) || 0), 0);
       }, 0);
@@ -132,12 +114,11 @@ exports.getMonthlySalesDetails = async (req, res) => {
       monthlyDetails.push({
         month: startOfMonth.toLocaleString('default', { month: 'long' }),
         year: startOfMonth.getFullYear(),
-        MonthlyTargetAmount:totalMonthlyTarget,
-        AchievementAmount:totalAchievementAmount,
+        MonthlyTargetAmount: totalMonthlyTarget,
+        AchievementAmount: totalAchievementAmount,
         pendingAmount,
         achievementAmountPercent: achievementAmountPercent.toFixed(2),
         unachievementAmountPercent: unachievementAmountPercent.toFixed(2),
-        //stock:
         StockTarget: totalStockTarget,
         StockAchievement: totalStockAchievement,
         PendingStockTarget: pendingStockTarget,
@@ -152,7 +133,7 @@ exports.getMonthlySalesDetails = async (req, res) => {
     // Respond with the monthly details
     return res.status(200).json({
       success: true,
-      role,
+      role: user.role_name,
       user_id,
       monthlyDetails,
     });
@@ -183,6 +164,7 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
   const { user_id } = req.params;
 
   try {
+    // Fetch users under the given user_id (lower hierarchy)
     const lowerHierarchyUsers = await User.findAll({
       where: {
         superior_id: user_id,
@@ -196,6 +178,7 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
 
     const result = [];
 
+    // Iterate over each lower hierarchy user
     for (const user of lowerHierarchyUsers) {
       const role = user.role_name;
       const photo = user.image;
@@ -211,31 +194,20 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
         const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
         const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
 
-        // Fetch sales targets for the role
-        const salesTargets = await SalesTarget.findAll();
-        salesTargets.forEach((target) => {
-          let productData;
-          if (typeof target.product_data === 'string') {
-            productData = JSON.parse(target.product_data);
-          } else {
-            productData = target.product_data;
-          }
-
-          productData.forEach((data) => {
-            if (data.role === role) {
-              const targetValue = parseFloat(data.target) || 0;
-              const stockTargetValue = parseFloat(data.stock_target) || 0;
-              const duration = data.duration ? data.duration.toLowerCase() : '';
-
-              // Calculate monthly target and stock target based on duration
-              if (duration.includes('month')) {
-                const months = parseInt(duration) || 1;
-                totalMonthlyTarget += targetValue / months;
-                totalStockTarget += stockTargetValue / months;
-              }
-            }
-          });
+        // Fetch the SalesStockTarget for the current user's role
+        const roleTarget = await SalesStockTarget.findOne({
+          where: {
+            role_name: role,
+          },
         });
+
+        if (roleTarget) {
+          totalMonthlyTarget = parseFloat(roleTarget.target) || 0;
+          totalStockTarget = parseFloat(roleTarget.stock_target) || 0;
+        } else {
+          totalMonthlyTarget = 0;
+          totalStockTarget = 0;
+        }
 
         // Fetch accepted orders for the user within the month
         const acceptedOrders = await Order.findAll({
@@ -311,7 +283,7 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
           unachievementAmountPercent: unachievementAmountPercent.toFixed(2),
           totalStockTarget,
           totalStockAchievement,
-          pendingStockTarget: pendingStockTarget,  
+          pendingStockTarget: pendingStockTarget,
           stockAchievementPercent: stockAchievementPercent.toFixed(2),
           stockUnachievementPercent: stockUnachievementPercent.toFixed(2),
           roleName: role,
@@ -325,7 +297,6 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
         user_id: user.id,
         full_name: user.full_name,
         image: photo,
-
         monthlyDetails,
       });
     }
@@ -343,4 +314,3 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
     });
   }
 };
-
