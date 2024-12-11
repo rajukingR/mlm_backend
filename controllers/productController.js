@@ -153,6 +153,8 @@ exports.getAllProductsForUser = async (req, res) => {
         Category: product.category_name, // Correctly assigning category name
         productVolume: product.productVolume, // Correctly assigning category name
         quantity_type: product.quantity_type, // Correctly assigning category name
+        stock_quantity: product.stock_quantity, // Correctly assigning category name
+
 
       };
 
@@ -220,6 +222,9 @@ exports.getAllProductsForUser = async (req, res) => {
         status: product.status, // Correctly assigning status
         productVolume: product.productVolume, // Correctly assigning status
         quantity_type: product.quantity_type, // Correctly assigning status
+        stock_quantity: product.stock_quantity, // Correctly assigning status
+
+        
       };
     });
 
@@ -337,4 +342,4 @@ function autoUpdateProducts() {
   }, 2 * 1000);  
 }
 
-autoUpdateProducts();
+// autoUpdateProducts();
