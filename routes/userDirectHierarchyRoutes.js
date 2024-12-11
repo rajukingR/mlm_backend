@@ -12,7 +12,7 @@ router.get('/users-by-md', userHierarchyController.getUsersByMDAndRole);
 router.get('/users-by-sd', userHierarchyController.getUsersBySDAndRole);
 router.get('/user-profile',authMiddleware, userHierarchyController.getUserProfile);
 router.get('/profile-hirarchy',authMiddleware, userHierarchyController.getUserProfileByHierarchy);
-router.get('/profileby-admin/:userId',authMiddleware,isAdmin, userHierarchyController.getUserProfileByAdmin);
+router.get('/profileby-admin/:userId',authMiddleware, userHierarchyController.getUserProfileByAdmin);
 
 
 
