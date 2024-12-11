@@ -1,23 +1,33 @@
 'use strict';
 
 module.exports = (sequelize, DataTypes) => {
-  const SalesTarget = sequelize.define(
-    'SalesTarget',
+  const SalesStockTarget = sequelize.define(
+    'SalesStockTarget',
     {
-      product_name: {
+      role_name: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      product_data: {
-        type: DataTypes.TEXT,
+      target: {
+        type: DataTypes.DECIMAL(15, 2), 
+        allowNull: false,
+      },
+      stock_target: {
+        type: DataTypes.DECIMAL(15, 2), 
+        allowNull: false,
+      },
+      duration: {
+        type: DataTypes.STRING,
         allowNull: false,
       },
     },
     {
-      tableName: 'sales_targets', 
-      timestamps: true,
+      tableName: 'sales_stock_targets', 
+      timestamps: true, 
+      createdAt: 'createdAt', 
+      updatedAt: 'updatedAt',
     }
   );
 
-  return SalesTarget;
+  return SalesStockTarget;
 };

@@ -154,34 +154,40 @@ exports.getUserProfileByHierarchy = async (req, res) => {
   }
 };
 
-// Fetch any user's profile by Admin using ID
+// Fetch any user's profile by Admin or other roles using ID
 exports.getUserProfileByAdmin = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    if (req.user.role_id !== 1) {
-      return res.status(403).json({ error: 'Access denied. Only admin can view this information.' });
+    // Allow access for roles 1 (Admin), 2, 3, 4, and 5
+    const allowedRoles = [1, 2, 3, 4, 5];
+    if (!allowedRoles.includes(req.user.role_id)) {
+      return res.status(403).json({ error: 'Access denied. You do not have the required permissions.' });
     }
 
+    // Fetch the user by their ID
     const user = await User.findByPk(userId);
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Decrypt the user's password
     const decryptedPassword = decryptPassword(user.password);
-    
+
+    // Prepare the user's profile data
     const targetUserProfile = {
-      ...user.toJSON(), 
-      password: decryptedPassword // Replace the password with the decrypted password
+      ...user.toJSON(),
+      password: decryptedPassword, // Include the decrypted password
     };
 
-    // res.status(200).json(user);
+    // Send the response
     res.status(200).json(targetUserProfile);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 
