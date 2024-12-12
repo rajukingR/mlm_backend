@@ -9,6 +9,7 @@ router.get('/admin_product',authMiddleware, productController.getAllProducts);
 router.get('/admin_product/:id',authMiddleware, productController.getProductById);
 router.post('/', upload.single('image'), authMiddleware, isAdmin, productController.createProduct);
 router.put('/:id', upload.single('image'), productController.updateProduct);
+router.put('/:id/status', productController.updateProductStatus);
 router.delete('/:id', authMiddleware, isAdmin, productController.deleteProduct);
 //
 router.get('/user_product',authMiddleware, productController.getAllProductsForUser); 
