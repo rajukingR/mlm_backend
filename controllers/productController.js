@@ -1,7 +1,8 @@
 'use strict';
 
 // const { Product } = require('../models');
-const { Product, Order, OrderItem } = require('../models');
+// const { Product, Order, OrderItem } = require('../models');
+const { User, Product, OrderItem, Order } = require('../models'); 
 const { validationResult } = require('express-validator');
 const { body } = require('express-validator');
 const { Op } = require('sequelize'); // Correct import for Sequelize operators
@@ -130,7 +131,25 @@ exports.updateProduct = async (req, res) => {
 // };
 exports.getAllProducts = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const { id: userId, role_name: roleName } = req.user;
+
+    // Check if the logged-in user is Admin
+    if (roleName !== 'Admin') {
+      return res.status(403).json({ message: 'Access denied. Only Admins can perform this action.' });
+    }
+
+    // Get all Admin IDs
+    const adminUsers = await User.findAll({
+      where: { role_name: 'Admin', status: 'Active' },
+      attributes: ['id'],
+      raw: true,
+    });
+
+    const adminIds = adminUsers.map((user) => user.id);
+
+    if (adminIds.length === 0) {
+      return res.status(400).json({ message: 'No Admin users found.' });
+    }
 
     // Get all products
     const products = await Product.findAll({
@@ -138,47 +157,26 @@ exports.getAllProducts = async (req, res) => {
       raw: true,
     });
 
-    // Fetch orders for the logged-in user (both received and sold)
-    // Received orders (user_id matches)
-    const receivedOrders = await OrderItem.findAll({
-      where: {
-        '$order.status$': 'Accepted',
-        '$order.user_id$': userId,
-      },
-      attributes: ['product_id', 'quantity'],  // Assuming quantity represents total_order_quantity
-      include: [{
-        model: Order,
-        as: 'order',
-        where: { status: 'Accepted', user_id: userId },
-        attributes: [],  // Exclude unnecessary attributes from the order
-      }],
-    });
-
-    // Sold orders (higher_role_id matches)
+    // Fetch sold orders for all Admins
     const soldOrders = await OrderItem.findAll({
       where: {
         '$order.status$': 'Accepted',
-        '$order.higher_role_id$': userId,
+        '$order.higher_role_id$': { [Op.in]: adminIds }, // Use Op.in for array filter
       },
-      attributes: ['product_id', 'quantity'],  // Assuming quantity represents total_order_quantity
-      include: [{
-        model: Order,
-        as: 'order',
-        where: { status: 'Accepted', higher_role_id: userId },
-        attributes: [],  // Exclude unnecessary attributes from the order
-      }],
+      attributes: ['product_id', 'quantity'],
+      include: [
+        {
+          model: Order,
+          as: 'order',
+          where: { status: 'Accepted', higher_role_id: { [Op.in]: adminIds } },
+          attributes: [],
+        },
+      ],
+      raw: true,
     });
 
     // Calculate stock quantity dynamically
     const productStockMap = {};
-
-    // Aggregate received quantities
-    receivedOrders.forEach((order) => {
-      if (!productStockMap[order.product_id]) {
-        productStockMap[order.product_id] = 0;
-      }
-      productStockMap[order.product_id] += parseFloat(order.quantity || 0);
-    });
 
     // Aggregate sold quantities
     soldOrders.forEach((order) => {
@@ -188,28 +186,22 @@ exports.getAllProducts = async (req, res) => {
       productStockMap[order.product_id] -= parseFloat(order.quantity || 0);
     });
 
-    // Update product stock dynamically
-    // const updatedProducts = products.map((product) => {
-    //   const dynamicStock =
-    //     product.stock_quantity + (productStockMap[product.id] || 0);
-    //   return {
-    //     ...product,
-    //     dynamic_stock_quantity: dynamicStock,
-    //   };
-    // });
-
-    // Update stock_quantity dynamically
+    // Map products and include finalStockQuantity key
     const updatedProducts = products.map((product) => {
-      product.stock_quantity += productStockMap[product.id] || 0;
-      return product;
+      const calculatedStock = (product.stock_quantity || 0) + (productStockMap[product.id] || 0);
+      return {
+        ...product,
+        finalStockQuantity: calculatedStock, // Add the calculated stock quantity
+      };
     });
 
     return res.status(200).json(updatedProducts);
   } catch (error) {
-    console.error('Error fetching products:', error);
-    return res.status(500).json({ message: 'Internal server error', error });
+    console.error('Error fetching products:', error.message, error.stack);
+    return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
 
 
 // Get all products for the user
@@ -483,3 +475,26 @@ function autoUpdateProducts() {
 }
 
 autoUpdateProducts();
+
+
+///////********Update Product Status**********///////
+
+exports.updateProductStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Fetch the existing product
+    const product = await Product.findByPk(id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // Update the status field only
+    await product.update({ status });
+    return res.status(200).json(product);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
