@@ -354,7 +354,7 @@ exports.getAllProductsForUser = async (req, res) => {
         status: product.status, // Correctly assigning status
         productVolume: product.productVolume, // Correctly assigning status
         quantity_type: product.quantity_type, // Correctly assigning status
-        stock_quantity: product.stock_quantity, // Correctly assigning status
+        // stock_quantity: product.stock_quantity, // Correctly assigning status
 
         
       };

@@ -122,7 +122,9 @@ exports.getMonthlySalesDetails = async (req, res) => {
         StockTarget: totalStockTarget,
         StockAchievement: totalStockAchievement,
         PendingStockTarget: pendingStockTarget,
-        StockAchievementPercent: totalStockTarget > 0 ? ((totalStockAchievement / totalStockTarget) * 100).toFixed(2) : '0.00',
+        // StockAchievementPercent: totalStockTarget > 0 ? ((totalStockAchievement / totalStockTarget) * 100).toFixed(2) : '0.00',
+        StockAchievementPercent: totalStockTarget > 0 ? ((totalStockAchievement / totalStockTarget) * 100).toFixed(4) : '0.0000',
+
         StockUnachievementPercent: totalStockTarget > 0 ? (100 - (totalStockAchievement / totalStockTarget) * 100).toFixed(2) : '100.00',
       });
 
@@ -269,6 +271,7 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
 
         const stockAchievementPercent =
           totalStockTarget > 0 ? (totalStockAchievement / totalStockTarget) * 100 : 0;
+
         const stockUnachievementPercent = 100 - stockAchievementPercent;
 
         const pendingStockTarget = totalStockTarget - totalStockAchievement;
