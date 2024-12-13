@@ -13,7 +13,7 @@ router.put('/:id/status', productController.updateProductStatus);
 router.delete('/:id', authMiddleware, isAdmin, productController.deleteProduct);
 //
 router.get('/user_product',authMiddleware, productController.getAllProductsForUser); 
-router.get('/user_product/:id', productController.getProductByIdForUser);
+router.get('/user_product/:id',authMiddleware, productController.getProductByIdForUser);
 
 module.exports = router;
 

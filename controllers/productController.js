@@ -389,23 +389,100 @@ exports.getProductById = async (req, res) => {
 };
 
 //////***** User get id products *****////
+// exports.getProductByIdForUser = async (req, res) => {
+//   try {
+//      const product = await Product.findOne({
+//        where: {  
+//         id: req.params.id,
+//          isDeleted: false,
+//          status: true
+//          }
+//     });
+//     if (!product) {
+//       return res.status(404).json({ error: 'Product not found' });
+//     }
+//     return res.status(200).json(product);
+//   } catch (error) {
+//     return handleErrors(res, error);
+//   }
+// };
+
 exports.getProductByIdForUser = async (req, res) => {
   try {
-     const product = await Product.findOne({
-       where: {  
+    // Fetch the product by ID
+    const product = await Product.findOne({
+      where: {
         id: req.params.id,
-         isDeleted: false,
-         status: true
-         }
+        isDeleted: false,
+        status: true,
+      },
     });
+
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
+
+    const { id: productId } = product; // Extract product ID
+    const userId = req.user.id; // Assuming the user ID is in req.use
+
+    // Fetch received quantities for this product
+    const receivedOrders = await OrderItem.findAll({
+      where: {
+        product_id: productId, // Filter by product ID
+        '$order.status$': 'Accepted',
+        '$order.user_id$': userId,
+      },
+      attributes: ['quantity'], // Fetch only quantity
+      include: [
+        {
+          model: Order,
+          as: 'order',
+          where: { status: 'Accepted', user_id: userId },
+          attributes: [],
+        },
+      ],
+    });
+
+    // Fetch sold quantities for this product
+    const soldOrders = await OrderItem.findAll({
+      where: {
+        product_id: productId, // Filter by product ID
+        '$order.status$': 'Accepted',
+        '$order.higher_role_id$': userId,
+      },
+      attributes: ['quantity'], // Fetch only quantity
+      include: [
+        {
+          model: Order,
+          as: 'order',
+          where: { status: 'Accepted', higher_role_id: userId },
+          attributes: [],
+        },
+      ],
+    });
+
+    // Calculate stock quantity
+    let stockQuantity = 0;
+
+    // Aggregate received quantities
+    receivedOrders.forEach((order) => {
+      stockQuantity += parseFloat(order.quantity || 0);
+    });
+
+    // Subtract sold quantities
+    soldOrders.forEach((order) => {
+      stockQuantity -= parseFloat(order.quantity || 0);
+    });
+
+    product.stock_quantity = stockQuantity;
+
     return res.status(200).json(product);
   } catch (error) {
+    console.error('Error fetching product:', error);
     return handleErrors(res, error);
   }
 };
+
 
 
 // //***  Soft delete a product ***//
