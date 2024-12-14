@@ -738,13 +738,10 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
   }
 };
 
-
-
 exports.acceptOrRejectOrder = async (req, res) => {
   const { orderId } = req.params; // Get orderId from URL parameters
-  const { action, productId, quantity } = req.body; 
-  const userId = req.user.id; // Logged-in user's ID
-  
+  const { action } = req.body; 
+  const userId = req.user.id; 
 
   try {
     // Find the order by its ID
@@ -764,55 +761,71 @@ exports.acceptOrRejectOrder = async (req, res) => {
       return res.status(400).json({ message: 'Invalid action' });
     }
 
+    // Fetch order items for the given order ID
+    const orderItems = await OrderItem.findAll({
+      where: { order_id: orderId },
+      attributes: ['product_id', 'quantity'],
+    });
+
+    if (!orderItems || orderItems.length === 0) {
+      return res.status(404).json({ message: 'No items found for this order' });
+    }
+
     if (action === 'accept') {
-      // Calculate stockQuantity dynamically
-      const receivedOrders = await OrderItem.findAll({
-        where: {
-          '$order.status$': 'Accepted',
-          '$order.user_id$': userId,
-          product_id: productId,
-        },
-        attributes: ['product_id', 'quantity'],
-        include: [{
-          model: Order,
-          as: 'order',
-          where: { status: 'Accepted', user_id: userId },
-          attributes: [],
-        }],
-      });
+      // Loop through each order item to validate stock availability
+      for (const item of orderItems) {
+        const productId = item.product_id;
+        const requestedQuantity = item.quantity;
 
-      const soldOrders = await OrderItem.findAll({
-        where: {
-          '$order.status$': 'Accepted',
-          '$order.higher_role_id$': userId,
-          product_id: productId,
-        },
-        attributes: ['product_id', 'quantity'],
-        include: [{
-          model: Order,
-          as: 'order',
-          where: { status: 'Accepted', higher_role_id: userId },
-          attributes: [],
-        }],
-      });
-
-      // Calculate stockQuantity
-      let stockQuantity = 0;
-      receivedOrders.forEach((order) => {
-        stockQuantity += parseFloat(order.quantity || 0);
-      });
-      soldOrders.forEach((order) => {
-        stockQuantity -= parseFloat(order.quantity || 0);
-      });
-
-      // Check if requested quantity exceeds stockQuantity
-      if (quantity > stockQuantity) {
-        return res.status(400).json({
-          message: `Insufficient stock for product ID ${productId}. Available: ${stockQuantity}, Requested: ${quantity}`,
+        // Calculate stockQuantity dynamically
+        const receivedOrders = await OrderItem.findAll({
+          where: {
+            '$order.status$': 'Accepted',
+            '$order.user_id$': userId,
+            product_id: productId,
+          },
+          attributes: ['quantity'],
+          include: [{
+            model: Order,
+            as: 'order',
+            where: { status: 'Accepted', user_id: userId },
+            attributes: [],
+          }],
         });
+
+        const soldOrders = await OrderItem.findAll({
+          where: {
+            '$order.status$': 'Accepted',
+            '$order.higher_role_id$': userId,
+            product_id: productId,
+          },
+          attributes: ['quantity'],
+          include: [{
+            model: Order,
+            as: 'order',
+            where: { status: 'Accepted', higher_role_id: userId },
+            attributes: [],
+          }],
+        });
+
+        // Calculate stockQuantity
+        let stockQuantity = 0;
+        receivedOrders.forEach((received) => {
+          stockQuantity += parseFloat(received.quantity || 0);
+        });
+        soldOrders.forEach((sold) => {
+          stockQuantity -= parseFloat(sold.quantity || 0);
+        });
+
+        // Check if requested quantity exceeds stockQuantity
+        if (requestedQuantity > stockQuantity) {
+          return res.status(400).json({
+            message: `Insufficient stock for product ID ${productId}. Available: ${stockQuantity}, Requested: ${requestedQuantity}`,
+          });
+        }
       }
 
-      // Update the order status to 'Accepted'
+      // If all items have sufficient stock, update the order status to 'Accepted'
       order.status = 'Accepted';
     } else if (action === 'reject') {
       // Update the order status to 'Cancelled'
@@ -828,6 +841,96 @@ exports.acceptOrRejectOrder = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+
+// exports.acceptOrRejectOrder = async (req, res) => {
+//   const { orderId } = req.params; // Get orderId from URL parameters
+//   const { action, productId, quantity } = req.body; 
+//   const userId = req.user.id; // Logged-in user's ID
+  
+
+//   try {
+//     // Find the order by its ID
+//     const order = await Order.findByPk(orderId);
+
+//     if (!order) {
+//       return res.status(404).json({ message: 'Order not found' });
+//     }
+
+//     // Ensure the order is in a valid state to accept/reject
+//     if (order.status === 'Accepted' || order.status === 'Cancelled') {
+//       return res.status(400).json({ message: 'Order already processed' });
+//     }
+
+//     // Check if the action is valid
+//     if (action !== 'accept' && action !== 'reject') {
+//       return res.status(400).json({ message: 'Invalid action' });
+//     }
+
+//     if (action === 'accept') {
+//       // Calculate stockQuantity dynamically
+//       const receivedOrders = await OrderItem.findAll({
+//         where: {
+//           '$order.status$': 'Accepted',
+//           '$order.user_id$': userId,
+//           product_id: productId,
+//         },
+//         attributes: ['product_id', 'quantity'],
+//         include: [{
+//           model: Order,
+//           as: 'order',
+//           where: { status: 'Accepted', user_id: userId },
+//           attributes: [],
+//         }],
+//       });
+
+//       const soldOrders = await OrderItem.findAll({
+//         where: {
+//           '$order.status$': 'Accepted',
+//           '$order.higher_role_id$': userId,
+//           product_id: productId,
+//         },
+//         attributes: ['product_id', 'quantity'],
+//         include: [{
+//           model: Order,
+//           as: 'order',
+//           where: { status: 'Accepted', higher_role_id: userId },
+//           attributes: [],
+//         }],
+//       });
+
+//       // Calculate stockQuantity
+//       let stockQuantity = 0;
+//       receivedOrders.forEach((order) => {
+//         stockQuantity += parseFloat(order.quantity || 0);
+//       });
+//       soldOrders.forEach((order) => {
+//         stockQuantity -= parseFloat(order.quantity || 0);
+//       });
+
+//       // Check if requested quantity exceeds stockQuantity
+//       if (quantity > stockQuantity) {
+//         return res.status(400).json({
+//           message: `Insufficient stock for product ID ${productId}. Available: ${stockQuantity}, Requested: ${quantity}`,
+//         });
+//       }
+
+//       // Update the order status to 'Accepted'
+//       order.status = 'Accepted';
+//     } else if (action === 'reject') {
+//       // Update the order status to 'Cancelled'
+//       order.status = 'Cancelled';
+//     }
+
+//     // Save the updated order status
+//     await order.save();
+
+//     return res.json({ message: `Order ${action}ed successfully` });
+//   } catch (error) {
+//     console.error('Error processing order:', error); // Log the full error
+//     return res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
 
 // exports.acceptOrRejectOrder = async (req, res) => {
 //   const { orderId } = req.params; // Get orderId from URL parameters
