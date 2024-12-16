@@ -9,5 +9,4 @@ router.get('/',authMiddleware, clubController.getClubs);
 router.get('/:id', clubController.getByIdClubs);
 router.put('/:id', clubController.updateByIdClubs);
 router.delete('/:id', clubController.deleteByIdClubs);
-
 module.exports = router;

@@ -633,3 +633,74 @@ exports.deleteUser = async (req, res) => {
     res.status(500).json({ error: 'An error occurred while deleting the user' });
   }
 };
+
+
+
+exports.getUserCounts = async (req, res) => {
+  try {
+    const loggedInUserId = req.user.id;  
+    const loggedInUserRole = req.user.role_name;  // Assuming the user role is available in req.user
+
+    let conditions = {};
+
+    // If the logged-in user is an admin, fetch counts across all users
+    if (loggedInUserRole === 'Admin') {
+      conditions = {};  // No filtering by superior_id, fetch counts for all roles
+    } else {
+      // If the logged-in user is an ADO, count users under their supervision based on superior_id
+      conditions.superior_id = loggedInUserId;
+    }
+
+    // Count MDs (Master Distributors) based on conditions
+    const mdCount = await User.count({
+      where: {
+        ...conditions,
+        role_name: 'Master Distributor'
+      }
+    });
+
+    // Count SDs (Super Distributors) based on conditions
+    const sdCount = await User.count({
+      where: {
+        ...conditions,
+        role_name: 'Super Distributor'
+      }
+    });
+
+    // Count Distributors based on conditions
+    const distributorCount = await User.count({
+      where: {
+        ...conditions,
+        role_name: 'Distributor'
+      }
+    });
+
+    // Count Customers based on conditions
+    const customerCount = await User.count({
+      where: {
+        ...conditions,
+        role_name: 'Customer'
+      }
+    });
+
+    // Count ADOs across all users for Admin, or under the ADO's supervision if the logged-in user is an ADO
+    const adoCount = await User.count({
+      where: {
+        ...conditions,
+        role_name: 'Area Development Officer'
+      }
+    });
+
+    // Send the results as a response
+    return res.json({
+      mdCount,
+      sdCount,
+      distributorCount,
+      customerCount,
+      adoCount  // Include ADO count
+    });
+  } catch (error) {
+    console.error('Error fetching user counts:', error);
+    return res.status(500).json({ error: 'An error occurred while fetching the counts.' });
+  }
+};
