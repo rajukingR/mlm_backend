@@ -352,7 +352,7 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-setInterval(updateAssignedOrders, 30 * 1000);
+// setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -721,6 +721,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
   const { orderId } = req.params; // Get orderId from URL parameters
   const { action } = req.body; 
   const userId = req.user.id; 
+  const userRole = req.user.role_name; 
 
   try {
     // Find the order by its ID
@@ -730,12 +731,10 @@ exports.acceptOrRejectOrder = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Ensure the order is in a valid state to accept/reject
     if (order.status === 'Accepted' || order.status === 'Cancelled') {
       return res.status(400).json({ message: 'Order already processed' });
     }
 
-    // Check if the action is valid
     if (action !== 'accept' && action !== 'reject') {
       return res.status(400).json({ message: 'Invalid action' });
     }
@@ -751,12 +750,23 @@ exports.acceptOrRejectOrder = async (req, res) => {
     }
 
     if (action === 'accept') {
-      // Loop through each order item to validate stock availability
       for (const item of orderItems) {
         const productId = item.product_id;
         const requestedQuantity = item.quantity;
 
-        // Calculate stockQuantity dynamically
+        // If the user's role is 'Admin', check if stock_quantity is null or 0
+        if (userRole === 'Admin') {
+          const product = await Product.findByPk(productId, { attributes: ['stock_quantity'] });
+          if (!product || product.stock_quantity === null || product.stock_quantity === 0) {
+            return res.status(400).json({
+              message: `Insufficient stock for product ID ${productId}. Stock is either null or zero.`,
+            });
+          }
+          // If sufficient stock, move to the next product
+          continue;
+        }
+
+        // Non-admin users: Calculate stockQuantity dynamically
         const receivedOrders = await OrderItem.findAll({
           where: {
             '$order.status$': 'Accepted',
@@ -820,7 +830,6 @@ exports.acceptOrRejectOrder = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
-
 
 // exports.acceptOrRejectOrder = async (req, res) => {
 //   const { orderId } = req.params; // Get orderId from URL parameters

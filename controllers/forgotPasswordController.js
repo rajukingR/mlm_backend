@@ -2,7 +2,8 @@ const { User } = require('../models'); // Import the User model
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
-const secretKey = 'mttmtt4699'; // Secret key for encryption (this should ideally be stored in environment variables)
+// Secret key for encryption (this should ideally be stored in environment variables)
+const secretKey = 'mttmtt4699';
 
 // Function to encrypt password
 const encryptPassword = (password) => {
@@ -23,15 +24,17 @@ const sendForgotPasswordLink = async (req, res) => {
       return res.status(404).json({ message: 'Email not found.' });
     }
 
-    // Generate a reset token (for security)
+    // Generate the reset token (for security)
     const resetToken = crypto.randomBytes(20).toString('hex');
     
-    // Store reset token in the database (optional but recommended for security purposes)
+    // Store reset token and expiration time (10 minutes from now)
+    const expirationTime = Date.now() + 10 * 60 * 1000; // 10 minutes from now
     user.resetToken = resetToken;
+    user.resetTokenExpiration = expirationTime;
     await user.save();
 
     // Generate the reset link
-    const resetLink = `http://88.222.245.236/create-password?token=${resetToken}`;
+    const resetLink = `http://localhost:5173/create-password?token=${resetToken}`;
 
     // Configure Nodemailer transporter
     const transporter = nodemailer.createTransport({
@@ -47,7 +50,7 @@ const sendForgotPasswordLink = async (req, res) => {
       from: 'your-email@gmail.com',
       to: email,
       subject: 'Reset Your Password',
-      html: `<p>Click the link below to reset your password:</p><a href="${resetLink}">${resetLink}</a>`,
+      html: `<p>Click the link below to reset your password. It will expire in 10 minutes:</p><a href="${resetLink}">${resetLink}</a>`,
     };
 
     // Send email
@@ -60,51 +63,72 @@ const sendForgotPasswordLink = async (req, res) => {
   }
 };
 
-// Function to reset password
 const resetPassword = async (req, res) => {
-  const { token, password } = req.body; // Get the reset token and new password from the request body
+    const { email, token, password } = req.body;
+  
+    try {
+      // Find user by email to get resetToken and resetTokenExpiration
+      const user = await User.findOne({ where: { email: email } });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found.' });
+      }
 
-  try {
-    // Find user by reset token
-    const user = await User.findOne({ where: { resetToken: token } });
-    if (!user) {
-      return res.status(404).json({ message: 'Invalid or expired reset token.' });
+      // Check if the reset token matches and is not expired
+      if (user.resetToken !== token) {
+        return res.status(400).json({ message: 'Invalid or expired reset token.' });
+      }
+  
+      // Check if the reset token is expired
+      const currentTime = Date.now();
+      if (user.resetTokenExpiration < currentTime) {
+        return res.status(400).json({ message: 'Reset link has expired.' });
+      }
+  
+      // Encrypt the new password
+      const encryptedPassword = encryptPassword(password);
+      console.log('Encrypted Password:', encryptedPassword); // Log encrypted password for debugging
+  
+      // Update the user's password in the database and clear the reset token
+      const updateUser = await User.update(
+        { password: encryptedPassword, resetToken: null, resetTokenExpiration: null },
+        { where: { email: email } }
+      );
+  
+      if (updateUser[0] === 0) {
+        return res.status(500).json({ message: 'Failed to update the password.' });
+      }
+  
+      // Send confirmation email
+      const fullName = user.full_name;
+      const transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+          user: 'rajuking9160@gmail.com', // Your email
+          pass: 'ifye whlp asxl owhf', // Your email password
+        },
+      });
+  
+      const mailOptions = {
+        from: 'your-email@gmail.com',
+        to: user.email,
+        subject: 'Password Successfully Updated',
+        html: `<p>Hello ${fullName},</p><p>Your password has been successfully updated. If this was not you, please contact support immediately.</p>`,
+      };
+  
+      try {
+        await transporter.sendMail(mailOptions);
+      } catch (mailError) {
+        console.error('Error sending confirmation email:', mailError);
+        return res.status(500).json({ message: 'Failed to send confirmation email.' });
+      }
+  
+      return res.status(200).json({ message: 'Password updated successfully.' });
+    } catch (error) {
+      console.error('Error updating password:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
     }
-
-    // Encrypt the new password
-    const encryptedPassword = encryptPassword(password);
-
-    // Update the user's password in the database
-    await User.update({ password: encryptedPassword, resetToken: null }, { where: { resetToken: token } });
-
-    // Fetch the user's full name
-    const fullName = user.full_name;
-
-    // Configure Nodemailer transporter for password update confirmation
-    const transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: {
-        user: 'rajuking9160@gmail.com', // Your email
-        pass: 'ifye whlp asxl owhf', // Your email password
-      },
-    });
-
-    // Compose the email content
-    const mailOptions = {
-      from: 'your-email@gmail.com',
-      to: user.email,
-      subject: 'Password Successfully Updated',
-      html: `<p>Hello ${fullName},</p><p>Your password has been successfully updated. If this was not you, please contact support immediately.</p>`,
-    };
-
-    // Send email
-    await transporter.sendMail(mailOptions);
-
-    return res.status(200).json({ message: 'Password updated successfully.' });
-  } catch (error) {
-    console.error('Error updating password:', error);
-    return res.status(500).json({ message: 'Internal server error.' });
-  }
 };
+
+  
 
 module.exports = { sendForgotPasswordLink, resetPassword };

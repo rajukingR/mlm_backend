@@ -99,7 +99,15 @@ module.exports = (sequelize, DataTypes) => {
     club_name: { // New column added for club_name
       type: DataTypes.STRING,
       allowNull: true,  // You can set it to false if it's required
-    }
+    },
+     resetToken: { 
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    resetTokenExpiration: { 
+      type: DataTypes.DATE,
+      allowNull: true
+    },
   }, {
     tableName: 'users',
     timestamps: true
