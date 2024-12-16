@@ -5,7 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     role_id: {
       type: DataTypes.INTEGER,
       references: {
-        model: 'Roles',
+        model: 'roles',
         key: 'id'
       },
       allowNull: false
@@ -14,6 +14,9 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(5, 2),
       allowNull: false
     }
+  }, {
+    tableName: 'commissionrates', // This explicitly sets the table name
+    timestamps: true // Ensure timestamps are managed by Sequelize
   });
 
   CommissionRate.associate = (models) => {
