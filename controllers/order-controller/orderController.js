@@ -777,6 +777,13 @@ exports.acceptOrRejectOrder = async (req, res) => {
         const productId = item.product_id;
         const requestedQuantity = item.quantity;
 
+                // Fetch product details
+                const product = await Product.findByPk(productId, {
+                  attributes: ['name'], // Assuming `name` is the column for product name
+                });
+
+                const productName = product ? product.name : `ID ${productId}`;
+
         // Calculate stockQuantity dynamically
         const receivedOrders = await OrderItem.findAll({
           where: {
@@ -820,7 +827,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
         // Check if requested quantity exceeds stockQuantity
         if (requestedQuantity > stockQuantity) {
           return res.status(400).json({
-            message: `Insufficient stock for product ID ${productId}. Available: ${stockQuantity}, Requested: ${requestedQuantity}`,
+            message: `Insufficient stock for product ID ${productName}. Available: ${stockQuantity}, Requested: ${requestedQuantity}`,
           });
         }
       }
