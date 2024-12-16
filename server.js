@@ -34,6 +34,7 @@ const orderLimitRoutes = require('./routes/orderLimitRoutes'); // Adjust the pat
 const path = require('path');
 const cron = require('node-cron');
 const { sendMonthlyNotifications } = require('./controllers/notification/monthly_notification/sendMonthlyNotifications');
+const forgotPasswordRoutes = require('./routes/forgotPasswordRoutes');
 
 const { authMiddleware } = require('./middlewares/authMiddleware');
 
@@ -71,6 +72,7 @@ app.use('/user_sales_detail',userSalesDetailRoutes)
 app.use('/api/requests', requestRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/order-limits', orderLimitRoutes); // Mount the order limit routes
+app.use('/forgot-password', forgotPasswordRoutes);
 
 // Announcement routes
 app.use('/announcements', (req, res, next) => {

@@ -271,7 +271,6 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
 
         const stockAchievementPercent =
           totalStockTarget > 0 ? (totalStockAchievement / totalStockTarget) * 100 : 0;
-
         const stockUnachievementPercent = 100 - stockAchievementPercent;
 
         const pendingStockTarget = totalStockTarget - totalStockAchievement;
