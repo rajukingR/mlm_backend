@@ -26,4 +26,13 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-module.exports = authMiddleware;
+// Middleware to check if the user is an admin based on role_id
+const isAdmin = (req, res, next) => {
+  // Check if the user's role_id is 1 (admin)
+  if (req.user.role_id !== 1) {
+    return res.status(403).json({ error: 'Access denied. Admins only.' });
+  }
+  next();
+};
+
+module.exports = { authMiddleware, isAdmin};

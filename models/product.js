@@ -4,15 +4,28 @@ module.exports = (sequelize, DataTypes) => {
   const Product = sequelize.define('Product', {
     image: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true
     },
     name: {
       type: DataTypes.STRING(100),
       allowNull: false
     },
-    productID: {
+    quantity_type: {
       type: DataTypes.STRING(100),
       allowNull: false
+    },
+    currency: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      defaultValue: 'INR' 
+    },
+    product_code: {
+      type: DataTypes.STRING(100),
+      allowNull: false
+    },
+    stock_quantity: {
+      type: DataTypes.INTEGER,  
+      allowNull: false, 
     },
     description: {
       type: DataTypes.TEXT,
@@ -22,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(100),
       allowNull: false
     },
-    mrpPriceCustomer: {
+    price: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
     },
@@ -42,12 +55,32 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
     },
+    customer_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    ADO_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    MD_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    SD_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    distributor_price: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
     autoUpdate: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: false
     },
-    activateStatus: {
+    status: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true
@@ -60,21 +93,37 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
+    category_name: { 
+      type: DataTypes.STRING(225),
+      allowNull: true
+    },
+    fromDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    toDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW, // Updated to DataTypes.NOW
+      defaultValue: DataTypes.NOW
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: DataTypes.NOW, // Updated to DataTypes.NOW
+      defaultValue: DataTypes.NOW
+    },
+    isDeleted: {
+      type: DataTypes.TINYINT(1),
+      allowNull: false,
+      defaultValue: 0  
     }
   }, {
-    timestamps: true, // This is the default, explicitly stating it for clarity
+    tableName: 'products',
+    timestamps: true,
   });
 
   return Product;
 };
-
-

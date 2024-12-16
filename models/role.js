@@ -8,7 +8,8 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     }
   }, {
-    timestamps: true // Ensure timestamps are enabled
+    tableName: 'roles',
+    timestamps: true 
   });
 
   Role.associate = (models) => {
