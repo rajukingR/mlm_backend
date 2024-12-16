@@ -287,7 +287,6 @@ exports.getOrdersByUser = async (req, res) => {
 /////////////see other member requested orderlist////////////
 //////////////////////////////////////////////////////
 
-
 const updateAssignedOrders = async () => {
   try {
     // Fetch all orders with pending status
@@ -303,7 +302,6 @@ const updateAssignedOrders = async () => {
       });
 
       if (user) {
-        // Declare userRoleID here to ensure it's in scope for all conditions
         const userRoleID = user.role_id;
         const userRoleName = user.role_name;
         const superiorId = user.superior_id;
@@ -319,15 +317,13 @@ const updateAssignedOrders = async () => {
 
           // Check if the order's updatedAt is older than the calculated time limit
           if (new Date(order.updatedAt) <= timeLimit) {
-            // If the role name is "Admin", set higher_role_id to userRoleID
             if (userRoleName === "Admin") {
               await Order.update(
-                { higher_role_id: userRoleID },  // Set higher_role_id to userRoleID
+                { higher_role_id: userRoleID },
                 { where: { id: order.id } }
               );
               console.log(`Order no ${order.id} was assigned to Admin role ID ${userRoleID}.`);
             } else {
-              // If there's a valid superiorId, update the order
               if (superiorId) {
                 await Order.update(
                   { higher_role_id: superiorId },
@@ -335,7 +331,6 @@ const updateAssignedOrders = async () => {
                 );
                 console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
               } else if (userRoleID) {
-                // If no superiorId, fallback to userRoleID
                 await Order.update(
                   { higher_role_id: userRoleID },
                   { where: { id: order.id } }
@@ -346,17 +341,14 @@ const updateAssignedOrders = async () => {
               }
             }
 
-            // Add a new notification entry after updating the order
+            // Add a notification entry
             const notificationMessage = `New order requested by User ${order.user_id}`;
             await Notification.create({
-              // user_id: order.user_id, 
-              // receive_user_id: superiorId || userRoleID, 
               user_id: superiorId || userRoleID,
               message: notificationMessage,
             });
             console.log(`Notification created for Order no ${order.id}: ${notificationMessage}`);
 
-            // If the requested role is "Area Development Officer" and no superiorId, mark as Cancelled
             if (order.requested_by_role === "Area Development Officer" && !superiorId) {
               console.log(`Order no ${order.id} status already updated to Cancelled.`);
             }
@@ -364,9 +356,9 @@ const updateAssignedOrders = async () => {
             console.log(`Order no ${order.id} was created recently, skipping update.`);
           }
         } else {
-          // If no time limit found, set higher_role_id to userRoleID
+          // If no time limit found, update higher_role_id to userRoleID
           await Order.update(
-            { higher_role_id: userRoleID },  // Set higher_role_id to userRoleID
+            { higher_role_id: userRoleID },
             { where: { id: order.id } }
           );
           console.log(`No time limit found for the role ${user.role_name} in order ${order.id}.`);
@@ -380,8 +372,9 @@ const updateAssignedOrders = async () => {
   }
 };
 
-// Set an interval to call the function every 30 seconds
-setInterval(updateAssignedOrders, 30 * 1000);
+updateAssignedOrders();
+
+
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
