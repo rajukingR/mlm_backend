@@ -1,5 +1,4 @@
 const { Order, OrderItem, Product, User, OrderLimit } = require('../../models');
-
 const { Notification } = require('../../models');
 
 exports.createOrder = async (req, res) => {
@@ -31,7 +30,8 @@ exports.createOrder = async (req, res) => {
     const productIds = items.map(item => item.product_id);
     const products = await Product.findAll({ where: { id: productIds } });
     const productMap = new Map(products.map(product => [product.id, product]));
-    ////////////
+
+    // Role-based pricing logic
     const rolePriceColumn = {
       'Area Development Officer': product => {
         if (
@@ -90,17 +90,14 @@ exports.createOrder = async (req, res) => {
       },
     };
 
-// Helper function for date range check
-function isCurrentDateWithinRange(fromDate, toDate) {
-  const currentDate = new Date();
-  const startDate = new Date(fromDate);
-  const endDate = new Date(toDate);
+    // Helper function for date range check
+    function isCurrentDateWithinRange(fromDate, toDate) {
+      const currentDate = new Date();
+      const startDate = new Date(fromDate);
+      const endDate = new Date(toDate);
 
-  return currentDate >= startDate && currentDate <= endDate;
-}
-    
-    
-
+      return currentDate >= startDate && currentDate <= endDate;
+    }
 
     // Calculate total amount, total order volume (in liters), and prepare order items
     for (let item of items) {
@@ -109,29 +106,16 @@ function isCurrentDateWithinRange(fromDate, toDate) {
         return res.status(404).json({ message: `Product with ID ${item.product_id} not found` });
       }
 
-      // const price = rolePriceColumn(product);
+      if (!rolePriceColumn[userRole]) {
+        return res.status(400).json({ message: `Role ${userRole} pricing configuration is missing` });
+      }
 
-  // Correct role price calculation
-  if (!rolePriceColumn[userRole]) {
-    return res.status(400).json({ message: `Role ${userRole} pricing configuration is missing` });
-  }
+      const basePrice = rolePriceColumn[userRole](product);
+      if (basePrice === null || basePrice === undefined) {
+        return res.status(500).json({ message: `Pricing not configured for product ID ${item.product_id}` });
+      }
 
-
-  const basePrice = rolePriceColumn[userRole](product);
-
-  if (basePrice === null || basePrice === undefined) {
-    return res.status(500).json({ message: `Pricing not configured for product ID ${item.product_id}` });
-  }
-
-      // const itemTotalPrice = product.price * item.quantity;
       const itemTotalPrice = basePrice * item.quantity;
-      // let itemVolume = parseFloat(product.productVolume) * item.quantity;
-
-      // Convert volume to liters
-      // if (product.productVolume.includes("ml")) {
-      //   itemVolume = itemVolume / 1000; // Convert milliliters to liters
-      // }
-
       totalAmount += itemTotalPrice;
       totalQuantity += item.quantity;
 
@@ -139,55 +123,44 @@ function isCurrentDateWithinRange(fromDate, toDate) {
         product_id: product.id,
         quantity: item.quantity,
         quantity_type: product.quantity_type,
-        // baseprice: product.price,
         baseprice: basePrice,
         final_price: itemTotalPrice,
         item_volume: parseFloat(product.productVolume) * item.quantity,
       });
     }
 
-    // Final amount is the same as total amount
     const finalAmount = totalAmount;
 
-    // Logic to determine the higher role ID based on user role
-    // let higherRoleId = null;
-    // higherRoleId = await getSuperior(user.id, userRole);
-    let higherRoleId = await getSuperior(user.id);
+    // Logic to set higher_role_id statically if the role is "Area Development Officer"
+    let higherRoleId = null;
+
+    if (userRole === 'Area Development Officer') {
+      higherRoleId = 1; // Static value for higher_role_id
+    } else {
+      higherRoleId = await getSuperior(user.id);
+    }
 
     // Create order with total order volume in liters
     const order = await Order.create({
       user_id,
       total_amount: totalAmount,
-      coupon_code: coupon_code || null, // Allow NULL
-      discount_applied: null, // Set discount applied as NULL for now
+      coupon_code: coupon_code || null,
+      discount_applied: null,
       final_amount: finalAmount,
-      status: 'Pending', // Default status is 'Pending'
-      requested_by_role: userRole, // Track who made the request
-      higher_role_id: higherRoleId, // Next superior role ID
-      total_order_quantity: totalQuantity, // Store the total order volume in liters
+      status: 'Pending',
+      requested_by_role: userRole,
+      higher_role_id: higherRoleId,
+      total_order_quantity: totalQuantity,
     });
 
     // Bulk create order items
     await OrderItem.bulkCreate(orderItems.map(item => ({
       ...item,
-      order_id: order.id
+      order_id: order.id,
     })));
 
-    // **New Logic: Add a notification entry**
+    // Add a notification entry
     const notificationMessage = `New order requested by User ${user.full_name}`;
-    const gallery = `1733391557532.jpeg`;
-
-    console.log('Creating notification with:', {
-      user_id: higherRoleId,
-      message: notificationMessage,
-      photo: gallery ,
-      detail: {
-        user_name: user.full_name,
-        final_amount: finalAmount,
-        type: 'order_request',
-      },
-    });
-    
     try {
       await Notification.create({
         user_id: higherRoleId,
@@ -199,11 +172,9 @@ function isCurrentDateWithinRange(fromDate, toDate) {
           type: 'order_request',
         },
       });
-      console.log('Notification created successfully.');
     } catch (error) {
       console.error('Error creating notification:', error);
     }
-    
 
     return res.status(201).json({ message: 'Order created successfully', order });
 
@@ -287,6 +258,7 @@ exports.getOrdersByUser = async (req, res) => {
 /////////////see other member requested orderlist////////////
 //////////////////////////////////////////////////////
 
+
 const updateAssignedOrders = async () => {
   try {
     // Fetch all orders with pending status
@@ -302,6 +274,7 @@ const updateAssignedOrders = async () => {
       });
 
       if (user) {
+        // Declare userRoleID here to ensure it's in scope for all conditions
         const userRoleID = user.role_id;
         const userRoleName = user.role_name;
         const superiorId = user.superior_id;
@@ -317,13 +290,15 @@ const updateAssignedOrders = async () => {
 
           // Check if the order's updatedAt is older than the calculated time limit
           if (new Date(order.updatedAt) <= timeLimit) {
+            // If the role name is "Admin", set higher_role_id to userRoleID
             if (userRoleName === "Admin") {
               await Order.update(
-                { higher_role_id: userRoleID },
+                { higher_role_id: userRoleID },  // Set higher_role_id to userRoleID
                 { where: { id: order.id } }
               );
               console.log(`Order no ${order.id} was assigned to Admin role ID ${userRoleID}.`);
             } else {
+              // If there's a valid superiorId, update the order
               if (superiorId) {
                 await Order.update(
                   { higher_role_id: superiorId },
@@ -331,6 +306,7 @@ const updateAssignedOrders = async () => {
                 );
                 console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
               } else if (userRoleID) {
+                // If no superiorId, fallback to userRoleID
                 await Order.update(
                   { higher_role_id: userRoleID },
                   { where: { id: order.id } }
@@ -341,14 +317,17 @@ const updateAssignedOrders = async () => {
               }
             }
 
-            // Add a notification entry
+            // Add a new notification entry after updating the order
             const notificationMessage = `New order requested by User ${order.user_id}`;
             await Notification.create({
+              // user_id: order.user_id, 
+              // receive_user_id: superiorId || userRoleID, 
               user_id: superiorId || userRoleID,
               message: notificationMessage,
             });
             console.log(`Notification created for Order no ${order.id}: ${notificationMessage}`);
 
+            // If the requested role is "Area Development Officer" and no superiorId, mark as Cancelled
             if (order.requested_by_role === "Area Development Officer" && !superiorId) {
               console.log(`Order no ${order.id} status already updated to Cancelled.`);
             }
@@ -356,9 +335,9 @@ const updateAssignedOrders = async () => {
             console.log(`Order no ${order.id} was created recently, skipping update.`);
           }
         } else {
-          // If no time limit found, update higher_role_id to userRoleID
+          // If no time limit found, set higher_role_id to userRoleID
           await Order.update(
-            { higher_role_id: userRoleID },
+            { higher_role_id: userRoleID },  // Set higher_role_id to userRoleID
             { where: { id: order.id } }
           );
           console.log(`No time limit found for the role ${user.role_name} in order ${order.id}.`);
@@ -372,9 +351,8 @@ const updateAssignedOrders = async () => {
   }
 };
 
-updateAssignedOrders();
-
-
+// Set an interval to call the function every 30 seconds
+setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -660,53 +638,57 @@ exports.acceptOrder = async (req, res) => {
 
 exports.getOrdersBySubordinatesAdmin = async (req, res) => {
   try {
-    // Fetch all orders where higher_role_id is 1 and status is 'Pending', 'Accepted', or 'Cancelled'
+    // Fetch only required fields and avoid unnecessary processing to improve performance
     const orders = await Order.findAll({
       where: {
-        higher_role_id: 1,  // higher_role_id should be 1
-        status: ['Pending', 'Accepted', 'Cancelled'],  // Status should be one of these
+        higher_role_id: 1, // Filter only higher_role_id = 1
+        status: ['Pending', 'Accepted', 'Cancelled'], // Filter required statuses
       },
       include: [
         {
           model: User,
-          as: 'customer',  // Alias for the User model representing the customer
-          attributes: ['full_name', 'image', 'mobile_number'], // Fetch customer name, image, and mobile number
+          as: 'customer',
+          attributes: ['full_name', 'image', 'mobile_number'], // Only fetch necessary fields
         },
         {
           model: OrderItem,
           as: 'OrderItems',
+          attributes: ['id', 'product_id', 'quantity', 'quantity_type', 'baseprice', 'final_price', 'item_volume'],
           include: [
             {
               model: Product,
-              as: 'product',  // Including product details if needed
+              as: 'product',
               attributes: ['name', 'image', 'price', 'description'], // Fetch product details
             },
-          ], // Include order items if they exist
+          ],
         },
       ],
-      attributes: ['id', 'total_amount', 'coupon_code', 'discount_applied', 'final_amount', 'total_order_quantity', 'status', 'createdAt', 'updatedAt'],
+      attributes: ['id', 'total_amount', 'coupon_code', 'discount_applied', 'final_amount', 'total_order_quantity', 'status', 'createdAt', 'updatedAt'], // Select only required fields
     });
 
-    if (orders.length === 0) {
+    // Handle empty results
+    if (!orders || orders.length === 0) {
       return res.status(404).json({ message: 'No orders found' });
     }
 
+    // Map orders to the desired structure
     const orderDetails = orders.map(order => ({
       orderId: order.id,
-      userId: order.user_id,
       totalAmount: order.total_amount,
       couponCode: order.coupon_code,
       discountApplied: order.discount_applied,
       finalAmount: order.final_amount,
       totalOrderQuantity: order.total_order_quantity,
       status: order.status,
-      requestedByRole: order.requested_by_role,
-      higherRoleId: order.higher_role_id,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
-      customerName: order.customer ? order.customer.full_name : null,  // Check if customer exists
-      customerImage: order.customer ? order.customer.image : null,    // Check if customer exists
-      customerMobile: order.customer ? order.customer.mobile_number : null, // Check if customer exists
+      customer: order.customer
+        ? {
+            name: order.customer.full_name,
+            image: order.customer.image,
+            mobile: order.customer.mobile_number,
+          }
+        : null,
       OrderItems: order.OrderItems.map(item => ({
         itemId: item.id,
         productId: item.product_id,
@@ -715,21 +697,25 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
         basePrice: item.baseprice,
         finalPrice: item.final_price,
         itemVolume: item.item_volume,
-        productName: item.product.name, // Product name
-        productImage: item.product.image, // Product image
-        productPrice: item.product.price, // Product price
-        productDescription: item.product.description, // Product description
-      }))
+        product: item.product
+          ? {
+              name: item.product.name,
+              image: item.product.image,
+              price: item.product.price,
+              description: item.product.description,
+            }
+          : null,
+      })),
     }));
-    
 
+    // Immediately respond with the processed data
     return res.status(200).json({ orders: orderDetails });
-
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching orders:', error);
     return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
 
 exports.acceptOrRejectOrder = async (req, res) => {
   const { orderId } = req.params; // Get orderId from URL parameters
