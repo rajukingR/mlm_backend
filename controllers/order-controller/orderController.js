@@ -352,7 +352,7 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-setInterval(updateAssignedOrders, 30 * 1000);
+// setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -755,7 +755,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
         const requestedQuantity = item.quantity;
     
         if (userRole === 'Admin') {
-          const product = await Product.findByPk(productId, { attributes: ['id', 'stock_quantity'] });
+          const product = await Product.findByPk(productId, { attributes: ['id', 'name', 'stock_quantity'] });
     
           if (!product) {
             return res.status(400).json({
@@ -765,7 +765,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
     
           if (requestedQuantity > product.stock_quantity) {
             return res.status(400).json({
-              message: `Insufficient stock for product ID ${productId}. Available: ${product.stock_quantity}, Requested: ${requestedQuantity}`,
+              message: `Insufficient stock for product "${product.name}". Available: ${product.stock_quantity}, Requested: ${requestedQuantity}`,
             });
           }
     
@@ -817,10 +817,18 @@ exports.acceptOrRejectOrder = async (req, res) => {
           stockQuantity -= parseFloat(sold.quantity || 0);
         });
     
+        // Fetch product name for non-admin users
+        const product = await Product.findByPk(productId, { attributes: ['name'] });
+        if (!product) {
+          return res.status(400).json({
+            message: `Product with ID ${productId} not found.`,
+          });
+        }
+    
         // Check if requested quantity exceeds stockQuantity
         if (requestedQuantity > stockQuantity) {
           return res.status(400).json({
-            message: `Insufficient stock for product ID ${productName}. Available: ${stockQuantity}, Requested: ${requestedQuantity}`,
+            message: `Insufficient stock for product "${product.name}". Available: ${stockQuantity}, Requested: ${requestedQuantity}`,
           });
         }
       }

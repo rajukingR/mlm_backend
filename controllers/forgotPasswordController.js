@@ -34,7 +34,7 @@ const sendForgotPasswordLink = async (req, res) => {
     await user.save();
 
     // Generate the reset link
-    const resetLink = `http://localhost:5173/create-password?token=${resetToken}`;
+    const resetLink = `http://88.222.245.236/create-password?token=${resetToken}`;
 
     // Configure Nodemailer transporter
     const transporter = nodemailer.createTransport({
