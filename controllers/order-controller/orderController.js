@@ -352,7 +352,7 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-// setInterval(updateAssignedOrders, 30 * 1000);
+setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -753,19 +753,30 @@ exports.acceptOrRejectOrder = async (req, res) => {
       for (const item of orderItems) {
         const productId = item.product_id;
         const requestedQuantity = item.quantity;
-
-        // If the user's role is 'Admin', check if stock_quantity is null or 0
+    
         if (userRole === 'Admin') {
-          const product = await Product.findByPk(productId, { attributes: ['stock_quantity'] });
-          if (!product || product.stock_quantity === null || product.stock_quantity === 0) {
+          const product = await Product.findByPk(productId, { attributes: ['id', 'stock_quantity'] });
+    
+          if (!product) {
             return res.status(400).json({
-              message: `Insufficient stock for product ID ${productId}. Stock is either null or zero.`,
+              message: `Product with ID ${productId} not found.`,
             });
           }
-          // If sufficient stock, move to the next product
+    
+          if (requestedQuantity > product.stock_quantity) {
+            return res.status(400).json({
+              message: `Insufficient stock for product ID ${productId}. Available: ${product.stock_quantity}, Requested: ${requestedQuantity}`,
+            });
+          }
+    
+          const updatedStockQuantity = product.stock_quantity - requestedQuantity;
+          product.stock_quantity = updatedStockQuantity; 
+    
+          await product.save(); 
+    
           continue;
         }
-
+    
         // Non-admin users: Calculate stockQuantity dynamically
         const receivedOrders = await OrderItem.findAll({
           where: {
@@ -781,7 +792,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
             attributes: [],
           }],
         });
-
+    
         const soldOrders = await OrderItem.findAll({
           where: {
             '$order.status$': 'Accepted',
@@ -796,7 +807,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
             attributes: [],
           }],
         });
-
+    
         // Calculate stockQuantity
         let stockQuantity = 0;
         receivedOrders.forEach((received) => {
@@ -805,7 +816,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
         soldOrders.forEach((sold) => {
           stockQuantity -= parseFloat(sold.quantity || 0);
         });
-
+    
         // Check if requested quantity exceeds stockQuantity
         if (requestedQuantity > stockQuantity) {
           return res.status(400).json({
@@ -813,18 +824,19 @@ exports.acceptOrRejectOrder = async (req, res) => {
           });
         }
       }
-
+    
       // If all items have sufficient stock, update the order status to 'Accepted'
       order.status = 'Accepted';
     } else if (action === 'reject') {
       // Update the order status to 'Cancelled'
       order.status = 'Cancelled';
     }
-
+    
     // Save the updated order status
     await order.save();
-
+    
     return res.json({ message: `Order ${action}ed successfully` });
+    
   } catch (error) {
     console.error('Error processing order:', error); // Log the full error
     return res.status(500).json({ message: 'Server error', error: error.message });
