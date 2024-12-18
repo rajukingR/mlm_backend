@@ -108,6 +108,44 @@ exports.getFeedbackForHigherRole = async (req, res) => {
     }
 };
 
+///////ADMIN GET CUSTOMERS FEEDBACKS//////
+
+
+
+exports.AdMINgetFeedback = async (req, res) => {
+    try {
+        const higher_role_id = 1;
+
+        const feedbacks = await Feedback.findAll({
+            include: [
+                {
+                    model: Order,
+                    as: 'order',
+                    where: { higher_role_id }, // Using the directly set value
+                },
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'username', 'full_name', 'image', 'club_name'],
+                },
+                {
+                    model: Product,
+                    as: 'product',
+                    attributes: ['id', 'name', 'image', 'product_code'],
+                }
+            ],
+        });
+
+        if (feedbacks.length === 0) {
+            return res.status(404).json({ message: "No feedback found for this hierarchy." });
+        }
+
+        return res.status(200).json({ feedbacks });
+    } catch (error) {
+        console.error("Error fetching feedback for hierarchy:", error);
+        return res.status(500).json({ message: "An error occurred while fetching feedback." });
+    }
+};
 
 ///////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////

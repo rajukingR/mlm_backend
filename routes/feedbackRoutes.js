@@ -8,5 +8,6 @@ router.post('/create', feedbackController.createFeedback);
 router.get('/hierarchy/:higher_role_id', feedbackController.getFeedbackForHigherRole);
 router.get('/customer/:customer_id', feedbackController.getFeedbackForCustomer);
 
+router.get('/hierarchy', feedbackController.AdMINgetFeedback);
 
 module.exports = router;
