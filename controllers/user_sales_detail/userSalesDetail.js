@@ -312,6 +312,150 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
 
 
 
+///****** User Sales Detail *******///
+
+exports.getUserCurrentMonthSalesDetailsId = async (req, res) => {
+  const { user_id } = req.params;
+
+  try {
+    // Fetch the user details for the given user_id
+    const user = await User.findOne({
+      where: {
+        id: user_id,
+        role_name: { [Op.ne]: 'Customer' },  // Ensure the user is not a customer
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const role = user.role_name;
+    const photo = user.image;
+    const userCreatedAt = new Date(user.createdAt);
+    const currentDate = new Date();
+
+    let totalMonthlyTarget = 0;
+    let totalStockTarget = 0;
+    const monthlyDetails = [];
+
+    // Focus only on the current month
+    const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+    // Fetch the SalesStockTarget for the current user's role
+    const roleTarget = await SalesStockTarget.findOne({
+      where: { role_name: role },
+    });
+
+    if (roleTarget) {
+      totalMonthlyTarget = parseFloat(roleTarget.target) || 0;
+      totalStockTarget = parseFloat(roleTarget.stock_target) || 0;
+    }
+
+    // Fetch accepted orders for the user within the current month
+    const acceptedOrders = await Order.findAll({
+      where: {
+        higher_role_id: user.id,
+        status: 'Accepted',
+        created_at: { [Op.between]: [startOfMonth, endOfMonth] },
+      },
+      include: [
+        {
+          model: OrderItem,
+          as: 'OrderItems',
+          include: {
+            model: Product,
+            as: 'product',
+            required: true,
+          },
+        },
+      ],
+    });
+
+    // Calculate total achievement amount and stock achievement for the current month
+    let totalAchievementAmount = 0;
+    let totalStockAchievement = 0;
+
+    for (const order of acceptedOrders) {
+      for (const orderItem of order.OrderItems) {
+        const product = orderItem.product;
+        let price = 0;
+
+        switch (role) {
+          case 'Super Distributor':
+            price = product.sdPrice || 0;
+            break;
+          case 'Distributor':
+            price = product.distributorPrice || 0;
+            break;
+          case 'Master Distributor':
+            price = product.mdPrice || 0;
+            break;
+          case 'Area Development Officer':
+            price = product.adoPrice || 0;
+            break;
+        }
+
+        totalAchievementAmount += price * (parseInt(orderItem.quantity) || 0);
+        totalStockAchievement += parseInt(orderItem.quantity) || 0;
+      }
+    }
+
+    // Calculate percentages and ensure they're within valid bounds
+    const achievementAmountPercent = Math.min(
+      Math.max(totalMonthlyTarget > 0 ? (totalAchievementAmount / totalMonthlyTarget) * 100 : 0, 0),
+      100
+    );
+    const unachievementAmountPercent = Math.min(100 - achievementAmountPercent, 100);
+
+    const stockAchievementPercent = Math.min(
+      Math.max(totalStockTarget > 0 ? (totalStockAchievement / totalStockTarget) * 100 : 0, 0),
+      100
+    );
+    const stockUnachievementPercent = Math.min(100 - stockAchievementPercent, 100);
+
+    const pendingAmount = Math.max(totalMonthlyTarget - totalAchievementAmount, 0);
+    const pendingStockTarget = Math.max(totalStockTarget - totalStockAchievement, 0);
+
+    monthlyDetails.push({
+      month: startOfMonth.toLocaleString('default', { month: 'long' }),
+      year: startOfMonth.getFullYear(),
+      totalMonthlyTarget,
+      totalAchievementAmount,
+      pendingAmount,
+      achievementAmountPercent: achievementAmountPercent.toFixed(2),
+      unachievementAmountPercent: unachievementAmountPercent.toFixed(2),
+      totalStockTarget,
+      totalStockAchievement,
+      pendingStockTarget,
+      stockAchievementPercent: stockAchievementPercent.toFixed(2),
+      stockUnachievementPercent: stockUnachievementPercent.toFixed(2),
+      roleName: role,
+      roleId: user.role_id,
+    });
+
+    return res.status(200).json({
+      success: true,
+      user_id: user.id,
+      full_name: user.full_name,
+      image: photo,
+      monthlyDetails,
+    });
+
+  } catch (error) {
+    console.error('Error fetching current month sales details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch sales details',
+      error: error.message,
+    });
+  }
+};
+
+
+
+
 
 
 
