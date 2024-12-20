@@ -300,32 +300,73 @@ const updateAssignedOrders = async () => {
             } else {
               // If there's a valid superiorId, update the order
               if (superiorId) {
+
+                await Notification.create({
+                  user_id: order.higher_role_id, // Current user's ID
+                  message: `You didn't accept the order, so it is being reassigned to ${userRoleName}.`,
+                  photo: "1733391557532.jpeg", // You can update this if you have a different photo for the user
+                  detail: {
+                    user_name: user.full_name,
+                    order_id: order.id,
+                    role: userRoleName,
+                    status: 'Pending',
+                  }
+                });
+
                 await Order.update(
                   { higher_role_id: superiorId },
                   { where: { id: order.id } }
                 );
                 console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
+
+                await Notification.create({
+                  user_id: superiorId, // Superior's ID
+                  message: `${user.full_name} did not accept the order, so it has been reassigned to you.`,
+                  photo: "1733391557532.jpeg",
+                  detail: {
+                    user_name: user.full_name,
+                    order_id: order.id,
+                    role: userRoleName,
+                    status: 'Pending',
+                  }
+                });
+
               } else if (userRoleID) {
+
+                await Notification.create({
+                  user_id: order.higher_role_id, // Current user's ID
+                  message: `You didn't accept the order, so it is being reassigned to the next hierarchy.`,
+                  photo: "1733391557532.jpeg",
+                  detail: {
+                    user_name: user.full_name,
+                    order_id: order.id,
+                    role: userRoleName,
+                    status: 'Pending',
+                  }
+                });
+
                 // If no superiorId, fallback to userRoleID
                 await Order.update(
                   { higher_role_id: userRoleID },
                   { where: { id: order.id } }
                 );
                 console.log(`Order no ${order.id} was assigned to role ID ${userRoleID}.`);
+
+                await Notification.create({
+                  user_id: userRoleID,
+                  message: `${user.full_name} did not accept the order, so it has been reassigned to you.`,
+                  photo: "1733391557532.jpeg",
+                  detail: {
+                    user_name: user.full_name,
+                    order_id: order.id,
+                    role: userRoleName,
+                    status: 'Pending',
+                  }
+                });
               } else {
                 console.log(`No valid superior or user role ID found for order ${order.id}`);
               }
             }
-
-            // Add a new notification entry after updating the order
-            const notificationMessage = `New order requested by User ${order.user_id}`;
-            await Notification.create({
-              // user_id: order.user_id, 
-              // receive_user_id: superiorId || userRoleID, 
-              user_id: superiorId || userRoleID,
-              message: notificationMessage,
-            });
-            console.log(`Notification created for Order no ${order.id}: ${notificationMessage}`);
 
             // If the requested role is "Area Development Officer" and no superiorId, mark as Cancelled
             if (order.requested_by_role === "Area Development Officer" && !superiorId) {
