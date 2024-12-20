@@ -15,7 +15,7 @@ router.delete('/delete/:userId', authMiddleware,isAdmin, userController.deleteUs
 router.get('/all',authMiddleware, userController.getAllUsers);
 router.get('/role-user',authMiddleware, userController.getUsersByRole);
 
-router.get('/:userId', authMiddleware, userController.getUserCounts );
+router.get('/:userId', userController.getUserCounts );
 
 
 module.exports = router;

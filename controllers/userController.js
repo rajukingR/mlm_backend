@@ -638,66 +638,78 @@ exports.deleteUser = async (req, res) => {
 
 exports.getUserCounts = async (req, res) => {
   try {
-    const loggedInUserId = req.user.id;  
-    const loggedInUserRole = req.user.role_name;  // Assuming the user role is available in req.user
+    console.log("Received userId:", req.params.userId); // Debug log
+    const memberID = req.params.userId; // Use userId from the route params
+
+    if (!memberID) {
+      return res.status(400).json({ error: 'Member ID is required' });
+    }
+
+    // Fetch the user's role directly based on memberID
+    const user = await User.findOne({ where: { id: memberID } });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const loggedInUserRole = user.role_name;
 
     let conditions = {};
 
-    // If the logged-in user is an admin, fetch counts across all users
+    // If the user is an Admin, fetch counts for all roles
     if (loggedInUserRole === 'Admin') {
-      conditions = {};  // No filtering by superior_id, fetch counts for all roles
+      conditions = {}; // No filtering
     } else {
-      // If the logged-in user is an ADO, count users under their supervision based on superior_id
-      conditions.superior_id = loggedInUserId;
+      // If the user is not an Admin, filter by their ID as superior_id
+      conditions.superior_id = memberID;
     }
 
-    // Count MDs (Master Distributors) based on conditions
+    // Count MDs (Master Distributors)
     const mdCount = await User.count({
       where: {
         ...conditions,
-        role_name: 'Master Distributor'
-      }
+        role_name: 'Master Distributor',
+      },
     });
 
-    // Count SDs (Super Distributors) based on conditions
+    // Count SDs (Super Distributors)
     const sdCount = await User.count({
       where: {
         ...conditions,
-        role_name: 'Super Distributor'
-      }
+        role_name: 'Super Distributor',
+      },
     });
 
-    // Count Distributors based on conditions
+    // Count Distributors
     const distributorCount = await User.count({
       where: {
         ...conditions,
-        role_name: 'Distributor'
-      }
+        role_name: 'Distributor',
+      },
     });
 
-    // Count Customers based on conditions
+    // Count Customers
     const customerCount = await User.count({
       where: {
         ...conditions,
-        role_name: 'Customer'
-      }
+        role_name: 'Customer',
+      },
     });
 
-    // Count ADOs across all users for Admin, or under the ADO's supervision if the logged-in user is an ADO
+    // Count ADOs (Area Development Officers)
     const adoCount = await User.count({
       where: {
         ...conditions,
-        role_name: 'Area Development Officer'
-      }
+        role_name: 'Area Development Officer',
+      },
     });
 
-    // Send the results as a response
     return res.json({
       mdCount,
       sdCount,
       distributorCount,
       customerCount,
-      adoCount  // Include ADO count
+      adoCount,
     });
   } catch (error) {
     console.error('Error fetching user counts:', error);
