@@ -191,7 +191,7 @@ exports.getAllProducts = async (req, res) => {
       const calculatedStock = (product.stock_quantity || 0) + (productStockMap[product.id] || 0);
       return {
         ...product,
-        finalStockQuantity: calculatedStock, // Add the calculated stock quantity
+        finalStockQuantity: product.stock_quantity, // Add the calculated stock quantity
       };
     });
 
