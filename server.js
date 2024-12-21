@@ -35,6 +35,7 @@ const path = require('path');
 const cron = require('node-cron');
 const { sendMonthlyNotifications } = require('./controllers/notification/monthly_notification/sendMonthlyNotifications');
 const forgotPasswordRoutes = require('./routes/forgotPasswordRoutes');
+const overalSalesRoutes = require('./routes/overall_sales_route/overalSalesRoutes')
 
 const { authMiddleware } = require('./middlewares/authMiddleware');
 
@@ -89,6 +90,8 @@ app.use('/documents', (req, res, next) => {
 app.use('/edit-requests', editRequestRoutes);
 //sector Routes
 app.use('/sectors',sectorAdminRoutes);
+//**Overall Sales Calcultion route**//
+app.use('/overall_sales', overalSalesRoutes);
 
 
 
