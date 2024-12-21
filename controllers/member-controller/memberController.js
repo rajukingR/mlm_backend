@@ -1,4 +1,4 @@
-const { Member, EditRequest, Role } = require('../../models'); // Include Role model
+const { Member, EditRequest, Role, Notification } = require('../../models'); // Include Notification model
 const { Op } = require('sequelize');
 
 const updateMember = async (req, res) => {
@@ -25,7 +25,7 @@ const updateMember = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Role not found' });
     }
 
-    // Dynamically generate username based on role and mobile number
+    // Dynamically generate username based on role and mobile number if provided
     let username = member.username; // Default to current username
     if (mobile_number) {
       switch (role.role_name) {
@@ -50,19 +50,23 @@ const updateMember = async (req, res) => {
     }
 
     // Check if mobile number already exists in the database (excluding the current member)
-    const existingMobileNumber = await Member.findOne({
-      where: { mobile_number, id: { [Op.ne]: memberId } },
-    });
-    if (existingMobileNumber) {
-      return res.status(400).json({ success: false, message: 'Mobile number already exists' });
+    if (mobile_number) {
+      const existingMobileNumber = await Member.findOne({
+        where: { mobile_number, id: { [Op.ne]: memberId } },
+      });
+      if (existingMobileNumber) {
+        return res.status(400).json({ success: false, message: 'Mobile number already exists' });
+      }
     }
 
     // Check if email already exists in the database (excluding the current member)
-    const existingEmail = await Member.findOne({
-      where: { email, id: { [Op.ne]: memberId } },
-    });
-    if (existingEmail) {
-      return res.status(400).json({ success: false, message: 'Email already exists' });
+    if (email) {
+      const existingEmail = await Member.findOne({
+        where: { email, id: { [Op.ne]: memberId } },
+      });
+      if (existingEmail) {
+        return res.status(400).json({ success: false, message: 'Email already exists' });
+      }
     }
 
     // Update member details, including setting approved to "Completed"
@@ -87,6 +91,28 @@ const updateMember = async (req, res) => {
       await editRequest.update({
         status: 'Completed',
       });
+
+      // Send Notification for the accepted request
+      const notificationMessage = `Your profile edit request has been approved by the admin.`;
+
+      try {
+        // Create a notification entry
+        await Notification.create({
+          user_id: member.id, // Send the notification to the member who made the request
+          message: notificationMessage,
+          photo: member.image, // Attach the user's image to the notification
+          detail: JSON.stringify({
+            user_name: member.full_name,
+            type: 'profile_edit_request_approved',
+          }),
+        });
+      } catch (notificationError) {
+        console.error('Error creating acceptance notification:', notificationError);
+        return res.status(500).json({
+          success: false,
+          message: 'Error sending notification for acceptance',
+        });
+      }
     }
 
     return res.status(200).json({
@@ -96,7 +122,11 @@ const updateMember = async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating member:', error);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message || 'Unknown error',
+    });
   }
 };
 
