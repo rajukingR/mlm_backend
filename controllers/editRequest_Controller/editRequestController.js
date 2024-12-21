@@ -1,6 +1,6 @@
 'use strict';
 
-const { EditRequest } = require('../../models');
+const { EditRequest, Notification, User } = require('../../models');
 const { body, validationResult } = require('express-validator');
 
 // Get all edit requests
@@ -65,6 +65,13 @@ exports.createEditRequest = [
     const { user_id, role_id, request_reason, new_mobile_number, new_email_id, new_address } = req.body;
 
     try {
+      const user = await User.findByPk(user_id, {
+        attributes: ['id', 'username', 'full_name', 'role_name', 'image'],
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
       // Image format validation is handled in the `upload` middleware
       const image = req.file ? req.file.filename : null;
 
@@ -77,6 +84,24 @@ exports.createEditRequest = [
         new_address,
         image,
       });
+
+      ///**profile Natification*///
+    // Add a notification entry
+    const notificationMessage = `Profile Edit Request: by user ${user.full_name} `;
+    try {
+      await Notification.create({
+        user_id: 1,
+        message: notificationMessage,
+        photo: user.image,
+        detail: {
+          user_name: user.full_name,
+          request_reason,
+          type: 'profile_edite_request',
+        },
+      });
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
 
       return res.status(201).json({
         success: true,
@@ -95,11 +120,12 @@ exports.createEditRequest = [
 ];
 
 
-// Update the status of an edit request to "Rejected"
+
 exports.rejectByIdEditRequest = async (req, res) => {
   const { id } = req.params;
 
   try {
+    // Find the EditRequest by its ID and include the User based on user_id
     const editRequest = await EditRequest.findByPk(id);
 
     if (!editRequest) {
@@ -109,22 +135,53 @@ exports.rejectByIdEditRequest = async (req, res) => {
       });
     }
 
+    // Now, fetch the associated user using the user_id from the editRequest
+    const user = await User.findByPk(editRequest.user_id, {
+      attributes: ['id', 'full_name', 'image', 'username']
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
     // Update the status to "Rejected"
     editRequest.status = 'Rejected';
-    await editRequest.save();  // Save the updated request
+    await editRequest.save(); // Save the updated request
+
+    // Send Notification to the user who made the request
+    const notificationMessage = `Your profile edit request has been rejected by the admin.`;
+
+    try {
+      // Create a notification entry
+      await Notification.create({
+        user_id: user.id, // Send the notification to the user who made the request
+        message: notificationMessage,
+        photo: user.image, // Attach the user's image to the notification
+        detail: JSON.stringify({
+          user_name: user.full_name,
+          type: 'profile_edit_request_rejected',
+        }),
+      });
+    } catch (error) {
+      console.error('Error creating rejection notification:', error);
+    }
 
     return res.status(200).json({
       success: true,
-      message: 'Edit request marked as rejected successfully'
+      message: 'Edit request marked as rejected successfully',
     });
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: 'Failed to update edit request status',
-      error: error.message
+      error: error.message,
     });
   }
 };
+
 
 
 
