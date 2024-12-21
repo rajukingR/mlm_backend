@@ -6,6 +6,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    order_id: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      unique: true, 
+    },
     total_amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,

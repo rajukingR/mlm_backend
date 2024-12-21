@@ -2,7 +2,7 @@ const { Order, OrderItem, Product, User, OrderLimit } = require('../../models');
 const { Notification } = require('../../models');
 
 exports.createOrder = async (req, res) => {
-  const { user_id, items, coupon_code } = req.body; // coupon_code is optional
+  const { user_id, items, coupon_code } = req.body;
 
   try {
     // Check if user exists
@@ -19,11 +19,11 @@ exports.createOrder = async (req, res) => {
     }
 
     // Determine user role
-    const userRole = user.role_name; // Assuming role_name is how you identify user roles
+    const userRole = user.role_name;
 
     // Initialize total amount, total order volume (in liters), and an array for order items
     let totalAmount = 0;
-    let totalQuantity = 0; // Store total volume in liters
+    let totalQuantity = 0;
     const orderItems = [];
 
     // Retrieve products in bulk
@@ -40,9 +40,9 @@ exports.createOrder = async (req, res) => {
           product.toDate &&
           isCurrentDateWithinRange(product.fromDate, product.toDate)
         ) {
-          return product.ADO_price; // Use updated price if conditions are met
+          return product.ADO_price;
         }
-        return product.adoPrice; // Default price
+        return product.adoPrice;
       },
       'Master Distributor': product => {
         if (
@@ -140,8 +140,15 @@ exports.createOrder = async (req, res) => {
       higherRoleId = await getSuperior(user.id);
     }
 
+    // Generate a unique 8-digit random order ID
+    let orderId;
+    do {
+      orderId = Math.floor(10000000 + Math.random() * 90000000); // Generates an 8-digit number
+    } while (await Order.findOne({ where: { order_id: orderId } }));
+
     // Create order with total order volume in liters
     const order = await Order.create({
+      order_id: orderId, // Use the generated 8-digit order ID
       user_id,
       total_amount: totalAmount,
       coupon_code: coupon_code || null,
@@ -437,7 +444,7 @@ exports.getOrdersBySubordinates = async (req, res) => {
           ], // Include order items if they exist
         },
       ],
-      attributes: ['id', 'total_amount', 'coupon_code', 'discount_applied', 'final_amount', 'total_order_quantity', 'status', 'createdAt', 'updatedAt'],
+      attributes: ['id','order_id','total_amount', 'coupon_code', 'discount_applied', 'final_amount', 'total_order_quantity', 'status', 'createdAt', 'updatedAt'],
     });
 
     if (orders.length === 0) {
@@ -447,6 +454,7 @@ exports.getOrdersBySubordinates = async (req, res) => {
     // Format the response to include necessary details
     const orderDetails = orders.map(order => ({
       orderId: order.id,
+      orderUniqueId:order.order_id,
       userId: order.user_id,
       totalAmount: order.total_amount,
       couponCode: order.coupon_code,
@@ -704,7 +712,7 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
           ],
         },
       ],
-      attributes: ['id', 'total_amount', 'coupon_code', 'discount_applied', 'final_amount', 'total_order_quantity', 'status', 'createdAt', 'updatedAt'], // Select only required fields
+      attributes: ['id', 'order_id', 'total_amount', 'coupon_code', 'discount_applied', 'final_amount', 'total_order_quantity', 'status', 'createdAt', 'updatedAt'], // Added 'order_id' here
     });
 
     // Handle empty results
@@ -715,6 +723,7 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
     // Map orders to the desired structure
     const orderDetails = orders.map(order => ({
       orderId: order.id,
+      orderUniqueId: order.order_id, // Accessing order_id
       totalAmount: order.total_amount,
       couponCode: order.coupon_code,
       discountApplied: order.discount_applied,
@@ -756,6 +765,7 @@ exports.getOrdersBySubordinatesAdmin = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };
+
 
 
 exports.acceptOrRejectOrder = async (req, res) => {
