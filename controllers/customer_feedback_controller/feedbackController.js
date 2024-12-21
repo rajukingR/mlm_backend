@@ -79,23 +79,25 @@ exports.getFeedbackForHigherRole = async (req, res) => {
 
         const feedbacks = await Feedback.findAll({
             include: [
-                {
-                    model: Order,
-                    as: 'order',
-                    where: { higher_role_id },
-                },
-                {
-                    model: User,
-                    as: 'user',
-                    attributes: ['id', 'username', 'full_name','image','club_name'],
-                },
-                {
-                    model: Product,
-                    as: 'product',
-                    attributes: ['id', 'name','image','product_code'],
-                }
+              {
+                model: Order,
+                as: 'order',
+                attributes: ['id', 'order_id', 'higher_role_id','total_order_quantity','createdAt','total_amount'], // Include `order_id`
+                where: { higher_role_id },
+              },
+              {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'username', 'full_name', 'image', 'club_name'],
+              },
+              {
+                model: Product,
+                as: 'product',
+                attributes: ['id', 'name', 'image', 'product_code'],
+              },
             ],
-        });
+          });
+          
 
         if (feedbacks.length === 0) {
             return res.status(404).json({ message: "No feedback found for this hierarchy." });
