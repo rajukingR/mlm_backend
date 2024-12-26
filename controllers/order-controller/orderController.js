@@ -900,13 +900,13 @@ exports.acceptOrRejectOrder = async (req, res) => {
       order.status = 'Accepted';
       //
       await Notification.create({
-        user_id: order.higher_role_id,
+        user_id: order.user_id,
         message: `Order has been accepted by ${userName}.`,
-        photo: "order_accepted.jpg",
+        photo: "1733391571619.jpeg",
         detail: {
           order_id: order.id,
-          action: 'Accepted',
-          user_id: userName,
+          status: 'Accepted',
+          user_name: userName,
         },
       });
     } else if (action === 'reject') {
@@ -914,13 +914,13 @@ exports.acceptOrRejectOrder = async (req, res) => {
       order.status = 'Cancelled';
       //
       await Notification.create({
-        user_id: order.higher_role_id,
+        user_id: order.user_id,
         message: `Order has been rejected by ${userName}.`,
-        photo: "order_rejected.jpg",
+        photo: "1733391593433.jpeg",
         detail: {
           order_id: order.id,
-          action: 'Rejected',
-          user_id: userName,
+          status: 'Rejected',
+          user_name: userName,
         },
       });
     }
