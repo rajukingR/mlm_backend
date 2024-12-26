@@ -664,52 +664,67 @@ exports.getUserCounts = async (req, res) => {
       conditions.superior_id = memberID;
     }
 
-    // Count MDs (Master Distributors)
-    const mdCount = await User.count({
+    // Fetch details for MDs (Master Distributors) along with their counts
+    const mdUsers = await User.findAll({
       where: {
         ...conditions,
         role_name: 'Master Distributor',
       },
+      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
     });
+    const mdCount = mdUsers.length;
 
-    // Count SDs (Super Distributors)
-    const sdCount = await User.count({
+    // Fetch details for SDs (Super Distributors) along with their counts
+    const sdUsers = await User.findAll({
       where: {
         ...conditions,
         role_name: 'Super Distributor',
       },
+      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
     });
+    const sdCount = sdUsers.length;
 
-    // Count Distributors
-    const distributorCount = await User.count({
+    // Fetch details for Distributors along with their counts
+    const distributorUsers = await User.findAll({
       where: {
         ...conditions,
         role_name: 'Distributor',
       },
+      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
     });
+    const distributorCount = distributorUsers.length;
 
-    // Count Customers
-    const customerCount = await User.count({
+    // Fetch details for Customers along with their counts
+    const customerUsers = await User.findAll({
       where: {
         ...conditions,
         role_name: 'Customer',
       },
+      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
     });
+    const customerCount = customerUsers.length;
 
-    // Count ADOs (Area Development Officers)
-    const adoCount = await User.count({
+    // Fetch details for ADOs (Area Development Officers) along with their counts
+    const adoUsers = await User.findAll({
       where: {
         ...conditions,
         role_name: 'Area Development Officer',
       },
+      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
     });
+    const adoCount = adoUsers.length;
 
     return res.json({
       mdCount,
+      mdUsers,
       sdCount,
+      sdUsers,
       distributorCount,
+      distributorUsers,
       customerCount,
+      customerUsers,
       adoCount,
+      adoUsers,
     });
   } catch (error) {
     console.error('Error fetching user counts:', error);
