@@ -280,6 +280,12 @@ const updateAssignedOrders = async () => {
         where: { id: order.higher_role_id }
       });
 
+      const orderUser = await User.findOne({
+        where: { id: order.user_id }
+      });
+
+      const orderUserName = orderUser ? orderUser.full_name : 'Unknown User';
+
       if (user) {
         // Declare userRoleID here to ensure it's in scope for all conditions
         const userRoleID = user.role_id;
@@ -313,7 +319,7 @@ const updateAssignedOrders = async () => {
                   message: `You didn't accept the order, so it is being reassigned to ${userRoleName}.`,
                   photo: "1733391557532.jpeg", // You can update this if you have a different photo for the user
                   detail: {
-                    user_name: user.full_name,
+                    user_name: orderUserName,
                     order_id: order.id,
                     role: userRoleName,
                     status: 'Pending',
@@ -331,7 +337,7 @@ const updateAssignedOrders = async () => {
                   message: `${user.full_name} did not accept the order, so it has been reassigned to you.`,
                   photo: "1733391557532.jpeg",
                   detail: {
-                    user_name: user.full_name,
+                    user_name: orderUserName,
                     order_id: order.id,
                     role: userRoleName,
                     status: 'Pending',
@@ -345,7 +351,7 @@ const updateAssignedOrders = async () => {
                   message: `You didn't accept the order, so it is being reassigned to the next hierarchy.`,
                   photo: "1733391557532.jpeg",
                   detail: {
-                    user_name: user.full_name,
+                    user_name: orderUserName,
                     order_id: order.id,
                     role: userRoleName,
                     status: 'Pending',
@@ -364,7 +370,7 @@ const updateAssignedOrders = async () => {
                   message: `${user.full_name} did not accept the order, so it has been reassigned to you.`,
                   photo: "1733391557532.jpeg",
                   detail: {
-                    user_name: user.full_name,
+                    user_name: orderUserName,
                     order_id: order.id,
                     role: userRoleName,
                     status: 'Pending',
@@ -777,6 +783,12 @@ exports.acceptOrRejectOrder = async (req, res) => {
   try {
     // Find the order by its ID
     const order = await Order.findByPk(orderId);
+    //
+    const user = await User.findByPk(userId, { attributes: ['full_name'] });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    const userName = user.full_name;
 
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
@@ -886,9 +898,31 @@ exports.acceptOrRejectOrder = async (req, res) => {
     
       // If all items have sufficient stock, update the order status to 'Accepted'
       order.status = 'Accepted';
+      //
+      await Notification.create({
+        user_id: order.higher_role_id,
+        message: `Order has been accepted by ${userName}.`,
+        photo: "order_accepted.jpg",
+        detail: {
+          order_id: order.id,
+          action: 'Accepted',
+          user_id: userName,
+        },
+      });
     } else if (action === 'reject') {
       // Update the order status to 'Cancelled'
       order.status = 'Cancelled';
+      //
+      await Notification.create({
+        user_id: order.higher_role_id,
+        message: `Order has been rejected by ${userName}.`,
+        photo: "order_rejected.jpg",
+        detail: {
+          order_id: order.id,
+          action: 'Rejected',
+          user_id: userName,
+        },
+      });
     }
     
     // Save the updated order status
