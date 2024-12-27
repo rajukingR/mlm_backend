@@ -122,39 +122,110 @@ exports.sendMonthlyNotifications = async () => {
 
 
 ////////////get notification /////////////////////
-// Notification controller to get notifications for a specific user
+
 exports.getNotifications = async (req, res) => {
-    const { user_id } = req.params;
-  
-    try {
-      // Fetch unread notifications for the given user
+  const { user_id } = req.params;
+
+  try {
+    // Fetch the user role using the user_id
+    const user = await User.findOne({
+      where: { id: user_id },
+      attributes: ['role_name'], // We only need the role_name
+    });
+
+    // If the user does not exist, return an error
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.',
+      });
+    }
+
+    // Check if the user is an Admin
+    if (user.role_name === 'Admin') {
+      // Admin should receive all notifications where user_id is 1 (or any other criteria for Admin)
       const notifications = await Notification.findAll({
-        where: { user_id },
+        where: { user_id: 1 }, // Admin sees notifications for user_id = 1
         order: [['created_at', 'DESC']], // Order by created_at, newest first
       });
-  
-      // If no notifications found, return a message
+
+      // If no notifications found for Admin, return a message
       if (!notifications || notifications.length === 0) {
         return res.status(404).json({
           success: false,
           message: 'No notifications found for this user.',
         });
       }
-  
-      // Respond with the notifications
+
+      // Respond with the notifications for Admin
       return res.status(200).json({
         success: true,
         notifications,
       });
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch notifications.',
-        error: error.message,
+    } else {
+      // Non-Admin users will see their own notifications
+      const notifications = await Notification.findAll({
+        where: { user_id },
+        order: [['created_at', 'DESC']], // Order by created_at, newest first
+      });
+
+      // If no notifications found for the particular user, return a message
+      if (!notifications || notifications.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No notifications found for this user.',
+        });
+      }
+
+      // Respond with the notifications for the non-Admin user
+      return res.status(200).json({
+        success: true,
+        notifications,
       });
     }
-  };
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch notifications.',
+      error: error.message,
+    });
+  }
+};
+
+// Notification controller to get notifications for a specific user
+// exports.getNotifications = async (req, res) => {
+//     const { user_id } = req.params;
+  
+//     try {
+//       // Fetch unread notifications for the given user
+//       const notifications = await Notification.findAll({
+//         where: { user_id },
+//         order: [['created_at', 'DESC']], // Order by created_at, newest first
+//       });
+  
+//       // If no notifications found, return a message
+//       if (!notifications || notifications.length === 0) {
+//         return res.status(404).json({
+//           success: false,
+//           message: 'No notifications found for this user.',
+//         });
+//       }
+  
+//       // Respond with the notifications
+//       return res.status(200).json({
+//         success: true,
+//         notifications,
+//       });
+//     } catch (error) {
+//       console.error('Error fetching notifications:', error);
+//       return res.status(500).json({
+//         success: false,
+//         message: 'Failed to fetch notifications.',
+//         error: error.message,
+//       });
+//     }
+//   };
   
   
   /////////////as readed? ////////////////
