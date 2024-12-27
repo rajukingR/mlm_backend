@@ -177,6 +177,9 @@ exports.createOrder = async (req, res) => {
           user_name: user.full_name,
           final_amount: finalAmount,
           type: 'order_request',
+          status: 'Pending',
+          role: userRole,
+          order_id: order.id,
         },
       });
     } catch (error) {
@@ -289,7 +292,7 @@ const updateAssignedOrders = async () => {
       if (user) {
         // Declare userRoleID here to ensure it's in scope for all conditions
         const userRoleID = user.role_id;
-        const userRoleName = user.role_name;
+        const userRoleName = orderUser.role_name;
         const superiorId = user.superior_id;
 
         // Fetch the time limit based on the user's role from the order_limits table
@@ -299,7 +302,11 @@ const updateAssignedOrders = async () => {
 
         if (roleTimeLimit) {
           // Calculate the time limit based on the role's time_limit_hours
-          const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 60 * 60 * 1000);
+          // const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 60 * 60 * 1000);
+
+          const timeLimit = new Date(Date.now() - 10 * 1000);
+
+
 
           // Check if the order's updatedAt is older than the calculated time limit
           if (new Date(order.updatedAt) <= timeLimit) {
@@ -316,7 +323,7 @@ const updateAssignedOrders = async () => {
 
                 await Notification.create({
                   user_id: order.higher_role_id, // Current user's ID
-                  message: `You didn't accept the order, so it is being reassigned to ${userRoleName}.`,
+                  message: `You didn't accept the order, so it is being reassigned to the next top hierarchy.`,
                   photo: "1733391557532.jpeg", // You can update this if you have a different photo for the user
                   detail: {
                     user_name: orderUserName,
@@ -333,7 +340,8 @@ const updateAssignedOrders = async () => {
                 console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
 
                 await Notification.create({
-                  user_id: superiorId, // Superior's ID
+                  // user_id: superiorId,
+                  user_id: user.role_name === "Area Development Officer" ? 1 : superiorId,
                   message: `${user.full_name} did not accept the order, so it has been reassigned to you.`,
                   photo: "1733391557532.jpeg",
                   detail: {
@@ -366,7 +374,8 @@ const updateAssignedOrders = async () => {
                 console.log(`Order no ${order.id} was assigned to role ID ${userRoleID}.`);
 
                 await Notification.create({
-                  user_id: userRoleID,
+                  // user_id: userRoleID,
+                  user_id: user.role_name === "Area Development Officer" ? 1 : userRoleID,
                   message: `${user.full_name} did not accept the order, so it has been reassigned to you.`,
                   photo: "1733391557532.jpeg",
                   detail: {
@@ -406,7 +415,8 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-setInterval(updateAssignedOrders, 30 * 1000);
+// setInterval(updateAssignedOrders, 30 * 1000);
+updateAssignedOrders(); 
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -907,6 +917,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
           order_id: order.id,
           status: 'Accepted',
           user_name: userName,
+          role: userRole,
         },
       });
     } else if (action === 'reject') {
@@ -921,6 +932,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
           order_id: order.id,
           status: 'Rejected',
           user_name: userName,
+          role: userRole,
         },
       });
     }
