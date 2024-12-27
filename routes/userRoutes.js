@@ -8,6 +8,7 @@ const upload = require('../middlewares/multer'); // Multer middleware for file u
 // User routes
 router.post('/signup',upload.single('image'),authMiddleware, userController.signUp);
 router.post('/signin', userController.signIn);
+router.post('/signin_web', userController.signInWeb);
 //
 router.put('/update/:userId', upload.single('image'),authMiddleware, userController.updateUser);
 router.delete('/delete/:userId', authMiddleware,isAdmin, userController.deleteUser);
