@@ -262,15 +262,40 @@ exports.getNotifications = async (req, res) => {
   //   }
   // };
 
+
+
+
+
   exports.markNotificationAsRead = async (req, res) => {
-    const { user_id, notification_id } = req.params; // Extract user_id and notification_id from params
+    const { user_id, notification_id } = req.params;
     
     try {
+      // Fetch the user role using the user_id
+      const user = await User.findOne({
+        where: { id: user_id },
+        attributes: ['role_name'], 
+      });
+
+      // If the user does not exist, return an error
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found.',
+        });
+      }
+
+      // Check if the user is an Admin
+      let targetUserId = user_id;
+
+      if (user.role_name === 'Admin') {
+        targetUserId = 1; 
+      }
+
       // Find the notification by user_id and notification_id
       const notification = await Notification.findOne({
-        where: { user_id, id: notification_id, is_read: false }
+        where: { user_id: targetUserId, id: notification_id, is_read: false },
       });
-  
+
       // If notification not found
       if (!notification) {
         return res.status(404).json({
@@ -278,13 +303,13 @@ exports.getNotifications = async (req, res) => {
           message: 'Notification not found or already marked as read.',
         });
       }
-  
+
       // Mark the specific notification as read
       await Notification.update(
         { is_read: true },
         { where: { id: notification_id } }
       );
-  
+
       return res.status(200).json({
         success: true,
         message: 'Notification marked as read.',
@@ -297,7 +322,45 @@ exports.getNotifications = async (req, res) => {
         error: error.message,
       });
     }
-  };
+};
+
+
+  // exports.markNotificationAsRead = async (req, res) => {
+  //   const { user_id, notification_id } = req.params; 
+    
+  //   try {
+  //     // Find the notification by user_id and notification_id
+  //     const notification = await Notification.findOne({
+  //       where: { user_id, id: notification_id, is_read: false }
+  //     });
+  
+  //     // If notification not found
+  //     if (!notification) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: 'Notification not found or already marked as read.',
+  //       });
+  //     }
+  
+  //     // Mark the specific notification as read
+  //     await Notification.update(
+  //       { is_read: true },
+  //       { where: { id: notification_id } }
+  //     );
+  
+  //     return res.status(200).json({
+  //       success: true,
+  //       message: 'Notification marked as read.',
+  //     });
+  //   } catch (error) {
+  //     console.error('Error marking notification as read:', error);
+  //     return res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to mark notification as read.',
+  //       error: error.message,
+  //     });
+  //   }
+  // };
   
   
   
