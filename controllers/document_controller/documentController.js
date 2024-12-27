@@ -37,6 +37,8 @@ exports.getDocuments = async (req, res) => {
         [Op.gte]: moment().toDate(), // toDate should be greater than or equal to current date
       },
       status: 'active', // Only active documents
+      autoUpdate: 1, // Only active documents
+
     };
 
     // Fetch documents from database based on the whereClause

@@ -61,7 +61,7 @@ exports.signIn = async (req, res) => {
         role: user.role_name // Use role_name instead of role_id
       },
       process.env.JWT_SECRET, // Ensure this is set in your .env file
-      { expiresIn: '10h' } // Token expiry time
+      // { expiresIn: '10h' } // Token expiry time
     );
 
     // Return the token and user details (excluding the password)
