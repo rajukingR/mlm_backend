@@ -22,6 +22,61 @@ const decryptPassword = (encryptedPassword) => {
 };
 
 
+/////**** Signin For Web ******/
+exports.signInWeb = async (req, res) => {
+  try {
+    const { mobile_number, password } = req.body;
+
+    // Validate required fields
+    if (!mobile_number || !password) {
+      return res.status(400).json({ error: 'Mobile_number and password are required' });
+    }
+
+    // Find the user by mobile
+    const user = await User.findOne({ where: { mobile_number } });
+
+    // If user not found, return an error
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid mobile or password' });
+    }
+
+    // Compare the provided password with the stored hashed password
+    // const isPasswordValid = await bcrypt.compare(password, user.password);
+    const decryptedPassword = decryptPassword(user.password); 
+
+    // If password is incorrect, return an error
+    // if (!isPasswordValid) {
+    //   return res.status(401).json({ error: 'Invalid mobile or password' });
+    // }
+    if (password !== decryptedPassword) {
+      return res.status(401).json({ error: 'Invalid mobile or password' });
+    }
+
+    // Generate a JWT token
+    const token = jwt.sign(
+      {
+        id: user.id,
+        mobile_number: user.mobile_number,
+        role: user.role_name // Use role_name instead of role_id
+      },
+      process.env.JWT_SECRET, // Ensure this is set in your .env file
+      { expiresIn: '24h' } // Token expiry time
+    );
+
+    // Return the token and user details (excluding the password)
+    res.status(200).json({
+      token,
+      user: {
+        id: user.id,
+        mobile_number: user.mobile_number,
+        role: user.role_name // Use role_name instead of role_id
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 /////////*************** User sign-in ******************/////////
 exports.signIn = async (req, res) => {
@@ -61,7 +116,7 @@ exports.signIn = async (req, res) => {
         role: user.role_name // Use role_name instead of role_id
       },
       process.env.JWT_SECRET, // Ensure this is set in your .env file
-      // { expiresIn: '10h' } // Token expiry time
+      { expiresIn: '180d' } // Token expiry time
     );
 
     // Return the token and user details (excluding the password)
