@@ -302,9 +302,9 @@ const updateAssignedOrders = async () => {
 
         if (roleTimeLimit) {
           // Calculate the time limit based on the role's time_limit_hours
-          // const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 60 * 60 * 1000);
+          const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 60 * 60 * 1000);
 
-          const timeLimit = new Date(Date.now() - 10 * 1000);
+          // const timeLimit = new Date(Date.now() - 10 * 1000);
 
 
 
@@ -330,6 +330,7 @@ const updateAssignedOrders = async () => {
                     order_id: order.id,
                     role: userRoleName,
                     status: 'Pending',
+                    type: 'order_request',
                   }
                 });
 
@@ -349,6 +350,7 @@ const updateAssignedOrders = async () => {
                     order_id: order.id,
                     role: userRoleName,
                     status: 'Pending',
+                    type: 'order_request',
                   }
                 });
 
@@ -363,6 +365,7 @@ const updateAssignedOrders = async () => {
                     order_id: order.id,
                     role: userRoleName,
                     status: 'Pending',
+                    type: 'order_request',
                   }
                 });
 
@@ -383,6 +386,7 @@ const updateAssignedOrders = async () => {
                     order_id: order.id,
                     role: userRoleName,
                     status: 'Pending',
+                    type: 'order_request',
                   }
                 });
               } else {
@@ -415,8 +419,8 @@ const updateAssignedOrders = async () => {
 };
 
 // Set an interval to call the function every 30 seconds
-// setInterval(updateAssignedOrders, 30 * 1000);
-updateAssignedOrders(); 
+setInterval(updateAssignedOrders, 30 * 1000);
+// updateAssignedOrders(); 
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {
@@ -918,6 +922,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
           status: 'Accepted',
           user_name: userName,
           role: userRole,
+          type:"order_acceptReject"
         },
       });
     } else if (action === 'reject') {
@@ -933,6 +938,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
           status: 'Rejected',
           user_name: userName,
           role: userRole,
+          type:"order_acceptReject"
         },
       });
     }
