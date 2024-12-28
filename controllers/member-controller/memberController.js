@@ -101,10 +101,10 @@ const updateMember = async (req, res) => {
           user_id: member.id, // Send the notification to the member who made the request
           message: notificationMessage,
           photo: member.image, // Attach the user's image to the notification
-          detail: JSON.stringify({
+          detail: {
             user_name: member.full_name,
             type: 'profile_edit_request_approved',
-          }),
+          },
         });
       } catch (notificationError) {
         console.error('Error creating acceptance notification:', notificationError);
