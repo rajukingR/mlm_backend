@@ -96,6 +96,7 @@ exports.createEditRequest = [
         detail: {
           user_name: user.full_name,
           request_reason,
+          role: user.role_name,
           type: 'profile_edite_request',
         },
       });
@@ -160,10 +161,10 @@ exports.rejectByIdEditRequest = async (req, res) => {
         user_id: user.id, // Send the notification to the user who made the request
         message: notificationMessage,
         photo: user.image, // Attach the user's image to the notification
-        detail: JSON.stringify({
+        detail: {
           user_name: user.full_name,
           type: 'profile_edit_request_rejected',
-        }),
+        },
       });
     } catch (error) {
       console.error('Error creating rejection notification:', error);
