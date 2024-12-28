@@ -240,6 +240,13 @@ exports.createDocument = async (req, res) => {
         message: `New Document: ${heading}`, 
         is_read: false, 
         created_at: new Date(), 
+        detail: {
+          link,
+          receiver: parsedReceiver,
+          user_name:user.full_name,
+          image: req.file ? req.file.filename : null,
+          type:"document"
+        },
       }));
 
       // Insert notifications in bulk
