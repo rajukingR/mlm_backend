@@ -14,6 +14,8 @@ router.put('/update/:userId', upload.single('image'),authMiddleware, userControl
 router.delete('/delete/:userId', authMiddleware,isAdmin, userController.deleteUser);
 //
 router.get('/all',authMiddleware, userController.getAllUsers);
+router.get('/customer-deatils/:userID', userController.getUserById );
+
 router.get('/role-user',authMiddleware, userController.getUsersByRole);
 
 router.get('/:userId', userController.getUserCounts );
