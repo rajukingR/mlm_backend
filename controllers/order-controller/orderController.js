@@ -239,17 +239,20 @@ exports.getOrdersByUser = async (req, res) => {
     // Check if user exists
     const orders = await Order.findAll({
       where: { user_id },
-      include: [{
-        model: OrderItem,
-        as: 'OrderItems', // Make sure this matches the alias used in the Order model
-        required: false,
-        include: [
-          {
-            model: Product,
-            as: 'product',
-          },
-        ],
-      }],
+      order: [['createdAt', 'DESC']], // Replace 'createdAt' with the column name you want to sort by
+      include: [
+        {
+          model: OrderItem,
+          as: 'OrderItems', // Make sure this matches the alias used in the Order model
+          required: false,
+          include: [
+            {
+              model: Product,
+              as: 'product',
+            },
+          ],
+        },
+      ],
     });
 
     if (orders.length === 0) {
