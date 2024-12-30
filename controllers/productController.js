@@ -52,12 +52,31 @@ const validateAdminRole = (req, res, next) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    // Check if a product with the same name already exists
+    // Check if a product with the same name already exists and is active
     const existingProduct = await Product.findOne({
-      where: { name: req.body.name },
+      where: { 
+        name: req.body.name,
+        isDeleted: 0 // Check for active products only
+      },
     });
+
     if (existingProduct) {
-      return res.status(400).json({ error: 'Product name is already exists' });
+      return res.status(400).json({ error: 'Product name already exists and is active' });
+    }
+
+    // If the product is soft-deleted (isDeleted = 1), restore it
+    const deletedProduct = await Product.findOne({
+      where: { 
+        name: req.body.name,
+        isDeleted: 1 // Check for soft-deleted products
+      },
+    });
+
+    if (deletedProduct) {
+      // Restore the soft-deleted product
+      await deletedProduct.update({ isDeleted: 0 });
+
+      return res.status(200).json({ message: 'Product reactivated successfully', product: deletedProduct });
     }
 
     // Extract the filename from the uploaded file
@@ -68,6 +87,7 @@ exports.createProduct = async (req, res) => {
       ...req.body,
       image: imageFilename, // Save only the image filename
       createdBy: req.user.id, // Assuming req.user contains authenticated user data
+      isDeleted: 0 // Set the product as active by default
     });
 
     return res.status(201).json(newProduct);
@@ -75,6 +95,7 @@ exports.createProduct = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 
 
@@ -89,16 +110,32 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    // Check if the new product name already exists (excluding the current product)
+    // Check if the new product name exists in soft-deleted products first
+    const deletedProduct = await Product.findOne({
+      where: {
+        name,
+        isDeleted: 1 // Check for soft-deleted products
+      },
+    });
+
+    if (deletedProduct) {
+      // Reactivate the soft-deleted product
+      await deletedProduct.update({ isDeleted: 0 });
+
+      return res.status(200).json({ message: 'Product reactivated successfully', product: deletedProduct });
+    }
+
+    // Check if the new product name already exists (excluding the current product and only active ones)
     const existingProduct = await Product.findOne({
       where: {
         name,
         id: { [Sequelize.Op.ne]: id }, // Exclude current product by ID
+        isDeleted: 0 // Only check for active products
       },
     });
 
     if (existingProduct) {
-      return res.status(400).json({ error: 'Product name is already exists.' });
+      return res.status(400).json({ error: 'Product name already exists and is active.' });
     }
 
     // Extract the filename from the uploaded file or use the existing image
@@ -110,12 +147,15 @@ exports.updateProduct = async (req, res) => {
       image: imageFilename, // Use new image or keep existing one
     };
 
+    // Update the product with the new details
     await product.update(updatedProductData);
-    return res.status(200).json(product);
+
+    return res.status(200).json({ message: 'Product updated successfully', product });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 };
+
 //***** Get all products Admin *****//
 // exports.getAllProducts = async (req, res) => {
 //   try {

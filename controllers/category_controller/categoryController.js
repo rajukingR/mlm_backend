@@ -26,18 +26,39 @@ exports.createCategory = [
         return res.status(400).json({ errors: errors.array() });
       }
 
+      // Check if the category already exists (excluding soft-deleted ones)
       const existingCategory = await Category.findOne({
-        where: { category_name: req.body.category_name }
+        where: { 
+          category_name: req.body.category_name,
+          is_deleted: 0 // Only check for active categories
+        }
       });
 
       if (existingCategory) {
-        return res.status(409).json({ error: 'Category name is already exists' });
+        return res.status(409).json({ error: 'Category name already exists and is active.' });
       }
 
-      // Create the category using the validated data
+      // If the category exists with is_deleted = 1 (soft-deleted), allow creation
+      const deletedCategory = await Category.findOne({
+        where: { 
+          category_name: req.body.category_name,
+          is_deleted: 1 // Check for soft-deleted categories
+        }
+      });
+
+      if (deletedCategory) {
+        // Restore the soft-deleted category or create a new one if needed
+        // Assuming you might want to reactivate the soft-deleted category
+        await deletedCategory.update({ is_deleted: 0 });
+
+        return res.status(200).json({ message: 'Category reactivated successfully', category: deletedCategory });
+      }
+
+      // Create the category if not found
       const newCategory = await Category.create({
         sector_name: req.body.sector_name, // optional
-        category_name: req.body.category_name // required
+        category_name: req.body.category_name, // required
+        is_deleted: 0 // Set it as active by default
       });
 
       // Respond with the newly created category
@@ -47,6 +68,7 @@ exports.createCategory = [
     }
   }
 ];
+
 
 // Get all Categories
 exports.getAllCategories = async (req, res) => {
@@ -89,13 +111,32 @@ exports.updateCategory = [
       const categoryId = req.params.id;
       const categoryName = req.body.category_name;
 
-      // Check if the category already exists (except for the current category)
+      // Check if the category already exists (excluding the current category) and ensure it's not soft-deleted
       const existingCategory = await Category.findOne({
-        where: { category_name: categoryName, id: { [Op.ne]: categoryId } }, // Exclude the current category
+        where: { 
+          category_name: categoryName, 
+          id: { [Op.ne]: categoryId }, // Exclude the current category
+          is_deleted: 0 // Only check for active categories
+        }
       });
 
       if (existingCategory) {
-        return res.status(409).json({ error: 'Category with this name already exists' });
+        return res.status(409).json({ error: 'Category with this name already exists and is active' });
+      }
+
+      // Check for soft-deleted category with the same name
+      const deletedCategory = await Category.findOne({
+        where: { 
+          category_name: categoryName,
+          is_deleted: 1 // Check for soft-deleted categories
+        }
+      });
+
+      if (deletedCategory) {
+        // Reactivate the soft-deleted category
+        await deletedCategory.update({ is_deleted: 0 });
+
+        return res.status(200).json({ message: 'Category reactivated successfully', category: deletedCategory });
       }
 
       // Update category if no conflict with name
@@ -113,6 +154,7 @@ exports.updateCategory = [
     }
   }
 ];
+
 
 // Delete Category (Mark as deleted)
 exports.deleteCategory = [
