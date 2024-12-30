@@ -6,10 +6,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false,
             references: {
-                model: 'users', 
+                model: 'users',
                 key: 'id',
             },
-            onDelete: 'CASCADE', 
+            onDelete: 'CASCADE',
         },
         product_id: {
             type: DataTypes.INTEGER,
@@ -30,14 +30,15 @@ module.exports = (sequelize, DataTypes) => {
             onDelete: 'CASCADE',
         },
         rating: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.DECIMAL(3, 2),
             allowNull: false,
             validate: {
                 min: 1,
                 max: 5,
-                isInt: true,
+                isDecimal: true,
             },
         },
+
         comments: {
             type: DataTypes.TEXT,
             allowNull: false,

@@ -1,5 +1,5 @@
 // const { Feedback, Order, User } = require('../../models');
-const { Feedback, Order, User, Product} = require('../../models');
+const { Feedback, Order, User, Product } = require('../../models');
 const { Op } = require('sequelize');
 
 exports.createFeedback = async (req, res) => {
@@ -17,25 +17,25 @@ exports.createFeedback = async (req, res) => {
         }
 
         // Check if order exists and is either completed or accepted
-        const order = await Order.findOne({ 
-            where: { 
-                id: order_id, 
-                user_id, 
+        const order = await Order.findOne({
+            where: {
+                id: order_id,
+                user_id,
                 [Op.or]: [
                     { status: 'Completed' },
                     { status: 'Accepted' }
                 ]
-            } 
+            }
         });
 
         const product = await Product.findOne({
             where: {
                 id: product_id,
             }
-        })
+        });
 
         if (!product) {
-            return res.status(400).json({ message: "Product Not Found This ID" });
+            return res.status(400).json({ message: "Product Not Found for this ID" });
         }
 
         if (!order) {
@@ -44,7 +44,7 @@ exports.createFeedback = async (req, res) => {
 
         // Check if feedback already exists for this user and order
         const existingFeedback = await Feedback.findOne({
-            where: { user_id, order_id }
+            where: { user_id, order_id, product_id }
         });
         if (existingFeedback) {
             return res.status(400).json({ message: "Feedback already submitted for this order." });
@@ -63,9 +63,13 @@ exports.createFeedback = async (req, res) => {
         return res.status(201).json({ message: "Feedback created successfully!", feedback });
     } catch (error) {
         console.error("Error creating feedback:", error);
-        return res.status(500).json({ message: "An error occurred while creating feedback." });
+        return res.status(500).json({
+            message: "An error occurred while creating feedback.",
+            error: error.message || error // Return the specific error message
+        });
     }
 };
+
 
 
 
@@ -79,25 +83,25 @@ exports.getFeedbackForHigherRole = async (req, res) => {
 
         const feedbacks = await Feedback.findAll({
             include: [
-              {
-                model: Order,
-                as: 'order',
-                attributes: ['id', 'order_id', 'higher_role_id','total_order_quantity','createdAt','total_amount'], // Include `order_id`
-                where: { higher_role_id },
-              },
-              {
-                model: User,
-                as: 'user',
-                attributes: ['id', 'username', 'full_name', 'image', 'club_name'],
-              },
-              {
-                model: Product,
-                as: 'product',
-                attributes: ['id', 'name', 'image', 'product_code'],
-              },
+                {
+                    model: Order,
+                    as: 'order',
+                    attributes: ['id', 'order_id', 'higher_role_id', 'total_order_quantity', 'createdAt', 'total_amount'], // Include `order_id`
+                    where: { higher_role_id },
+                },
+                {
+                    model: User,
+                    as: 'user',
+                    attributes: ['id', 'username', 'full_name', 'image', 'club_name'],
+                },
+                {
+                    model: Product,
+                    as: 'product',
+                    attributes: ['id', 'name', 'image', 'product_code'],
+                },
             ],
-          });
-          
+        });
+
 
         if (feedbacks.length === 0) {
             return res.status(404).json({ message: "No feedback found for this hierarchy." });
@@ -168,12 +172,12 @@ exports.getFeedbackForCustomer = async (req, res) => {
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'username', 'full_name','image','club_name'],  
+                    attributes: ['id', 'username', 'full_name', 'image', 'club_name'],
                 },
                 {
                     model: Product,
                     as: 'product',
-                    attributes: ['id', 'name','image','product_code'],
+                    attributes: ['id', 'name', 'image', 'product_code'],
                 }
             ],
         });

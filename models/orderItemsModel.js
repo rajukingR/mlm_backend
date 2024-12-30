@@ -31,11 +31,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     final_price: {
-      type: DataTypes.DECIMAL(10, 2),
+      type: DataTypes.DECIMAL(30, 4),
       allowNull: false
     },
     item_volume: {
-      type: DataTypes.DECIMAL(10, 2),
+      type: DataTypes.DECIMAL(15, 2),
       allowNull: true,
     },
   }, {
