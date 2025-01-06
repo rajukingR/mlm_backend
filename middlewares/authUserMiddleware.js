@@ -1,3 +1,6 @@
+
+/////middlewares/authUserMiddleware.js
+
 const jwt = require('jsonwebtoken');
 const { User } = require('../models'); // Adjust to your User model path
 const secretKey = process.env.JWT_SECRET; // Ensure you have a secret key in your .env

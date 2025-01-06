@@ -1,20 +1,17 @@
 const express = require('express');
-const productController = require('../controllers/productController');
 const router = express.Router();
-const upload = require('../middlewares/multer'); // Multer middleware for file uploads
-const { authMiddleware, isAdmin } = require('../middlewares/authMiddleware');
+const productController = require('../controllers/productController');
+const upload = require('../middlewares/multer');
+const { authMiddleware, isAdmin, setClientRole } = require('../middlewares/authMiddleware'); 
 
-// Routes for CRUD operations
-router.get('/admin_product',authMiddleware, productController.getAllProducts);
-router.get('/admin_product/:id',authMiddleware, productController.getProductById);
-router.post('/', upload.single('image'), authMiddleware, isAdmin, productController.createProduct);
-router.put('/:id', upload.single('image'), productController.updateProduct);
-router.put('/:id/status', productController.updateProductStatus);
-router.delete('/:id', authMiddleware, isAdmin, productController.deleteProduct);
-//
-router.get('/user_product',authMiddleware, productController.getAllProductsForUser); 
-router.get('/user_product/:id',authMiddleware, productController.getProductByIdForUser);
+// Assuming the frontend sends two files: 'image' and 'fileDetails'
+router.post('/create',authMiddleware, isAdmin, upload.fields([{ name: 'thumbnail', maxCount: 1 }, { name: 'fileDetails', maxCount: 1 }]), productController.createProduct);
+router.put('/:id', upload.fields([{ name: 'thumbnail', maxCount: 1 }, { name: 'fileDetails', maxCount: 1 }]), productController.updateProduct);
+
+router.get('/',authMiddleware, setClientRole, productController.getAllProducts);
+router.get('/:id',authMiddleware, isAdmin, productController.getProductById);
+router.delete('/:id', productController.deleteProduct);
+router.put('/active/:id', productController.UpdateActiveProduct);
+
 
 module.exports = router;
-
-
