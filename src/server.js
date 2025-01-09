@@ -1,4 +1,4 @@
-// server.js
+// server.js  09-01-2025
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -48,16 +48,54 @@ const port = process.env.PORT || 4000;
 const KERAMRUTH_DOMAIN_NAME = process.env.KERAMRUTH_DOMAIN_NAME;
 const isDevelopment = (process.env.NODE_ENV || 'development') === 'development';
 const protocol = 'https';
-const KERAMRUTH_ERP_DOMAIN_NAME = `${process.env.KERAMRUTH_ERP_SUBDOMAIN_PREFIX}.${KERAMRUTH_DOMAIN_NAME} `;
+const KERAMRUTH_ERP_DOMAIN_NAME = `${process.env.KERAMRUTH_ERP_SUBDOMAIN_PREFIX}.${KERAMRUTH_DOMAIN_NAME}`;
 const server = http.createServer(app);
+console.log(KERAMRUTH_ERP_DOMAIN_NAME,"product name");
 
 // Socket.io setup
 const io = new Server(server, {
 });
 
-// app.use(cors(corsOptions));
+///** For Cors Issue  **///
+const corsOptions = {
+  origin: (origin, callback) => {
+    
+    const allowedOrigins = [
+      'http://localhost:5173',
+      `${protocol}://${KERAMRUTH_ERP_DOMAIN_NAME}`,
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
+
+//** For Error Handaling **//
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({ error: err.message || 'Internal Server Error' });
+});
+
+
 app.use((req, res, next) => {
-  const origin = req.get('Origin');  // or req.headers.referer
+  const origin = req.get('Origin'); 
+
+  const allowedOrigins = [
+    `http://localhost:5173`, 
+    `${protocol}://${KERAMRUTH_ERP_DOMAIN_NAME}`, 
+  ];
+
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+
   const referrer = req.get('Referer');  // or req.headers.referer
   console.log('Origin:', origin);
   console.log('Referrer:', referrer);
@@ -68,7 +106,7 @@ app.use((req, res, next) => {
     res.status(408).send('Request Timeout');
   });
 
-  res.header('Access-Control-Allow-Origin', `${protocol}://${KERAMRUTH_ERP_DOMAIN_NAME}`);
+  // res.header('Access-Control-Allow-Origin', `${protocol}://${KERAMRUTH_ERP_DOMAIN_NAME}`);
   // res.header('Access-Control-Allow-Origin', `${protocol}://local${KERAMRUTH_ERP_DOMAIN_NAME}`);
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -82,7 +120,10 @@ app.use((req, res, next) => {
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+//**  Serve static files from the correct path **//
+app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
+
 
 // Routes
 app.use('/api/salestarget', salesTargetrRoutes);
@@ -150,6 +191,179 @@ server.listen(port, '::', async () => {
     console.error('Unable to connect to the database:', error);
   }
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////*********  server.js  09-01-2025 working code ************/////
+// const express = require('express');
+// const cors = require('cors');
+// const dotenv = require('dotenv');
+// // require('dotenv').config();
+// const http = require('http');
+// const https = require('https');
+// const fs = require('fs');
+// const { Server } = require('socket.io');
+// const { sequelize } = require('../models');
+// const path = require('path');
+// const cron = require('node-cron');
+
+// // Routes
+// const adminRoutes = require('./routes/adminRoutes');
+// const userRoutes = require('./routes/userRoutes');
+// const productRoutes = require('./routes/productRoutes');
+// const categoryRoutes = require('./routes/categoryRoutes');
+// const memberRoutes = require('./routes/userHierarchyGetRoutes');
+// const directMemberRoutes = require('./routes/userDirectHierarchyRoutes');
+// const orderRoutes = require('./routes/orderRouts');
+// const rolsRoutes = require('./routes/rolesRoutes');
+// const clubRoutes = require('./routes/clubRoutes');
+// const salesTargetrRoutes = require('./routes/salesTargetrRoutes');
+// const minimumStockRoutes = require('./routes/minimumStockRoutes');
+// const feedbackRoutes = require('./routes/feedbackRoutes');
+// const userSalesDetailRoutes = require('./routes/userSalesDetailRoutes');
+// const sectorAdminRoutes = require('./routes/sectorRoutes');
+// const notificationRoutes = require('./routes/monthly_notificationRoute/monthlyNotificationRoutes');
+// const announcementRoutes = require('./routes/announcementRoutes');
+// const documentRoutes = require('./routes/documentRoutes');
+// const editRequestRoutes = require('./routes/editRequestRoutes');
+// const userUpdateRoutes = require('./routes/userupdateRoutes');
+// const requestRoutes = require('./routes/requestRoutes');
+// const ordersRoutes = require('./routes/ordersRoutes');
+// const orderLimitRoutes = require('./routes/orderLimitRoutes');
+// const forgotPasswordRoutes = require('./routes/forgotPasswordRoutes');
+// const overalSalesRoutes = require('./routes/overall_sales_route/overalSalesRoutes');
+// const { sendMonthlyNotifications } = require('./controllers/notification/monthly_notification/sendMonthlyNotifications');
+
+// const envFile = `.env.${process.env.NODE_ENV || 'development'}`;
+// dotenv.config({ path: envFile });
+
+// const app = express();
+// const port = process.env.PORT || 4000;
+
+// // Environment Variables
+// const KERAMRUTH_DOMAIN_NAME = process.env.KERAMRUTH_DOMAIN_NAME;
+// const isDevelopment = (process.env.NODE_ENV || 'development') === 'development';
+// const protocol = 'https';
+// const KERAMRUTH_ERP_DOMAIN_NAME = `${process.env.KERAMRUTH_ERP_SUBDOMAIN_PREFIX}.${KERAMRUTH_DOMAIN_NAME} `;
+// const server = http.createServer(app);
+
+// // Socket.io setup
+// const io = new Server(server, {
+// });
+
+// // app.use(cors(corsOptions));
+// app.use((req, res, next) => {
+//   const origin = req.get('Origin');  // or req.headers.referer
+//   const referrer = req.get('Referer');  // or req.headers.referer
+//   console.log('Origin:', origin);
+//   console.log('Referrer:', referrer);
+
+//   // Set response timeout (10 minutes)
+//   res.setTimeout(600000, () => {
+//     console.log('Request has timed out');
+//     res.status(408).send('Request Timeout');
+//   });
+
+//   res.header('Access-Control-Allow-Origin', `${protocol}://${KERAMRUTH_ERP_DOMAIN_NAME}`);
+//   // res.header('Access-Control-Allow-Origin', `${protocol}://local${KERAMRUTH_ERP_DOMAIN_NAME}`);
+//   res.header('Access-Control-Allow-Credentials', 'true');
+//   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+//   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Access-Control-Allow-Origin');
+//   next();
+// });
+
+
+
+
+// // Middleware
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// // Routes
+// app.use('/api/salestarget', salesTargetrRoutes);
+// app.use('/api/admin', adminRoutes);
+// app.use('/api/user', userRoutes);
+// app.use('/api/products', productRoutes);
+// app.use('/api/category', categoryRoutes);
+// app.use('/api/members', memberRoutes);
+// app.use('/api/directMembers', directMemberRoutes);
+// app.use('/api/orders', orderRoutes);
+// app.use('/api/roles', rolsRoutes);
+// app.use('/api/club', clubRoutes);
+// app.use('/api/minimumstock', minimumStockRoutes);
+// app.use('/api/feedback', feedbackRoutes);
+// app.use('/api', userUpdateRoutes);
+// app.use('/api/user_sales_detail', userSalesDetailRoutes);
+// app.use('/api/requests', requestRoutes);
+// app.use('/api/orders', ordersRoutes);
+// app.use('/api/order-limits', orderLimitRoutes);
+// app.use('/api/forgot-password', forgotPasswordRoutes);
+// app.use('/api/announcements', (req, res, next) => {
+//   req.io = io;
+//   next();
+// }, announcementRoutes);
+// app.use('/api/documents', (req, res, next) => {
+//   req.io = io;
+//   next();
+// }, documentRoutes);
+// app.use('/api/edit-requests', editRequestRoutes);
+// app.use('/api/sectors', sectorAdminRoutes);
+// app.use('/api/overall_sales', overalSalesRoutes);
+
+// app.get('/', (req, res) => {
+//   res.send('Welcome to the server!');
+// });
+
+// // Socket.io events
+// io.on('connection', (socket) => {
+//   console.log('A user connected:', socket.id);
+//   socket.on('disconnect', () => {
+//     console.log('User disconnected:', socket.id);
+//   });
+// });
+
+// // Cron job for monthly notifications
+// cron.schedule('0 12 15 * *', async () => {
+//   console.log('Running monthly notification job...');
+//   try {
+//     await sendMonthlyNotifications();
+//   } catch (error) {
+//     console.error('Error in monthly notification job:', error);
+//   }
+// });
+// //**send-notifications don't call this api --> only for development**//
+// app.use('/api/month_notifications', notificationRoutes);
+
+// // Start server
+// server.listen(port, '::', async () => {
+//   // server.listen(port, '0.0.0.0', async () => {
+//   try {
+//     await sequelize.authenticate();
+//     console.log('Database connected...');
+//     console.log(`Server running in ${isDevelopment ? 'development' : 'production'} mode on port ${port}`);
+//   } catch (error) {
+//     console.error('Unable to connect to the database:', error);
+//   }
+// });
 
 
 
