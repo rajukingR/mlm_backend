@@ -546,7 +546,6 @@ exports.deleteProduct = async (req, res) => {
 };
 
 
-// Function to check for expired offers and update products every 30 seconds
 function autoUpdateProducts() {
   setInterval(async () => {
     try {

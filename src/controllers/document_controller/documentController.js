@@ -2,44 +2,23 @@ const { Document, User, Notification } = require('../../../models');
 const { Op } = require('sequelize');
 const moment = require('moment');  // Import moment.js
 
+
 exports.getDocuments = async (req, res) => {
   try {
-    const { role_name } = req.user;  // Get role directly from the token
-    let whereClause = {};
+    const { role_name } = req.user; // Get role directly from the token
 
-    // Check the role and set the where clause for filtering
-    if (role_name === 'Admin') {
-      // Admin can view all documents
-      whereClause = {};
-    } else if (role_name === 'Distributor') {
-      // Filter documents for Distributor role
-      whereClause = {
-        receiver: {
-          [Op.like]: '%Distributor%' // Only show documents with "Distributor" in the receiver field
-        },
-      };
-    } else {
+    // Base where clause for active documents
+    let whereClause = {
+      status: 'active', // Only active documents
+    };
+
+    // Role-based filtering
+    if (role_name !== 'Admin') {
       // Non-admin roles can only see documents relevant to them
-      whereClause = {
-        receiver: {
-          [Op.like]: `%${role_name}%`, // Check if the role is in the receiver field
-        },
+      whereClause.receiver = {
+        [Op.like]: `%${role_name}%`, // Check if the role is in the receiver field
       };
     }
-
-    // Add date range filtering: Ensure that the document is active within the date range
-    whereClause = {
-      ...whereClause,
-      fromDate: {
-        [Op.lte]: moment().toDate(), // fromDate should be less than or equal to current date
-      },
-      toDate: {
-        [Op.gte]: moment().toDate(), // toDate should be greater than or equal to current date
-      },
-      status: 'active', // Only active documents
-      // autoUpdate: 1, // Only active documents
-
-    };
 
     // Fetch documents from database based on the whereClause
     const documents = await Document.findAll({
@@ -53,33 +32,24 @@ exports.getDocuments = async (req, res) => {
       });
     }
 
-    // Ensure the receiver field is an array and validate against allowed roles
-    const allowedRoles = ['Area Development Officer', 'Master Distributor', 'Super Distributor', 'Distributor', 'Customer'];
-
+    // Validate the `receiver` field to ensure it includes the user's role
     const filteredDocuments = documents.filter(doc => {
-      let receivers;
       try {
-        // Log the receiver field for debugging purposes
-        console.log("Receiver field:", doc.receiver);
+        let receivers;
 
-        // Try to parse the receiver field into an array if it's a string
         if (typeof doc.receiver === 'string') {
-          receivers = JSON.parse(doc.receiver); // Try parsing if it's a string
+          receivers = JSON.parse(doc.receiver); // Parse if stored as JSON string
         } else if (Array.isArray(doc.receiver)) {
-          receivers = doc.receiver; // If it's already an array, use it directly
+          receivers = doc.receiver; // Use directly if it's already an array
         } else {
           receivers = [];
         }
 
-        // Log the parsed receivers array for debugging
-        console.log("Parsed receivers:", receivers);
-
         // Check if the user's role exists in the receivers array
-        return receivers.some(receiver => receiver.trim() === role_name);  // Add .trim() to avoid issues with spaces
-      } catch (e) {
-        console.error("Error parsing receiver field:", e);
-        receivers = [];
-        return false;
+        return receivers.some(receiver => receiver.trim() === role_name.trim());
+      } catch (error) {
+        console.error("Error parsing receiver field:", error);
+        return false; // Skip documents with invalid receiver data
       }
     });
 
@@ -105,11 +75,13 @@ exports.getDocuments = async (req, res) => {
 };
 
 
-// Get all documents with optional filtering by receiver
 exports.getDocumentsAdmin = async (req, res) => {
   try {
-    const { receiver } = req.query; // Extract receiver from query params
-    const whereClause = receiver ? { receiver } : {}; // Set where clause based on receiver
+    const { receiver } = req.query;
+    const whereClause = {
+      status: 'active',
+      ...(receiver && { receiver }),
+    };
 
     const documents = await Document.findAll({ where: whereClause });
 
@@ -125,6 +97,27 @@ exports.getDocumentsAdmin = async (req, res) => {
     });
   }
 };
+
+// // Get all documents with optional filtering by receiver
+// exports.getDocumentsAdmin = async (req, res) => {
+//   try {
+//     const { receiver } = req.query; // Extract receiver from query params
+//     const whereClause = receiver ? { receiver } : {}; // Set where clause based on receiver
+
+//     const documents = await Document.findAll({ where: whereClause });
+
+//     return res.status(200).json({
+//       success: true,
+//       data: documents,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Failed to fetch documents',
+//       error: error.message,
+//     });
+//   }
+// };
 
 // // Get all documents with optional filtering by receiver
 // exports.getDocuments = async (req, res) => {
@@ -237,7 +230,7 @@ exports.createDocument = async (req, res) => {
 
       const notifications = users.map((user) => ({
         user_id: user.id, 
-        message: `New Document: ${heading}`, 
+        message: `New Document received: ${heading}`, 
         is_read: false, 
         created_at: new Date(), 
         detail: {
