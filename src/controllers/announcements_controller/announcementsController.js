@@ -117,7 +117,7 @@ exports.createAnnouncement = async (req, res) => {
 
       const notifications = users.map((user) => ({
         user_id: user.id, 
-        message: `New Announcement is recived:: ${heading}`, 
+        message: `New Announcement is received:: ${heading}`, 
         is_read: false, 
         created_at: new Date(), 
         detail: {
