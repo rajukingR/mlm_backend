@@ -9,7 +9,7 @@ const { authMiddleware } = require('../../middlewares/authMiddleware');
 
 // Route to get notifications
 router.get('/rolebased_sales', authMiddleware, getOverallSalesCalculation);
-router.get('/mostl_selled_product', authMiddleware, getMostSellingProductPercentage);
+router.post('/mostl_selled_product', authMiddleware, getMostSellingProductPercentage);
 router.post('/sales_over_time', authMiddleware, salesOverTime);
 router.get('/stock_over_detail', authMiddleware, getStockTargetDetails);
 
