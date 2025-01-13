@@ -34,7 +34,7 @@ const sendForgotPasswordLink = async (req, res) => {
     await user.save();
 
     // Generate the reset link
-    const resetLink = `http://88.222.245.236/create-password?token=${resetToken}`;
+    const resetLink = `https://erp.keramruth.com/create-password?token=${resetToken}`;
 
     // Configure Nodemailer transporter
     const transporter = nodemailer.createTransport({
