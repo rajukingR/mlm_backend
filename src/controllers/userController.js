@@ -758,7 +758,7 @@ exports.getUserCounts = async (req, res) => {
         ...conditions,
         role_name: 'Master Distributor',
       },
-      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
+      attributes: ['id','role_id','username','image', 'full_name', 'role_name', 'city'],
     });
     const mdCount = mdUsers.length;
 
@@ -768,7 +768,7 @@ exports.getUserCounts = async (req, res) => {
         ...conditions,
         role_name: 'Super Distributor',
       },
-      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
+      attributes: ['id','role_id','username','image', 'full_name', 'role_name', 'city'],
     });
     const sdCount = sdUsers.length;
 
@@ -778,7 +778,7 @@ exports.getUserCounts = async (req, res) => {
         ...conditions,
         role_name: 'Distributor',
       },
-      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
+      attributes: ['id','role_id','username','image', 'full_name', 'role_name', 'city'],
     });
     const distributorCount = distributorUsers.length;
 
@@ -788,7 +788,7 @@ exports.getUserCounts = async (req, res) => {
         ...conditions,
         role_name: 'Customer',
       },
-      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
+      attributes: ['id','role_id','username','image', 'full_name', 'role_name', 'city'],
     });
     const customerCount = customerUsers.length;
 
@@ -798,7 +798,7 @@ exports.getUserCounts = async (req, res) => {
         ...conditions,
         role_name: 'Area Development Officer',
       },
-      attributes: ['id','role_id','image', 'full_name', 'role_name', 'city'],
+      attributes: ['id','role_id','username','image', 'full_name', 'role_name', 'city'],
     });
     const adoCount = adoUsers.length;
 
