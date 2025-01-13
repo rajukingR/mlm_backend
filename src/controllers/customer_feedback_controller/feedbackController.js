@@ -1,5 +1,5 @@
-// const { Feedback, Order, User } = require('../../models');
-const { Feedback, Order, User, Product } = require('../../../models');
+// Required models
+const { Feedback, Order, User, Product, Notification } = require('../../../models');
 const { Op } = require('sequelize');
 
 exports.createFeedback = async (req, res) => {
@@ -28,24 +28,24 @@ exports.createFeedback = async (req, res) => {
             }
         });
 
-        const product = await Product.findOne({
-            where: {
-                id: product_id,
-            }
-        });
-
-        if (!product) {
-            return res.status(400).json({ message: "Product Not Found for this ID" });
-        }
-
         if (!order) {
             return res.status(400).json({ message: "Order not found or not completed." });
         }
 
-        // Check if feedback already exists for this user and order
+        // Check if product exists
+        const product = await Product.findOne({
+            where: { id: product_id }
+        });
+
+        if (!product) {
+            return res.status(400).json({ message: "Product not found for this ID." });
+        }
+
+        // Check if feedback already exists for this user, order, and product
         const existingFeedback = await Feedback.findOne({
             where: { user_id, order_id, product_id }
         });
+
         if (existingFeedback) {
             return res.status(400).json({ message: "Feedback already submitted for this order." });
         }
@@ -60,12 +60,34 @@ exports.createFeedback = async (req, res) => {
             feedback_date: new Date(),
         });
 
+        // Fetch higher_role_id from the order
+        const higher_role_id = order.higher_role_id;
+
+        // Fetch user details for notification
+        const user = await User.findOne({ where: { id: user_id } });
+
+        if (!user) {
+            return res.status(400).json({ message: "User not found for this ID." });
+        }
+
+        // Create notification
+        await Notification.create({
+            user_id: higher_role_id, // Set higher_role_id as user_id in the Notification
+            message: `New Feedback received: ${comments}`,
+            is_read: false,
+            created_at: new Date(),
+            detail: {
+                user_name: user.full_name,
+                type: "feedback"
+            },
+        });
+
         return res.status(201).json({ message: "Feedback created successfully!", feedback });
     } catch (error) {
         console.error("Error creating feedback:", error);
         return res.status(500).json({
             message: "An error occurred while creating feedback.",
-            error: error.message || error // Return the specific error message
+            error: error.message || error
         });
     }
 };
