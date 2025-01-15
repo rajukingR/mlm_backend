@@ -305,7 +305,7 @@ const updateAssignedOrders = async () => {
 
         if (roleTimeLimit) {
           // Calculate the time limit based on the role's time_limit_hours
-          const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 60 * 60 * 1000);
+          const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 24 * 60 * 60 * 1000);
 
           // const timeLimit = new Date(Date.now() - 10 * 1000);
 
