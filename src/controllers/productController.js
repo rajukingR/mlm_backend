@@ -235,7 +235,39 @@ exports.getAllProducts = async (req, res) => {
       };
     });
 
-    return res.status(200).json(updatedProducts);
+    // return res.status(200).json(updatedProducts);
+
+        // Sort and categorize products based on productVolume and category
+        const categoryOrder = ['Oil', 'Tooth Paste', 'Soap', 'Shampoo', 'Conditioner', 'Body Lotion'];
+        const sortedProducts = [];
+    
+        categoryOrder.forEach((category) => {
+          const categoryProducts = updatedProducts.filter((product) => product.category_name === category);
+          
+          // Sort products based on productVolume (liters or milliliters)
+          categoryProducts.sort((a, b) => {
+            const volumeA = parseFloat(a.productVolume);
+            const volumeB = parseFloat(b.productVolume);
+            return volumeB - volumeA; // Sorting in descending order (larger volumes first)
+          });
+    
+          // Sort products with same volume based on quantity_type (L before ml)
+          categoryProducts.sort((a, b) => {
+            const typeA = a.quantity_type.toLowerCase();
+            const typeB = b.quantity_type.toLowerCase();
+            if (typeA === 'liters' && typeB === 'ml') return -1;
+            if (typeA === 'ml' && typeB === 'liters') return 1;
+            return 0;
+          });
+    
+          // Push sorted category products
+          sortedProducts.push(...categoryProducts);
+        });
+    
+        // Return the sorted and mapped products
+        return res.status(200).json(sortedProducts);
+
+
   } catch (error) {
     console.error('Error fetching products:', error.message, error.stack);
     return res.status(500).json({ message: 'Internal server error', error: error.message });
@@ -401,7 +433,33 @@ exports.getAllProductsForUser = async (req, res) => {
     });
 
     // Return the response with the mapped products and their prices
-    return res.status(200).json(productsWithPrices);
+    // return res.status(200).json(productsWithPrices);
+
+    // Sort products within each category by product volume and quantity_type
+    const categoryOrder = ['Oil', 'Tooth Paste', 'Soap', 'Shampoo', 'Conditioner', 'Body Lotion'];
+    const sortedProducts = [];
+
+    categoryOrder.forEach((category) => {
+      const categoryProducts = productsWithPrices.filter((product) => product.category_name === category);
+      
+      // Sort products within category: Sort by productVolume (descending for liters, ascending for others)
+      categoryProducts.sort((a, b) => {
+        const volumeA = parseFloat(a.productVolume);
+        const volumeB = parseFloat(b.productVolume);
+        
+        if (a.quantity_type === 'liters' && b.quantity_type !== 'liters') return -1; // 'liters' should come first
+        if (b.quantity_type === 'liters' && a.quantity_type !== 'liters') return 1;  // 'liters' should come first
+
+        return volumeB - volumeA; // For 'ml', sort in descending order of volume
+      });
+
+      sortedProducts.push(...categoryProducts);
+    });
+
+    // Return the response with the sorted and mapped products
+    return res.status(200).json(sortedProducts);
+
+        
   } catch (error) {
     console.error("Error fetching products:", error);
     return handleErrors(res, error);
