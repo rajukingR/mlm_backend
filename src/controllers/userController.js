@@ -69,7 +69,8 @@ exports.signInWeb = async (req, res) => {
       user: {
         id: user.id,
         mobile_number: user.mobile_number,
-        role: user.role_name // Use role_name instead of role_id
+        role: user.role_name, // Use role_name instead of role_id
+        user_name: user.username,
       }
     });
   } catch (error) {
@@ -125,7 +126,8 @@ exports.signIn = async (req, res) => {
       user: {
         id: user.id,
         mobile_number: user.mobile_number,
-        role: user.role_name // Use role_name instead of role_id
+        role: user.role_name, // Use role_name instead of role_id
+        user_name: user.username,
       }
     });
   } catch (error) {

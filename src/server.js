@@ -101,10 +101,10 @@ app.use((req, res, next) => {
   console.log('Referrer:', referrer);
 
   // Set response timeout (10 minutes)
-  res.setTimeout(600000, () => {
-    console.log('Request has timed out');
-    res.status(408).send('Request Timeout');
-  });
+  // res.setTimeout(600000, () => {
+  //   console.log('Request has timed out');
+  //   res.status(408).send('Request Timeout');
+  // });
 
   // res.header('Access-Control-Allow-Origin', `${protocol}://${KERAMRUTH_ERP_DOMAIN_NAME}`);
   // res.header('Access-Control-Allow-Origin', `${protocol}://local${KERAMRUTH_ERP_DOMAIN_NAME}`);
