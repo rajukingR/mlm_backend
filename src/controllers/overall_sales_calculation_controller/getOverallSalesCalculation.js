@@ -194,21 +194,42 @@ exports.getOverallSalesCalculation = async (req, res) => {
 
 const moment = require('moment'); 
 
+
 exports.getMostSellingProductPercentage = async (req, res) => {
   const USER_ID = req.user.id;
+  const USER_ROLE = req.user.role_name;
+
+  const { month } = req.body; // Accept month from the request body
 
   try {
-    // Get the start and end date for the current month
-    const startOfMonth = moment().startOf('month').toDate();
-    const endOfMonth = moment().endOf('month').toDate();
+    if (!month) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a month.',
+      });
+    }
 
-    // Fetch all accepted orders for the current month made by the user
+    // Get the start and end date for the provided month
+    const startOfMonth = moment(month, 'YYYY-MM').startOf('month').toDate();
+    const endOfMonth = moment(month, 'YYYY-MM').endOf('month').toDate();
+
+    // Set conditions based on the role of the user
+    const orderConditions = {
+      status: 'Accepted',
+      created_at: { [Op.between]: [startOfMonth, endOfMonth] },
+    };
+
+    if (USER_ROLE === 'Admin') {
+      // If Admin, filter orders where higher_role_id is 1
+      orderConditions.higher_role_id = 1;
+    } else {
+      // Otherwise, filter orders specific to the logged-in user
+      orderConditions.higher_role_id = USER_ID;
+    }
+
+    // Fetch all accepted orders based on conditions
     const orders = await Order.findAll({
-      where: {
-        higher_role_id: USER_ID,  // Assuming the 'higher_role_id' is the ID of the user
-        status: 'Accepted',
-        created_at: { [Op.between]: [startOfMonth, endOfMonth] },
-      },
+      where: orderConditions,
       include: [
         {
           model: OrderItem,
@@ -223,19 +244,19 @@ exports.getMostSellingProductPercentage = async (req, res) => {
     });
 
     if (!orders || orders.length === 0) {
-      return res.status(404).json({ success: false, message: 'No orders found for the current month' });
+      return res.status(404).json({ success: false, message: 'No orders found for the selected month' });
     }
 
-    // Step 1: Calculate total sales for the current month
+    // Step 1: Calculate total sales for the selected month
     let totalSales = 0;
-    let productSales = {}; // object to store sales by product
+    let productSales = {}; // Object to store sales by product
 
     // Iterate over orders and calculate product-wise sales
     for (const order of orders) {
       for (const orderItem of order.OrderItems) {
         const product = orderItem.product;
         const quantity = parseInt(orderItem.quantity) || 0;
-        const price = product.price || 0; // assuming product price field is present
+        const price = product.price || 0; // Assuming product price field is present
 
         const salesAmount = quantity * price;
         totalSales += salesAmount;
@@ -280,6 +301,95 @@ exports.getMostSellingProductPercentage = async (req, res) => {
     });
   }
 };
+
+
+
+// exports.getMostSellingProductPercentage = async (req, res) => { 
+//   const USER_ID = req.user.id;
+
+//   try {
+//     // Get the start and end date for the current month
+//     const startOfMonth = moment().startOf('month').toDate();
+//     const endOfMonth = moment().endOf('month').toDate();
+
+//     // Fetch all accepted orders for the current month made by the user
+//     const orders = await Order.findAll({
+//       where: {
+//         higher_role_id: USER_ID,  // Assuming the 'higher_role_id' is the ID of the user
+//         status: 'Accepted',
+//         created_at: { [Op.between]: [startOfMonth, endOfMonth] },
+//       },
+//       include: [
+//         {
+//           model: OrderItem,
+//           as: 'OrderItems',
+//           include: {
+//             model: Product,
+//             as: 'product',
+//             required: true,
+//           },
+//         },
+//       ],
+//     });
+
+//     if (!orders || orders.length === 0) {
+//       return res.status(404).json({ success: false, message: 'No orders found for the current month' });
+//     }
+
+//     // Step 1: Calculate total sales for the current month
+//     let totalSales = 0;
+//     let productSales = {}; // object to store sales by product
+
+//     // Iterate over orders and calculate product-wise sales
+//     for (const order of orders) {
+//       for (const orderItem of order.OrderItems) {
+//         const product = orderItem.product;
+//         const quantity = parseInt(orderItem.quantity) || 0;
+//         const price = product.price || 0; // assuming product price field is present
+
+//         const salesAmount = quantity * price;
+//         totalSales += salesAmount;
+
+//         if (product.id in productSales) {
+//           productSales[product.id].sales += salesAmount;
+//           productSales[product.id].quantity += quantity;
+//         } else {
+//           productSales[product.id] = {
+//             productName: product.name,
+//             sales: salesAmount,
+//             quantity: quantity,
+//           };
+//         }
+//       }
+//     }
+
+//     // Step 2: Calculate percentage for each product
+//     const productPercentages = Object.keys(productSales).map(productId => {
+//       const product = productSales[productId];
+//       const productPercentage = (product.sales / totalSales) * 100;
+//       return {
+//         productName: product.productName,
+//         sales: product.sales,
+//         percentage: productPercentage.toFixed(2),
+//       };
+//     });
+
+//     // Step 3: Sort products by percentage in descending order
+//     productPercentages.sort((a, b) => b.percentage - a.percentage);
+
+//     return res.status(200).json({
+//       success: true,
+//       mostSellingProducts: productPercentages,
+//     });
+//   } catch (error) {
+//     console.error('Error fetching most selling product percentage:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Failed to fetch product percentage',
+//       error: error.message,
+//     });
+//   }
+// };
 
 
 /////////////***********Get Sales Trent************//////////
