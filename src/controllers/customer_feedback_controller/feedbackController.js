@@ -149,7 +149,7 @@ exports.AdMINgetFeedback = async (req, res) => {
                 {
                     model: Order,
                     as: 'order',
-                    where: { higher_role_id }, // Using the directly set value
+                    where: { higher_role_id }, 
                 },
                 {
                     model: User,
@@ -162,6 +162,7 @@ exports.AdMINgetFeedback = async (req, res) => {
                     attributes: ['id', 'name', 'image', 'product_code'],
                 }
             ],
+            order: [['feedback_date', 'DESC']],
         });
 
         if (feedbacks.length === 0) {
