@@ -6,6 +6,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,  // Ensure this field is required
     },
+    days: {
+      type: DataTypes.INTEGER,
+      allowNull: false,  // Ensure this field is required
+    },
     role: {
       type: DataTypes.STRING,
       allowNull: false,  // Ensure role is a required field

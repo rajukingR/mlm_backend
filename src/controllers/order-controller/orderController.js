@@ -279,9 +279,7 @@ const updateAssignedOrders = async () => {
       where: { status: 'Pending' }
     });
 
-    // Loop through each pending order
     for (const order of pendingOrders) {
-      // Fetch the user's role based on the order's higher_role_id
       const user = await User.findOne({
         where: { id: order.higher_role_id }
       });
@@ -293,41 +291,31 @@ const updateAssignedOrders = async () => {
       const orderUserName = orderUser ? orderUser.full_name : 'Unknown User';
 
       if (user) {
-        // Declare userRoleID here to ensure it's in scope for all conditions
         const userRoleID = user.role_id;
         const userRoleName = orderUser.role_name;
         const superiorId = user.superior_id;
 
-        // Fetch the time limit based on the user's role from the order_limits table
         const roleTimeLimit = await OrderLimit.findOne({
           where: { role: user.role_name }
         });
 
         if (roleTimeLimit) {
-          // Calculate the time limit based on the role's time_limit_hours
-          const timeLimit = new Date(Date.now() - roleTimeLimit.hours * 24 * 60 * 60 * 1000);
+          const totalMilliseconds = (roleTimeLimit.days * 24 * 60 * 60 * 1000) + (roleTimeLimit.hours * 60 * 60 * 1000);
+          const timeLimit = new Date(Date.now() - totalMilliseconds);  
 
-          // const timeLimit = new Date(Date.now() - 10 * 1000);
-
-
-
-          // Check if the order's updatedAt is older than the calculated time limit
           if (new Date(order.updatedAt) <= timeLimit) {
-            // If the role name is "Admin", set higher_role_id to userRoleID
             if (userRoleName === "Admin") {
               await Order.update(
-                { higher_role_id: userRoleID },  // Set higher_role_id to userRoleID
+                { higher_role_id: userRoleID },
                 { where: { id: order.id } }
               );
               console.log(`Order no ${order.id} was assigned to Admin role ID ${userRoleID}.`);
             } else {
-              // If there's a valid superiorId, update the order
               if (superiorId) {
-
                 await Notification.create({
-                  user_id: order.higher_role_id, // Current user's ID
+                  user_id: order.higher_role_id,
                   message: `You didn't accept the order, so it is being reassigned to the next top hierarchy.`,
-                  photo: "1733391557532.jpeg", // You can update this if you have a different photo for the user
+                  photo: "1733391557532.jpeg", 
                   detail: {
                     user_name: orderUserName,
                     order_id: order.id,
@@ -344,7 +332,6 @@ const updateAssignedOrders = async () => {
                 console.log(`Order no ${order.id} was assigned to superior ID ${superiorId}.`);
 
                 await Notification.create({
-                  // user_id: superiorId,
                   user_id: user.role_name === "Area Development Officer" ? 1 : superiorId,
                   message: `${user.full_name} did not accept the order, so it has been reassigned to you.`,
                   photo: "1733391557532.jpeg",
@@ -358,9 +345,8 @@ const updateAssignedOrders = async () => {
                 });
 
               } else if (userRoleID) {
-
                 await Notification.create({
-                  user_id: order.higher_role_id, // Current user's ID
+                  user_id: order.higher_role_id,
                   message: `You didn't accept the order, so it is being reassigned to the next hierarchy.`,
                   photo: "1733391557532.jpeg",
                   detail: {
@@ -372,7 +358,6 @@ const updateAssignedOrders = async () => {
                   }
                 });
 
-                // If no superiorId, fallback to userRoleID
                 await Order.update(
                   { higher_role_id: userRoleID },
                   { where: { id: order.id } }
@@ -380,7 +365,6 @@ const updateAssignedOrders = async () => {
                 console.log(`Order no ${order.id} was assigned to role ID ${userRoleID}.`);
 
                 await Notification.create({
-                  // user_id: userRoleID,
                   user_id: user.role_name === "Area Development Officer" ? 1 : userRoleID,
                   message: `${user.full_name} did not accept the order, so it has been reassigned to you.`,
                   photo: "1733391557532.jpeg",
@@ -397,7 +381,6 @@ const updateAssignedOrders = async () => {
               }
             }
 
-            // If the requested role is "Area Development Officer" and no superiorId, mark as Cancelled
             if (order.requested_by_role === "Area Development Officer" && !superiorId) {
               console.log(`Order no ${order.id} status already updated to Cancelled.`);
             }
@@ -405,9 +388,8 @@ const updateAssignedOrders = async () => {
             console.log(`Order no ${order.id} was created recently, skipping update.`);
           }
         } else {
-          // If no time limit found, set higher_role_id to userRoleID
           await Order.update(
-            { higher_role_id: userRoleID },  // Set higher_role_id to userRoleID
+            { higher_role_id: userRoleID },
             { where: { id: order.id } }
           );
           console.log(`No time limit found for the role ${user.role_name} in order ${order.id}.`);
@@ -420,6 +402,7 @@ const updateAssignedOrders = async () => {
     console.error('Error updating orders:', error.message);
   }
 };
+
 
 // setInterval(updateAssignedOrders, 30 * 1000);
 setInterval(updateAssignedOrders, 30 * 1000);
