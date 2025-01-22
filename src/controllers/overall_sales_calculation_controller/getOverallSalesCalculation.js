@@ -15,7 +15,7 @@ exports.getOverallSalesCalculation = async (req, res) => {
       });
     }
 
-    const roles = ['Area Development Officer', 'Master Distributor', 'Super Distributor', 'Distributor'];
+    const roles = ['Area Development Officer', 'Master Distributor', 'Super Distributor', 'Distributor', 'Customer'];
     const result = [];
 
     // Distributor-specific logic
