@@ -538,6 +538,14 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
         targetDate.setMonth(targetDate.getMonth() + 1);
       }
 
+      // Sort the monthlyDetails array to display the current year and current month first
+      monthlyDetails.sort((a, b) => {
+        if (b.year !== a.year) {
+          return b.year - a.year; // Sort by year in descending order
+        }
+        return b.month.localeCompare(a.month, 'en', { month: 'short' }); // Sort by month in descending order
+      });
+
       result.push({
         user_id: user.id,
         full_name: user.full_name,
@@ -559,6 +567,7 @@ exports.getLowHierarchySalesDetails = async (req, res) => {
     });
   }
 };
+
 
 
 
