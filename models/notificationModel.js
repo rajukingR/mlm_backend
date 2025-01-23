@@ -31,6 +31,10 @@ module.exports = (sequelize, DataTypes) => {
           type: DataTypes.STRING, // Use STRING for storing image paths/URLs
           allowNull: true, // Allow NULL if the photo is optional
         },
+        status: {
+          type: DataTypes.STRING,
+          defaultValue: 'Active', 
+        },
       },
       {
         tableName: 'notifications', // Matches the name of your table
