@@ -371,7 +371,7 @@ const updateAssignedOrders = async () => {
                   photo: "1733391557532.jpeg",
                   detail: {
                     user_name: orderUserName,
-                    order_id: order.id,
+                    orderUniqueId: order.order_id,
                     role: userRoleName,
                     status: 'Pending',
                     type: 'order_request',
@@ -904,7 +904,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
         message: `Order has been accepted by ${userName}.`,
         photo: "1733391571619.jpeg",
         detail: {
-          order_id: order.id,
+          orderUniqueId: order.order_id,
           status: 'Accepted',
           user_name: userName,
           role: userRole,
@@ -920,7 +920,7 @@ exports.acceptOrRejectOrder = async (req, res) => {
         message: `Order has been rejected by ${userName}.`,
         photo: "1733391593433.jpeg",
         detail: {
-          order_id: order.id,
+          orderUniqueId: order.order_id,
           status: 'Rejected',
           user_name: userName,
           role: userRole,

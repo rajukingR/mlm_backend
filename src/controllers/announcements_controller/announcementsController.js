@@ -181,7 +181,7 @@ exports.updateByIdAnnouncement = async (req, res) => {
     announcement.documentID = documentID || announcement.documentID;
     announcement.heading = heading || announcement.heading;
     announcement.description = description || announcement.description;
-    announcement.link = link || announcement.link;
+    announcement.link = link || null;
     announcement.receiver = receiver || announcement.receiver;
 
     // Handle file upload if present (assuming similar to document)

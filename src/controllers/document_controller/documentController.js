@@ -290,7 +290,7 @@ exports.updateByIdDocument = async (req, res) => {
     document.documentID = documentID || document.documentID;
     document.heading = heading || document.heading;
     document.description = description || document.description;
-    document.link = link || document.link;
+    document.link = link || null;
 
     if (receiver) {
       document.receiver = Array.isArray(receiver)
