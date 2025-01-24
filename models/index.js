@@ -3,9 +3,19 @@ const path = require('path');
 const { Sequelize, DataTypes } = require('sequelize');
 const config = require('../src/config/config');
 
-const sequelize = new Sequelize(config.development.database, config.development.username, config.development.password, {
-  host: config.development.host,
-  dialect: config.development.dialect,
+// const sequelize = new Sequelize(config.development.database, config.development.username, config.development.password, {
+//   host: config.development.host,
+//   dialect: config.development.dialect,
+// });
+
+
+const environment = process.env.NODE_ENV || 'development'; 
+const envConfig = config[environment];
+
+const sequelize = new Sequelize(envConfig.database, envConfig.username, envConfig.password, {
+  host: envConfig.host,
+  dialect: envConfig.dialect,
+  logging: environment === 'development', 
 });
 
 const db = {};
