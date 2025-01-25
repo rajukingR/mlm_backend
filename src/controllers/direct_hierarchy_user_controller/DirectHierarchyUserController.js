@@ -122,7 +122,7 @@ exports.getUserProfile = async (req, res) => {
 };
 
 // Fetch profile dynamically based on logged-in user and optional target user ID
-exports.getUserProfileByHierarchy = async (req, res) => { 
+exports.getUserProfileByHierarchy = async (req, res) => {
   try {
     const loggedInUserId = req.user.id;
     const targetUserId = req.query.userId || loggedInUserId;
@@ -136,7 +136,6 @@ exports.getUserProfileByHierarchy = async (req, res) => {
     if (!targetUser) {
       return res.status(404).json({ error: 'Target user not found' });
     }
-
     const decryptedPassword = decryptPassword(targetUser.password);
     
     const targetUserProfile = {
@@ -144,13 +143,16 @@ exports.getUserProfileByHierarchy = async (req, res) => {
       password: decryptedPassword // Replace the password with the decrypted password
     };
 
-    // Authorization check removed, users can now access any profile
+    // if (targetUser.superior_id !== loggedInUserId && loggedInUser.role_id !== 1) {
+    //   return res.status(403).json({ error: 'You are not authorized to view this user profile.' });
+    // }
+
+    // res.status(200).json(targetUser);
     res.status(200).json(targetUserProfile);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Fetch any user's profile by Admin or other roles using ID
 exports.getUserProfileByAdmin = async (req, res) => {
