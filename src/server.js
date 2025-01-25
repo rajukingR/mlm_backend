@@ -42,7 +42,7 @@ const envFile = `.env.${process.env.NODE_ENV || 'development'}`;
 dotenv.config({ path: envFile });
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = process.env.PORT || 4000; 
 
 // Environment Variables
 const KERAMRUTH_DOMAIN_NAME = process.env.KERAMRUTH_DOMAIN_NAME;
