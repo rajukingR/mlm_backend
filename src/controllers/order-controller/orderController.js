@@ -179,7 +179,6 @@ exports.createOrder = async (req, res) => {
           type: 'order_request',
           status: 'Pending',
           role: userRole,
-          // order_id: order.id,
           orderUniqueId: order.order_id,
         },
       });

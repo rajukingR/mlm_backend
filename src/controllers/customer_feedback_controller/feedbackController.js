@@ -122,6 +122,7 @@ exports.getFeedbackForHigherRole = async (req, res) => {
                     attributes: ['id', 'name', 'image', 'product_code'],
                 },
             ],
+            order: [['feedback_date', 'DESC']],
         });
 
 
@@ -203,6 +204,7 @@ exports.getFeedbackForCustomer = async (req, res) => {
                     attributes: ['id', 'name', 'image', 'product_code'],
                 }
             ],
+            order: [['feedback_date', 'DESC']],
         });
 
         if (feedbacks.length === 0) {
