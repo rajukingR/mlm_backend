@@ -1,9 +1,9 @@
-// models/Announcement.js
+// models/MediaNews.js
 
 'use strict';
 
 module.exports = (sequelize, DataTypes) => {
-  const Announcement = sequelize.define('Announcement', {
+  const MediaNews = sequelize.define('MediaNews', {
     id: {
       type: DataTypes.INTEGER,
       autoIncrement: true,
@@ -33,13 +33,17 @@ module.exports = (sequelize, DataTypes) => {
    
     image: {
       type: DataTypes.STRING,
-      allowNull: true, // Store the file name or URL
+      allowNull: true,
     },
+    event_date: {
+        type: DataTypes.DATE, 
+        allowNull: true,     
+      },
     
   }, {
-    tableName: 'announcements',
+    tableName: 'media_news',
     timestamps: true,
   });
 
-  return Announcement;
+  return MediaNews;
 };
