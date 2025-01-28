@@ -28,6 +28,8 @@ const userSalesDetailRoutes = require('./routes/userSalesDetailRoutes');
 const sectorAdminRoutes = require('./routes/sectorRoutes');
 const notificationRoutes = require('./routes/monthly_notificationRoute/monthlyNotificationRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
+const mediaNewsRoutes = require('./routes/mediaNewsRoutes');
+
 const documentRoutes = require('./routes/documentRoutes');
 const editRequestRoutes = require('./routes/editRequestRoutes');
 const userUpdateRoutes = require('./routes/userupdateRoutes');
@@ -148,6 +150,11 @@ app.use('/api/announcements', (req, res, next) => {
   req.io = io;
   next();
 }, announcementRoutes);
+
+app.use('/api/media-news', (req, res, next) => {
+  req.io = io;
+  next();
+}, mediaNewsRoutes);
 app.use('/api/documents', (req, res, next) => {
   req.io = io;
   next();

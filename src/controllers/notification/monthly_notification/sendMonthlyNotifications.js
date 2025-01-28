@@ -128,7 +128,7 @@ exports.sendMonthlyNotifications = async () => {
 const updateNotifications = async () => {
   try {
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+    const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 60));
 
     await Notification.update(
       { status: 'Inactive' },
@@ -148,7 +148,7 @@ const updateNotifications = async () => {
   }
 };
 
-setInterval(updateNotifications, 20  * 1000);
+// setInterval(updateNotifications, 20  * 1000);
 
 
 
