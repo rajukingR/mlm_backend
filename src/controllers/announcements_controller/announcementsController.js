@@ -117,10 +117,11 @@ exports.createAnnouncement = async (req, res) => {
 
       const notifications = users.map((user) => ({
         user_id: user.id, 
-        message: `New Announcement is received:: ${heading}`, 
+        message: `New Announcement is received: ${heading}`, 
         is_read: false, 
         created_at: new Date(), 
         detail: {
+          announcement_id:announcement.id,
           link,
           receiver: parsedReceiver,
           user_name:user.full_name,
@@ -151,21 +152,15 @@ exports.createAnnouncement = async (req, res) => {
 // Update an announcement by ID
 exports.updateByIdAnnouncement = async (req, res) => {
   const { id } = req.params;
-  const {
-    documentID,
-    heading,
-    description,
-    link,
-    receiver,
-  } = req.body;
+  const { documentID, heading, description, link, receiver } = req.body;
 
   try {
+    // Find the announcement by ID
     const announcement = await Announcement.findByPk(id);
-
     if (!announcement) {
       return res.status(404).json({
         success: false,
-        message: 'Announcement not found',
+        message: "Announcement not found",
       });
     }
 
@@ -173,37 +168,94 @@ exports.updateByIdAnnouncement = async (req, res) => {
     if (!description || !description.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Description cannot be empty',
+        message: "Description cannot be empty",
       });
     }
 
-    // Update fields accordingly
+    // Parse receiver if it's a stringified JSON
+    let parsedReceiver = receiver;
+    if (typeof receiver === "string") {
+      parsedReceiver = JSON.parse(receiver);
+    }
+
+    // Validate receiver is an array
+    if (!Array.isArray(parsedReceiver)) {
+      return res.status(400).json({
+        success: false,
+        message: "Receiver must be an array of roles.",
+      });
+    }
+
+    // Update fields
     announcement.documentID = documentID || announcement.documentID;
     announcement.heading = heading || announcement.heading;
     announcement.description = description || announcement.description;
     announcement.link = link || null;
-    announcement.receiver = receiver || announcement.receiver;
+    announcement.receiver = JSON.stringify(parsedReceiver);
 
-    // Handle file upload if present (assuming similar to document)
+    // Handle file upload if present
     if (req.file) {
-      announcement.image = req.file.filename; // Assuming you want to handle image uploads
+      announcement.image = req.file.filename;
     }
 
-    await announcement.save(); // Save updated announcement
+    await announcement.save();
 
+    // Emit the 'update_announcement' event
+    req.io.emit("update_announcement", announcement);
+
+    // Find users with roles matching the receiver array
+    if (parsedReceiver.length > 0) {
+      // Remove existing notifications for this announcement
+      await Notification.destroy({
+        where: {
+          "detail.announcement_id": announcement.id,
+        },
+      });
+
+      const users = await User.findAll({
+        where: {
+          role_name: {
+            [Op.in]: parsedReceiver,
+          },
+        },
+        attributes: ["id", "username", "full_name"],
+      });
+
+      // Create notifications for the updated announcement
+      const notifications = users.map((user) => ({
+        user_id: user.id,
+        message: `New Announcement is received: ${heading}`,
+        is_read: false,
+        created_at: new Date(),
+        detail: {
+          announcement_id: announcement.id,
+          link,
+          receiver: parsedReceiver,
+          image: req.file ? req.file.filename : announcement.image,
+          type: "announcement",
+        },
+      }));
+
+      // Insert notifications in bulk
+      await Notification.bulkCreate(notifications);
+    }
+
+    // Respond with the updated announcement
     return res.status(200).json({
       success: true,
       data: announcement,
     });
   } catch (error) {
-    console.error('Error updating announcement:', error);
+    console.error("Error updating announcement:", error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to update announcement',
+      message: "Failed to update announcement",
       error: error.message,
     });
   }
 };
+
+
 
 // Delete an announcement by ID
 exports.deleteByIdAnnouncement = async (req, res) => {

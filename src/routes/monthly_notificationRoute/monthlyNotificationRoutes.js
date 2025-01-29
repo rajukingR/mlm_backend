@@ -1,6 +1,7 @@
 const express = require('express');
 const { sendMonthlyNotifications, getNotifications, markNotificationAsRead } = require('../../controllers/notification/monthly_notification/sendMonthlyNotifications');
 const router = express.Router();
+const { authMiddleware, isAdmin } = require('../../middlewares/authMiddleware');
 
 // Route to trigger notifications manually
 router.get('/send-notifications', async (req, res) => {
@@ -14,7 +15,7 @@ router.get('/send-notifications', async (req, res) => {
 });
 
 // Route to get notifications
-router.get('/notifications/:user_id', getNotifications);
+router.get('/notifications/:user_id',authMiddleware, getNotifications);
 
 // Route to mark notifications as read
 router.put('/notifications/read/:user_id/:notification_id', markNotificationAsRead);
