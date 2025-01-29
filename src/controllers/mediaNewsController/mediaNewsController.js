@@ -249,9 +249,8 @@ exports.createMediaNews = async (req, res) => {
 
   exports.deleteMediaNews = async (req, res) => {
     try {
-      const { id } = req.params; // MediaNews ID to be deleted
+      const { id } = req.params; 
   
-      // Find the media news record to delete
       const mediaNews = await MediaNews.findByPk(id);
       if (!mediaNews) {
         return res.status(404).json({
@@ -260,16 +259,19 @@ exports.createMediaNews = async (req, res) => {
         });
       }
   
-      // Delete the media news record
+      await Notification.destroy({
+        where: {
+          "detail.news_id": id,
+        },
+      });
+  
       await mediaNews.destroy();
   
-      // Emit the 'delete_media_news' event
       req.io.emit('delete_media_news', { id });
   
-      // Respond with success message
       return res.status(200).json({
         success: true,
-        message: 'Media news deleted successfully.',
+        message: 'Media news and related notifications deleted successfully.',
       });
     } catch (error) {
       console.error('Error deleting media news:', error);
@@ -280,4 +282,5 @@ exports.createMediaNews = async (req, res) => {
       });
     }
   };
+  
   

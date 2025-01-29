@@ -2,7 +2,7 @@
 
 // const { Product } = require('../models');
 // const { Product, Order, OrderItem } = require('../models');
-const { User, Product, OrderItem, Order } = require('../../models'); 
+const { User, Product, OrderItem, Order,Notification } = require('../../models'); 
 const { validationResult } = require('express-validator');
 const { body } = require('express-validator');
 const { Op } = require('sequelize'); // Correct import for Sequelize operators
@@ -56,7 +56,7 @@ exports.createProduct = async (req, res) => {
     const existingProduct = await Product.findOne({
       where: { 
         name: req.body.name,
-        isDeleted: 0 // Check for active products only
+        isDeleted: 0, // Check for active products only
       },
     });
 
@@ -68,7 +68,7 @@ exports.createProduct = async (req, res) => {
     const deletedProduct = await Product.findOne({
       where: { 
         name: req.body.name,
-        isDeleted: 1 // Check for soft-deleted products
+        isDeleted: 1, // Check for soft-deleted products
       },
     });
 
@@ -87,14 +87,48 @@ exports.createProduct = async (req, res) => {
       ...req.body,
       image: imageFilename, // Save only the image filename
       createdBy: req.user.id, // Assuming req.user contains authenticated user data
-      isDeleted: 0 // Set the product as active by default
+      isDeleted: 0, // Set the product as active by default
     });
 
-    return res.status(201).json(newProduct);
+    // Fetch users to notify (assuming notification is for all users with specific roles)
+    const users = await User.findAll({
+      where: {
+        role_name: {
+          [Op.in]: ["Area Development Officer", "Master Distributor","Super Distributor", "Distributor","Customer"], // Adjust roles as needed
+        },
+      },
+      attributes: ['id', 'full_name'],
+    });
+
+    // Create notifications for users
+    const notifications = users.map((user) => ({
+      user_id: user.id,
+      message: `New Product Launch: ${newProduct.name}`,
+      is_read: false,
+      created_at: new Date(),
+      detail: {
+        product_id: newProduct.id,
+        name: newProduct.name,
+        price: newProduct.price,
+        createdBy: req.user.id,
+        user_name: user.full_name,
+        image: imageFilename,
+        type: 'product',
+      },
+    }));
+
+    // Insert notifications in bulk
+    await Notification.bulkCreate(notifications);
+
+    // Emit event for new product notification
+    req.io.emit('new_product', newProduct);
+
+    return res.status(201).json({ message: 'Product created successfully', product: newProduct });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 
 
@@ -146,6 +180,39 @@ exports.updateProduct = async (req, res) => {
       ...req.body,
       image: imageFilename, // Use new image or keep existing one
     };
+
+    await Notification.destroy({
+      where: { detail: { product_id: product.id } },
+    });
+
+    const users = await User.findAll({
+      where: {
+        role_name: {
+          [Op.in]: ["Area Development Officer", "Master Distributor", "Super Distributor", "Distributor", "Customer"],
+        },
+      },
+      attributes: ['id', 'full_name'],
+    });
+
+    const notifications = users.map((user) => ({
+      user_id: user.id,
+      message: `New Product Launch: ${product.name}`,
+      is_read: false,
+      created_at: new Date(),
+      detail:{
+        product_id: product.id,
+        name: product.name,
+        price: product.price,
+        createdBy: req.user?.id || null,
+        user_name: user.full_name,
+        image: imageFilename,
+        type: 'product',
+        updated_at: new Date(),
+      },
+    }));
+
+    await Notification.bulkCreate(notifications);
+
 
     // Update the product with the new details
     await product.update(updatedProductData);
@@ -238,7 +305,7 @@ exports.getAllProducts = async (req, res) => {
     // return res.status(200).json(updatedProducts);
 
         // Sort and categorize products based on productVolume and category
-        const categoryOrder = ['Oil', 'Tooth Paste', 'Soap', 'Shampoo', 'Conditioner', 'Body Lotion'];
+        const categoryOrder = ['Oil', 'Toothpaste', 'Soap', 'Shampoo', 'Conditioner', 'Body Lotion'];
         const sortedProducts = [];
     
         categoryOrder.forEach((category) => {
@@ -439,7 +506,7 @@ exports.getAllProductsForUser = async (req, res) => {
     // return res.status(200).json(productsWithPrices);
 
     // Sort products within each category by product volume and quantity_type
-    const categoryOrder = ['Oil', 'Tooth Paste', 'Soap', 'Shampoo', 'Conditioner', 'Body Lotion'];
+    const categoryOrder = ['Oil', 'Toothpaste', 'Soap', 'Shampoo', 'Conditioner', 'Body Lotion'];
     const sortedProducts = [];
 
     categoryOrder.forEach((category) => {
@@ -589,14 +656,26 @@ exports.getProductByIdForUser = async (req, res) => {
 // //***  Soft delete a product ***//
 exports.deleteProduct = async (req, res) => {
   try {
+    const productId = req.params.id;
+
     const [updatedRows] = await Product.update(
       { isDeleted: 1 }, 
-      { where: { id: req.params.id, isDeleted: 0 } }
+      { where: { id: productId, isDeleted: 0 } }
     );
 
     if (updatedRows === 0) {
       return res.status(404).json({ error: 'Product not found or already deleted' });
     }
+
+    await Notification.destroy({
+      where: {
+        "detail.product_id": productId,
+      },
+    });
+
+    await product.destroy();
+
+    req.io.emit('delete_product', { productId });
 
     return res.status(200).json({ message: 'Product soft-deleted successfully' });
 
