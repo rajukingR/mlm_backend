@@ -234,6 +234,7 @@ exports.createDocument = async (req, res) => {
         is_read: false, 
         created_at: new Date(), 
         detail: {
+          document_id:document.id,
           link,
           receiver: parsedReceiver,
           user_name:user.full_name,
@@ -276,8 +277,8 @@ exports.updateByIdDocument = async (req, res) => {
   } = req.body;
 
   try {
+    // Find the document to update
     const document = await Document.findByPk(id);
-
     if (!document) {
       return res.status(404).json({
         success: false,
@@ -285,33 +286,85 @@ exports.updateByIdDocument = async (req, res) => {
       });
     }
 
-    document.status = "active"; 
-
+    // Update document fields
+    document.status = "active";
     document.documentID = documentID || document.documentID;
     document.heading = heading || document.heading;
     document.description = description || document.description;
     document.link = link || null;
 
-    if (receiver) {
-      document.receiver = Array.isArray(receiver)
-        ? receiver
-        : JSON.parse(receiver);
+    // Parse receiver if necessary and update
+    let parsedReceiver = receiver;
+    if (typeof receiver === "string") {
+      parsedReceiver = JSON.parse(receiver);
+    }
+    if (Array.isArray(parsedReceiver)) {
+      document.receiver = JSON.stringify(parsedReceiver);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Receiver must be an array of roles.",
+      });
     }
 
-    document.autoUpdate =
-      autoUpdate !== undefined ? autoUpdate : document.autoUpdate;
-
+    // Update auto-update and dates
+    document.autoUpdate = autoUpdate !== undefined ? autoUpdate : document.autoUpdate;
     if (autoUpdate) {
       document.fromDate = fromDate || document.fromDate;
       document.toDate = toDate || document.toDate;
     }
 
+    // Update image if a new file is provided
     if (req.file) {
       document.image = req.file.filename;
     }
 
     await document.save();
 
+    // Emit an event for document update
+    req.io.emit("update_document", document);
+
+    // Parse receiver data from the JSON string
+    const receiverArray = JSON.parse(document.receiver);
+
+    if (receiverArray.length > 0) {
+      // Remove existing notifications for this document
+      await Notification.destroy({
+        where: {
+          "detail.document_id": document.id,
+        },
+      });
+
+      // Find users whose roles match the receiver array
+      const users = await User.findAll({
+        where: {
+          role_name: {
+            [Op.in]: receiverArray, // Match roles in receiver array
+          },
+        },
+        attributes: ["id", "username", "full_name"],
+      });
+
+      // Create notifications for the updated document
+      const notifications = users.map((user) => ({
+        user_id: user.id,
+        message: `New Document received: ${heading}`,
+        is_read: false,
+        created_at: new Date(),
+        detail: {
+          document_id: document.id,
+          link,
+          receiver: receiverArray,
+          image: req.file ? req.file.filename : document.image,
+          type: "document",
+        },
+      }));
+
+      // Insert notifications in bulk
+      await Notification.bulkCreate(notifications);
+    }
+
+    // Respond with the updated document
     return res.status(200).json({
       success: true,
       data: document,
@@ -325,6 +378,8 @@ exports.updateByIdDocument = async (req, res) => {
     });
   }
 };
+
+
 
 // Delete a document by ID
 exports.deleteByIdDocument = async (req, res) => {

@@ -1041,3 +1041,163 @@ exports.getUserCurrentMonthSalesDetailsId = async (req, res) => {
 //     });
 //   }
 // };
+
+
+
+
+//////OVERAL YEARLY CALCULATIONS DATA///////
+
+
+
+
+exports.getYearlySalesDetails = async (req, res) => {
+  const { role_id, user_id } = req.params;
+
+  try {
+    // Fetch user details for creation date
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const userCreatedAt = new Date(user.createdAt);
+    const currentDate = new Date();
+
+    // Fetch SalesStockTarget based on user's role_name
+    const roleTarget = await SalesStockTarget.findOne({
+      where: {
+        role_name: user.role_name,
+      },
+    });
+
+    if (!roleTarget) {
+      return res.status(404).json({ success: false, message: 'Role target not found' });
+    }
+
+    const totalMonthlyTarget = parseFloat(roleTarget.target) || 0;
+    const totalStockTarget = parseFloat(roleTarget.stock_target) || 0;
+
+    // Initialize results for the whole year
+    let yearlyAchievementAmount = 0;
+    let yearlyStockAchievement = 0;
+
+    // Helper function to get all months in 2025
+    const getMonthsInYear = (year) => {
+      const months = [];
+      for (let i = 0; i < 12; i++) {
+        months.push(new Date(year, i, 1));
+      }
+      return months;
+    };
+
+    const months2025 = getMonthsInYear(2025);
+
+    for (const targetDate of months2025) {
+      const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+      const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
+
+      // Fetch all accepted orders for the user within the target month
+      const acceptedOrders = await Order.findAll({
+        where: {
+          higher_role_id: user_id,
+          status: 'Accepted',
+          created_at: { [Op.between]: [startOfMonth, endOfMonth] },
+        },
+        include: [
+          {
+            model: OrderItem,
+            as: 'OrderItems',
+            include: {
+              model: Product,
+              as: 'product',
+              required: true,
+            },
+          },
+        ],
+      });
+
+      // Calculate total achievement amount for the current month
+      let totalAchievementAmount = 0;
+      let totalStockAchievement = 0;
+
+      for (const order of acceptedOrders) {
+        const orderUser = await User.findByPk(order.higher_role_id);
+        const roleName = orderUser ? orderUser.role_name : '';
+
+        for (const orderItem of order.OrderItems) {
+          const product = orderItem.product;
+          let price = 0;
+
+          switch (roleName) {
+            case 'Super Distributor':
+              price = product.sdPrice || 0;
+              break;
+            case 'Distributor':
+              price = product.distributorPrice || 0;
+              break;
+            case 'Master Distributor':
+              price = product.mdPrice || 0;
+              break;
+            case 'Area Development Officer':
+              price = product.adoPrice || 0;
+              break;
+            case 'Customer':
+              price = product.price || 0;
+              break;
+            default:
+              price = 0;
+              break;
+          }
+
+          totalAchievementAmount += price * (parseInt(orderItem.quantity) || 0);
+        }
+      }
+
+      // Calculate total stock achievement for the current month
+      totalStockAchievement += acceptedOrders.reduce((total, order) => {
+        return total + order.OrderItems.reduce((subtotal, item) => subtotal + (parseInt(item.quantity) || 0), 0);
+      }, 0);
+
+      yearlyAchievementAmount += totalAchievementAmount;
+      yearlyStockAchievement += totalStockAchievement;
+    }
+
+    // Calculate overall yearly pending amounts
+    const yearlyPendingAmount = Math.max(0, totalMonthlyTarget * 12 - yearlyAchievementAmount);
+    const yearlyPendingStockTarget = Math.max(0, totalStockTarget * 12 - yearlyStockAchievement);
+
+    // Calculate percentages for the year
+    const yearlyAchievementAmountPercent = Math.min(100, Math.max(0, (yearlyAchievementAmount / (totalMonthlyTarget * 12)) * 100));
+    const yearlyUnachievementAmountPercent = 100 - yearlyAchievementAmountPercent;
+
+    const yearlyStockAchievementPercent = Math.min(100, Math.max(0, (yearlyStockAchievement / (totalStockTarget * 12)) * 100));
+    const yearlyStockUnachievementPercent = 100 - yearlyStockAchievementPercent;
+
+    // Respond with the overall yearly details
+    return res.status(200).json({
+      success: true,
+      role: user.role_name,
+      user_id,
+      yearlyDetails: {
+        year: 2025,
+        MonthlyTargetAmount: totalMonthlyTarget * 12,
+        AchievementAmount: yearlyAchievementAmount,
+        pendingAmount: yearlyPendingAmount,
+        achievementAmountPercent: yearlyAchievementAmountPercent.toFixed(2),
+        unachievementAmountPercent: yearlyUnachievementAmountPercent.toFixed(2),
+        StockTarget: totalStockTarget * 12,
+        StockAchievement: yearlyStockAchievement,
+        PendingStockTarget: yearlyPendingStockTarget,
+        StockAchievementPercent: yearlyStockAchievementPercent.toFixed(2),
+        StockUnachievementPercent: yearlyStockUnachievementPercent.toFixed(2),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching yearly sales details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch yearly sales details',
+      error: error.message,
+    });
+  }
+};

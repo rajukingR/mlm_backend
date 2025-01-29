@@ -143,9 +143,9 @@ exports.getUserProfileByHierarchy = async (req, res) => {
       password: decryptedPassword // Replace the password with the decrypted password
     };
 
-    if (targetUser.superior_id !== loggedInUserId && loggedInUser.role_id !== 1) {
-      return res.status(403).json({ error: 'You are not authorized to view this user profile.' });
-    }
+    // if (targetUser.superior_id !== loggedInUserId && loggedInUser.role_id !== 1) {
+    //   return res.status(403).json({ error: 'You are not authorized to view this user profile.' });
+    // }
 
     // res.status(200).json(targetUser);
     res.status(200).json(targetUserProfile);
