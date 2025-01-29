@@ -1,5 +1,6 @@
 const { Order, OrderItem, Product, User, OrderLimit } = require('../../../models');
 const { Notification } = require('../../../models');
+const moment = require('moment');
 
 exports.createOrder = async (req, res) => {
   const { user_id, items, coupon_code } = req.body;
@@ -232,18 +233,18 @@ const getSuperior = async (userId) => {
 
 /////////////********** / Get Orders my**********//////////
 
+
 exports.getOrdersByUser = async (req, res) => {
-  const { user_id } = req.params; // Expecting user_id as a URL parameter
+  const { user_id } = req.params;
 
   try {
-    // Check if user exists
     const orders = await Order.findAll({
       where: { user_id },
-      order: [['createdAt', 'DESC']], // Replace 'createdAt' with the column name you want to sort by
+      order: [['createdAt', 'DESC']],
       include: [
         {
           model: OrderItem,
-          as: 'OrderItems', // Make sure this matches the alias used in the Order model
+          as: 'OrderItems',
           required: false,
           include: [
             {
@@ -259,7 +260,13 @@ exports.getOrdersByUser = async (req, res) => {
       return res.status(404).json({ message: 'No orders found for this user' });
     }
 
-    return res.status(200).json({ orders });
+    // Format the createdAt date for each order
+    const formattedOrders = orders.map(order => ({
+      ...order.toJSON(),
+      createdAt: moment(order.createdAt).format('DD-MM-YYYY'),
+    }));
+
+    return res.status(200).json({ orders: formattedOrders });
 
   } catch (error) {
     console.error(error);

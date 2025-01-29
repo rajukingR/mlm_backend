@@ -271,16 +271,22 @@ exports.deleteByIdAnnouncement = async (req, res) => {
       });
     }
 
+    await Notification.destroy({
+      where: {
+        "detail.announcement_id": id, 
+      },
+    });
+
     await announcement.destroy();
 
-    // Emit event for deleted announcement using `req.io`
     req.io.emit('delete_announcement', { id });
 
     return res.status(200).json({
       success: true,
-      message: 'Announcement deleted successfully',
+      message: 'Announcement and related notifications deleted successfully',
     });
   } catch (error) {
+    console.error('Error deleting announcement:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to delete announcement',
@@ -288,3 +294,4 @@ exports.deleteByIdAnnouncement = async (req, res) => {
     });
   }
 };
+
