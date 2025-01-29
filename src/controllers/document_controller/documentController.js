@@ -395,14 +395,22 @@ exports.deleteByIdDocument = async (req, res) => {
       });
     }
 
+    await Notification.destroy({
+      where: {
+        "detail.document_id": id,
+      },
+    });
+
     await document.destroy();
+
     req.io.emit('delete_document', { id });
 
     return res.status(200).json({
       success: true,
-      message: 'Document deleted successfully',
+      message: 'Document and related notifications deleted successfully',
     });
   } catch (error) {
+    console.error('Error deleting document:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to delete document',
@@ -410,6 +418,7 @@ exports.deleteByIdDocument = async (req, res) => {
     });
   }
 };
+
 
 
 

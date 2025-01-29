@@ -131,7 +131,10 @@ app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
 app.use('/api/salestarget', salesTargetrRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api/products', productRoutes);
+app.use('/api/products', (req, res, next) => {
+  req.io = io;  // Pass the io object to the request
+  next();
+}, productRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/directMembers', directMemberRoutes);
