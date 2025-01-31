@@ -27,49 +27,38 @@ exports.signInWeb = async (req, res) => {
   try {
     const { mobile_number, password } = req.body;
 
-    // Validate required fields
     if (!mobile_number || !password) {
       return res.status(400).json({ error: 'Mobile_number and password are required' });
     }
 
-    // Find the user by mobile
     const user = await User.findOne({ where: { mobile_number } });
 
-    // If user not found, return an error
     if (!user) {
-      return res.status(401).json({ error: 'Invalid mobile or password' });
+      return res.status(401).json({ error: 'Mobile number not found' });
     }
 
-    // Compare the provided password with the stored hashed password
-    // const isPasswordValid = await bcrypt.compare(password, user.password);
     const decryptedPassword = decryptPassword(user.password); 
 
-    // If password is incorrect, return an error
-    // if (!isPasswordValid) {
-    //   return res.status(401).json({ error: 'Invalid mobile or password' });
-    // }
     if (password !== decryptedPassword) {
-      return res.status(401).json({ error: 'Invalid mobile or password' });
+      return res.status(401).json({ error: 'Invalid password' }); 
     }
 
-    // Generate a JWT token
     const token = jwt.sign(
       {
         id: user.id,
         mobile_number: user.mobile_number,
-        role: user.role_name // Use role_name instead of role_id
+        role: user.role_name 
       },
-      process.env.JWT_SECRET, // Ensure this is set in your .env file
-      { expiresIn: '24h' } // Token expiry time
+      process.env.JWT_SECRET,
+      { expiresIn: '180d' } 
     );
 
-    // Return the token and user details (excluding the password)
     res.status(200).json({
       token,
       user: {
         id: user.id,
         mobile_number: user.mobile_number,
-        role: user.role_name, // Use role_name instead of role_id
+        role: user.role_name, 
         user_name: user.username,
       }
     });
@@ -134,6 +123,7 @@ exports.signIn = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 ///// ************************User sign-up***********************************/////
