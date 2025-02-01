@@ -1,4 +1,4 @@
-const { User, Role } = require('../../models');
+const { User, Role,DeleteRequest } = require('../../models');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
@@ -32,7 +32,7 @@ exports.signInWeb = async (req, res) => {
       return res.status(400).json({ error: 'Mobile_number and password are required' });
     }
 
-    // Find the user by mobile
+    // Find the user based on mobile number
     const user = await User.findOne({ where: { mobile_number } });
 
     // If user not found, return an error
@@ -40,16 +40,23 @@ exports.signInWeb = async (req, res) => {
       return res.status(401).json({ error: 'Invalid mobile or password' });
     }
 
-    // Compare the provided password with the stored hashed password
-    // const isPasswordValid = await bcrypt.compare(password, user.password);
-    const decryptedPassword = decryptPassword(user.password); 
+    // Check if user is in DeleteRequest with status 'Deleted'
+    const deleteRequest = await DeleteRequest.findOne({
+      where: { user_id: user.id, status: 'Deleted' },
+    });
+
+    if (deleteRequest) {
+      return res.status(404).json({ error: 'Your account has been deleted.' });
+    }
+
+    const decryptedPassword = decryptPassword(user.password);
 
     // If password is incorrect, return an error
     // if (!isPasswordValid) {
     //   return res.status(401).json({ error: 'Invalid mobile or password' });
     // }
     if (password !== decryptedPassword) {
-      return res.status(401).json({ error: 'Invalid mobile or password' });
+      return res.status(401).json({ error: 'Invalid password' });
     }
 
     // Generate a JWT token
@@ -57,10 +64,10 @@ exports.signInWeb = async (req, res) => {
       {
         id: user.id,
         mobile_number: user.mobile_number,
-        role: user.role_name // Use role_name instead of role_id
+        role: user.role_name
       },
-      process.env.JWT_SECRET, // Ensure this is set in your .env file
-      { expiresIn: '24h' } // Token expiry time
+      process.env.JWT_SECRET,
+      { expiresIn: '180d' }
     );
 
     // Return the token and user details (excluding the password)
@@ -77,6 +84,7 @@ exports.signInWeb = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 /////////*************** User sign-in ******************/////////
@@ -99,6 +107,18 @@ exports.signIn = async (req, res) => {
 
     // Compare the provided password with the stored hashed password
     // const isPasswordValid = await bcrypt.compare(password, user.password);
+
+
+    // Check if user is in DeleteRequest with status 'Deleted'
+    const deleteRequest = await DeleteRequest.findOne({
+      where: { user_id: user.id, status: 'Deleted' },
+    });
+
+    if (deleteRequest) {
+      return res.status(404).json({ error: 'Your account has been deleted.' });
+    }
+
+    
     const decryptedPassword = decryptPassword(user.password); 
 
     // If password is incorrect, return an error
