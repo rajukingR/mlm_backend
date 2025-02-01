@@ -805,14 +805,25 @@ exports.salesOverTime = async (req, res) => {
               {
                 model: OrderItem,
                 as: 'OrderItems',
+                include: {
+                  model: Product,
+                  as: 'product',
+                  required: true,
+                },
               },
             ],
           });
   
           let totalSoldStock = 0;
+          let totalSoldStockAmount = 0; // Initialize total sold stock amount
+  
           for (const order of adoOrders) {
             for (const orderItem of order.OrderItems) {
-              totalSoldStock += parseInt(orderItem.quantity) || 0;
+              const product = orderItem.product;
+              const price = product.sdPrice || 0; // Get the price for the product
+  
+              totalSoldStock += parseInt(orderItem.quantity) || 0; // Total quantity sold
+              totalSoldStockAmount += (parseInt(orderItem.quantity) || 0) * price; // Total value of sold stock
             }
           }
   
@@ -820,6 +831,7 @@ exports.salesOverTime = async (req, res) => {
             month,
             totalTargetStock,
             totalSoldStock,
+            totalSoldStockAmount, 
           });
         }
   
@@ -846,14 +858,25 @@ exports.salesOverTime = async (req, res) => {
               {
                 model: OrderItem,
                 as: 'OrderItems',
+                include: {
+                  model: Product,
+                  as: 'product',
+                  required: true,
+                },
               },
             ],
           });
   
           let totalSoldStock = 0;
+          let totalSoldStockAmount = 0; // Initialize total sold stock amount
+  
           for (const order of userOrders) {
             for (const orderItem of order.OrderItems) {
-              totalSoldStock += parseInt(orderItem.quantity) || 0;
+              const product = orderItem.product;
+              const price = product.sdPrice || 0; // Get the price for the product
+  
+              totalSoldStock += parseInt(orderItem.quantity) || 0; // Total quantity sold
+              totalSoldStockAmount += (parseInt(orderItem.quantity) || 0) * price; // Total value of sold stock
             }
           }
   
@@ -861,6 +884,7 @@ exports.salesOverTime = async (req, res) => {
             month,
             totalTargetStock,
             totalSoldStock,
+            totalSoldStockAmount, // Add total sold stock amount to the result
           });
         }
       }
