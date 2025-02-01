@@ -1,157 +1,4 @@
-// const { Order, Product, OrderItem, User, SalesStockTarget } = require('../../../models');
-// const { Op } = require('sequelize');
 
-// exports.getMonthlySalesDetails = async (req, res) => {
-//   const { role_id, user_id } = req.params;
-
-//   try {
-//     // Fetch user details for creation date
-//     const user = await User.findByPk(user_id);
-//     if (!user) {
-//       return res.status(404).json({ success: false, message: 'User not found' });
-//     }
-
-//     const userCreatedAt = new Date(user.createdAt);
-//     const currentDate = new Date();
-
-//     // Fetch SalesStockTarget based on user's role_name
-//     const roleTarget = await SalesStockTarget.findOne({
-//       where: {
-//         role_name: user.role_name,
-//       },
-//     });
-
-//     if (!roleTarget) {
-//       return res.status(404).json({ success: false, message: 'Role target not found' });
-//     }
-
-//     const totalMonthlyTarget = parseFloat(roleTarget.target) || 0;
-//     const totalStockTarget = parseFloat(roleTarget.stock_target) || 0;
-
-//     // Initialize results
-//     const monthlyDetails = [];
-
-//     // Helper function to iterate month-by-month
-//     const getMonthsBetweenDates = (start, end) => {
-//       const months = [];
-//       const current = new Date(start);
-//       while (current <= end) {
-//         months.push(new Date(current));
-//         current.setMonth(current.getMonth() + 1);
-//       }
-//       return months;
-//     };
-
-//     const months = getMonthsBetweenDates(userCreatedAt, currentDate);
-
-//     for (const targetDate of months) {
-//       const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-//       const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
-
-//       // Fetch all accepted orders for the user within the target month
-//       const acceptedOrders = await Order.findAll({
-//         where: {
-//           higher_role_id: user_id,
-//           status: 'Accepted',
-//           created_at: { [Op.between]: [startOfMonth, endOfMonth] },
-//         },
-//         include: [
-//           {
-//             model: OrderItem,
-//             as: 'OrderItems',
-//             include: {
-//               model: Product,
-//               as: 'product',
-//               required: true,
-//             },
-//           },
-//         ],
-//       });
-
-//       // Calculate total achievement amount
-//       let totalAchievementAmount = 0;
-//       for (const order of acceptedOrders) {
-//         const orderUser = await User.findByPk(order.higher_role_id);
-//         const roleName = orderUser ? orderUser.role_name : '';
-
-//         for (const orderItem of order.OrderItems) {
-//           const product = orderItem.product;
-//           let price = 0;
-
-//           switch (roleName) {
-//             case 'Super Distributor':
-//               price = product.sdPrice || 0;
-//               break;
-//             case 'Distributor':
-//               price = product.distributorPrice || 0;
-//               break;
-//             case 'Master Distributor':
-//               price = product.mdPrice || 0;
-//               break;
-//             case 'Area Development Officer':
-//               price = product.adoPrice || 0;
-//               break;
-//             case 'Customer':
-//               price = product.price || 0;
-//               break;
-//             default:
-//               price = 0;
-//               break;
-//           }
-
-//           totalAchievementAmount += price * (parseInt(orderItem.quantity) || 0);
-//         }
-//       }
-
-//       // Calculate total stock achievement
-//       const totalStockAchievement = acceptedOrders.reduce((total, order) => {
-//         return total + order.OrderItems.reduce((subtotal, item) => subtotal + (parseInt(item.quantity) || 0), 0);
-//       }, 0);
-
-//       // Ensure no negative values
-//       const pendingAmount = Math.max(0, totalMonthlyTarget - totalAchievementAmount);
-//       const pendingStockTarget = Math.max(0, totalStockTarget - totalStockAchievement);
-
-//       // Calculate percentages capped between 0 and 100
-//       const achievementAmountPercent = Math.min(100, Math.max(0, (totalAchievementAmount / totalMonthlyTarget) * 100));
-//       const unachievementAmountPercent = 100 - achievementAmountPercent;
-
-//       const stockAchievementPercent = Math.min(100, Math.max(0, (totalStockAchievement / totalStockTarget) * 100));
-//       const stockUnachievementPercent = 100 - stockAchievementPercent;
-
-//       // Add current month's details to the result
-//       monthlyDetails.push({
-//         month: startOfMonth.toLocaleString('default', { month: 'long' }),
-//         year: startOfMonth.getFullYear(),
-//         MonthlyTargetAmount: totalMonthlyTarget,
-//         AchievementAmount: totalAchievementAmount,
-//         pendingAmount: pendingAmount,
-//         achievementAmountPercent: achievementAmountPercent.toFixed(2),
-//         unachievementAmountPercent: unachievementAmountPercent.toFixed(2),
-//         StockTarget: totalStockTarget,
-//         StockAchievement: totalStockAchievement,
-//         PendingStockTarget: pendingStockTarget,
-//         StockAchievementPercent: stockAchievementPercent.toFixed(2),
-//         StockUnachievementPercent: stockUnachievementPercent.toFixed(2),
-//       });
-//     }
-
-//     // Respond with the monthly details
-//     return res.status(200).json({
-//       success: true,
-//       role: user.role_name,
-//       user_id,
-//       monthlyDetails,
-//     });
-//   } catch (error) {
-//     console.error('Error fetching monthly sales details:', error);
-//     return res.status(500).json({
-//       success: false,
-//       message: 'Failed to fetch monthly sales details',
-//       error: error.message,
-//     });
-//   }
-// };
 const { Order, Product, OrderItem, User, SalesStockTarget } = require('../../../models');
 const { Op } = require('sequelize');
 
@@ -222,6 +69,14 @@ exports.getMonthlySalesDetails = async (req, res) => {
         ],
       });
 
+      const acceptedOrdersForStock = await Order.findAll({
+        where: {
+          user_id: user_id,
+          status: 'Accepted',
+          created_at: { [Op.between]: [startOfMonth, endOfMonth] },
+        },
+      });
+
       // Calculate total achievement amount
       let totalAchievementAmount = 0;
       for (const order of acceptedOrders) {
@@ -258,8 +113,11 @@ exports.getMonthlySalesDetails = async (req, res) => {
       }
 
       // Calculate total stock achievement
-      const totalStockAchievement = acceptedOrders.reduce((total, order) => {
-        return total + order.OrderItems.reduce((subtotal, item) => subtotal + (parseInt(item.quantity) || 0), 0);
+      // const totalStockAchievement = acceptedOrders.reduce((total, order) => {
+      //   return total + order.OrderItems.reduce((subtotal, item) => subtotal + (parseInt(item.quantity) || 0), 0);
+      // }, 0);
+      const totalStockAchievement = acceptedOrdersForStock.reduce((total, order) => {
+        return total + (parseFloat(order.final_amount) || 0);
       }, 0);
 
       // Ensure no negative values
@@ -320,7 +178,7 @@ exports.getMonthlySalesDetails = async (req, res) => {
       });
 
       let totalAchievementAmountCurrent = 0;
-      let totalStockAchievementCurrent = 0;
+      // let totalStockAchievementCurrent = 0;
 
       for (const order of acceptedOrdersForCurrentMonth) {
         const orderUser = await User.findByPk(order.higher_role_id);
@@ -355,9 +213,21 @@ exports.getMonthlySalesDetails = async (req, res) => {
         }
       }
 
-      totalStockAchievementCurrent = acceptedOrdersForCurrentMonth.reduce((total, order) => {
-        return total + order.OrderItems.reduce((subtotal, item) => subtotal + (parseInt(item.quantity) || 0), 0);
+      const acceptedOrdersForCurrentMonthForStock = await Order.findAll({
+        where: {
+          user_id: user_id, // Notice the filter change here!
+          status: 'Accepted',
+          created_at: { [Op.between]: [startOfCurrentMonth, endOfCurrentMonth] },
+        },
+      });
+
+      const totalStockAchievementCurrent = acceptedOrdersForCurrentMonthForStock.reduce((total, order) => {
+        return total + (parseFloat(order.final_amount) || 0);
       }, 0);
+
+      // totalStockAchievementCurrent = acceptedOrdersForCurrentMonth.reduce((total, order) => {
+      //   return total + order.OrderItems.reduce((subtotal, item) => subtotal + (parseInt(item.quantity) || 0), 0);
+      // }, 0);
 
       const pendingAmountCurrent = Math.max(0, totalMonthlyTarget - totalAchievementAmountCurrent);
       const pendingStockTargetCurrent = Math.max(0, totalStockTarget - totalStockAchievementCurrent);
