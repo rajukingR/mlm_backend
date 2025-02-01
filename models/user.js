@@ -122,6 +122,7 @@ module.exports = (sequelize, DataTypes) => {
     User.belongsTo(models.User, { foreignKey: 'superior_md', as: 'MdSuperior' });
     User.belongsTo(models.User, { foreignKey: 'superior_sd', as: 'SdSuperior' });
     User.belongsTo(models.User, { foreignKey: 'superior_d', as: 'DSuperior' });
+    User.hasMany(models.DeleteRequest, { foreignKey: 'user_id' });
 
     // No association with the clubs table
   };
