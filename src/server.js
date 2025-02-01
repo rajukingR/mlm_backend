@@ -29,6 +29,7 @@ const sectorAdminRoutes = require('./routes/sectorRoutes');
 const notificationRoutes = require('./routes/monthly_notificationRoute/monthlyNotificationRoutes');
 const announcementRoutes = require('./routes/announcementRoutes');
 const mediaNewsRoutes = require('./routes/mediaNewsRoutes');
+const deleteRequestRoutes = require('./routes/deleteRequestRoutes');
 
 const documentRoutes = require('./routes/documentRoutes');
 const editRequestRoutes = require('./routes/editRequestRoutes');
@@ -129,6 +130,10 @@ app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
 
 // Routes
 app.use('/api/salestarget', salesTargetrRoutes);
+app.use('/api/delete_request', deleteRequestRoutes);
+
+
+
 app.use('/api/admin', adminRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/products', (req, res, next) => {
