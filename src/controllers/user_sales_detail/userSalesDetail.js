@@ -2,6 +2,170 @@
 const { Order, Product, OrderItem, User, SalesStockTarget } = require('../../../models');
 const { Op } = require('sequelize');
 
+exports.getMonthlySalesDetailsWeb = async (req, res) => {
+  const { role_id, user_id } = req.params;
+  // Expecting month and year as optional query parameters, e.g. /api/endpoint/674?month=2&year=2025
+  let { month, year } = req.query;
+
+  try {
+    // Fetch user details for creation date
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Fetch target amounts based on the user's role
+    const roleTarget = await SalesStockTarget.findOne({
+      where: { role_name: user.role_name },
+    });
+    if (!roleTarget) {
+      return res.status(404).json({ success: false, message: 'Role target not found' });
+    }
+    const totalMonthlyTarget = parseFloat(roleTarget.target) || 0;
+    const totalStockTarget = parseFloat(roleTarget.stock_target) || 0;
+
+    // Determine the start and end of the target month.
+    // If month and year are provided in the query, use them. Otherwise, default to the current month.
+    let startOfMonth, endOfMonth;
+    if (month && year) {
+      // If month is provided as a number (1-12) then convert to JavaScript month index (0-11)
+      month = parseInt(month);
+      year = parseInt(year);
+      if (isNaN(month) || isNaN(year) || month < 1 || month > 12) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid month or year provided in query parameters',
+        });
+      }
+      startOfMonth = new Date(year, month - 1, 1);
+      // Setting day 0 of the next month gives you the last day of the desired month.
+      endOfMonth = new Date(year, month, 0);
+    } else {
+      const currentDate = new Date();
+      startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    }
+
+    // --- Calculate Sales Achievement ---
+    // Get orders where the user is acting as the higher role (for sales)
+    const acceptedOrders = await Order.findAll({
+      where: {
+        higher_role_id: user_id,
+        status: 'Accepted',
+        created_at: { [Op.between]: [startOfMonth, endOfMonth] },
+      },
+      include: [
+        {
+          model: OrderItem,
+          as: 'OrderItems',
+          include: {
+            model: Product,
+            as: 'product',
+            required: true,
+          },
+        },
+      ],
+    });
+
+    let totalAchievementAmount = 0;
+    // For each order, determine the role of the ordering user and use the correct price field from the product.
+    for (const order of acceptedOrders) {
+      // Fetch the user who placed the order (using higher_role_id)
+      const orderUser = await User.findByPk(order.higher_role_id);
+      const roleName = orderUser ? orderUser.role_name : '';
+
+      for (const orderItem of order.OrderItems) {
+        const product = orderItem.product;
+        let price = 0;
+        switch (roleName) {
+          case 'Super Distributor':
+            price = product.sdPrice || 0;
+            break;
+          case 'Distributor':
+            price = product.distributorPrice || 0;
+            break;
+          case 'Master Distributor':
+            price = product.mdPrice || 0;
+            break;
+          case 'Area Development Officer':
+            price = product.adoPrice || 0;
+            break;
+          case 'Customer':
+            price = product.price || 0;
+            break;
+          default:
+            price = 0;
+        }
+        totalAchievementAmount += price * (parseInt(orderItem.quantity) || 0);
+      }
+    }
+
+    // --- Calculate Stock Achievement ---
+    // Get orders where the user is directly placing the order (for stock)
+    const acceptedOrdersForStock = await Order.findAll({
+      where: {
+        user_id: user_id,
+        status: 'Accepted',
+        created_at: { [Op.between]: [startOfMonth, endOfMonth] },
+      },
+    });
+    const totalStockAchievement = acceptedOrdersForStock.reduce((total, order) => {
+      return total + (parseFloat(order.final_amount) || 0);
+    }, 0);
+
+    // --- Compute Pending Amounts and Percentages ---
+    const pendingAmount = Math.max(0, totalMonthlyTarget - totalAchievementAmount);
+    const pendingStockTarget = Math.max(0, totalStockTarget - totalStockAchievement);
+
+    const achievementAmountPercent = Math.min(100, Math.max(0, (totalAchievementAmount / totalMonthlyTarget) * 100));
+    const unachievementAmountPercent = 100 - achievementAmountPercent;
+
+    const stockAchievementPercent = Math.min(100, Math.max(0, (totalStockAchievement / totalStockTarget) * 100));
+    const stockUnachievementPercent = 100 - stockAchievementPercent;
+
+    // Format the month name for the response
+    const monthName = startOfMonth.toLocaleString('default', { month: 'long' });
+
+    const monthlyDetail = {
+      month: monthName,
+      year: startOfMonth.getFullYear(),
+      MonthlyTargetAmount: totalMonthlyTarget,
+      AchievementAmount: totalAchievementAmount,
+      pendingAmount: pendingAmount,
+      achievementAmountPercent: achievementAmountPercent.toFixed(2),
+      unachievementAmountPercent: unachievementAmountPercent.toFixed(2),
+      StockTarget: totalStockTarget,
+      StockAchievement: totalStockAchievement,
+      PendingStockTarget: pendingStockTarget,
+      StockAchievementPercent: stockAchievementPercent.toFixed(2),
+      StockUnachievementPercent: stockUnachievementPercent.toFixed(2),
+    };
+
+    return res.status(200).json({
+      success: true,
+      role: user.role_name,
+      user_id,
+      monthlyDetails: monthlyDetail,
+    });
+  } catch (error) {
+    console.error('Error fetching monthly sales details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch monthly sales details',
+      error: error.message,
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
+
 exports.getMonthlySalesDetails = async (req, res) => {
   const { role_id, user_id } = req.params;
 

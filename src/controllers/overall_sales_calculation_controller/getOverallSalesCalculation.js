@@ -1,11 +1,281 @@
+// const { Order, Product, OrderItem, User, SalesStockTarget } = require('../../../models');
+// const { Op } = require('sequelize');
+// const { sequelize } = require('../../../models');
+
+// exports.getOverallSalesCalculation = async (req, res) => {
+//   try {
+//     const USER_ROLE_NAME = req.user.role_name; 
+//     const Distributor_ROLE_ID = req.user.id;  
+
+//     //** Check if the role is 'Customer' and restrict access **//
+//     if (USER_ROLE_NAME === 'Customer') {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'You do not have access to this information.',
+//       });
+//     }
+
+//     const roles = ['Area Development Officer', 'Master Distributor', 'Super Distributor', 'Distributor', 'Customer'];
+//     const result = [];
+
+//     //** Admin role: predefined hierarchy logic **//
+//     if (USER_ROLE_NAME === 'Admin') {
+//       for (const role of roles) {
+//         // Fetch users by role
+//         const users = await User.findAll({
+//           where: { role_name: role },
+//         });
+
+//         const totalUsers = users.length;
+
+//         // Fetch role-specific sales and stock targets
+//         const roleTarget = await SalesStockTarget.findOne({
+//           where: { role_name: role },
+//         });
+
+//         const targetAmount = parseFloat(roleTarget?.target || 0) * totalUsers;
+//         const targetStock = parseFloat(roleTarget?.stock_target || 0) * totalUsers;
+
+//         //** Fetch accepted orders for users in this role **//
+//         const orders = await Order.findAll({
+//           where: {
+//             higher_role_id: users.map((user) => user.id),
+//             status: 'Accepted',
+//           },
+//           include: [
+//             {
+//               model: OrderItem,
+//               as: 'OrderItems',
+//               include: {
+//                 model: Product,
+//                 as: 'product',
+//                 required: true,
+//               },
+//             },
+//           ],
+//         });
+
+//         //** Calculate achieved sales amount and stock **//
+//         let totalSalesAmount = 0;
+//         let totalStockAchieved = 0;
+
+//         for (const order of orders) {
+//           for (const orderItem of order.OrderItems) {
+//             const product = orderItem.product;
+//             let price = 0;
+
+//             //** Determine price based on role **//
+//             switch (role) {
+//               case 'Area Development Officer':
+//                 price = product.adoPrice || 0;
+//                 break;
+//               case 'Master Distributor':
+//                 price = product.mdPrice || 0;
+//                 break;
+//               case 'Super Distributor':
+//                 price = product.sdPrice || 0;
+//                 break;
+//               case 'Distributor':
+//                 price = product.distributorPrice || 0;
+//                 break;
+//             }
+
+//             totalSalesAmount += price * (parseInt(orderItem.quantity) || 0);
+//             totalStockAchieved += parseInt(orderItem.quantity) || 0;
+//           }
+//         }
+
+//         //** Calculate pending amounts and percentages **//
+//         const pendingAmount = Math.max(targetAmount - totalSalesAmount, 0);
+//         const pendingStock = Math.max(targetStock - totalStockAchieved, 0);
+
+//         const salesAchievementPercent = Math.min(
+//           Math.max(targetAmount > 0 ? (totalSalesAmount / targetAmount) * 100 : 0, 0),
+//           100
+//         );
+//         const stockAchievementPercent = Math.min(
+//           Math.max(targetStock > 0 ? (totalStockAchieved / targetStock) * 100 : 0, 0),
+//           100
+//         );
+
+//                 //** Calculate total amount ordered by 'Customer' users **//
+//                 const customerOrders = await Order.findAll({
+//                   where: {
+//                     user_id: users.filter((user) => user.role_name === 'Customer').map((user) => user.id),
+//                     status: 'Accepted',
+//                   },
+//                 });
+
+//             const customerBuyedAmmount = customerOrders.reduce((total, order) => total + parseFloat(order.final_amount || 0), 0);
+
+//         const roleData = {
+//           roleName: role,
+//           totalUsers,
+//           targetAmount,
+//           targetStock,
+//           totalSalesAmount,
+//           totalStockAchieved,
+//           pendingAmount,
+//           pendingStock,
+//           salesAchievementPercent: salesAchievementPercent.toFixed(2),
+//           stockAchievementPercent: stockAchievementPercent.toFixed(2),
+//         };
+  
+//         if (role === 'Customer') {
+//           roleData.customerBuyedAmmount = customerBuyedAmmount;
+//         }
+  
+//         result.push(roleData);
+
+//       }
+
+//       return res.status(200).json({
+//         success: true,
+//         result,
+//       });
+//     }
+
+//     //***** Non-admin roles: Fetch only data directly under the user's ID *****//
+//     let directRoles = roles.filter((role) => role !== USER_ROLE_NAME && role !== 'Admin');
+
+//     //** Exclude specific roles based on the logged-in user's role **//
+//     if (USER_ROLE_NAME === 'Super Distributor') {
+//       directRoles = directRoles.filter(role => role !== 'Area Development Officer' && role !== 'Master Distributor' && role !== 'Super Distributor');
+//     } else if (USER_ROLE_NAME === 'Distributor') {
+//       directRoles = directRoles.filter(role => role !== 'Area Development Officer' && role !== 'Master Distributor' && role !== 'Super Distributor' && role !== 'Distributor');
+//     } else if (USER_ROLE_NAME === 'Master Distributor') {
+//       //** Exclude 'Area Development Officer' if logged in as 'Master Distributor' **//
+//       directRoles = directRoles.filter(role => role !== 'Area Development Officer');
+//     }
+
+//     for (const role of directRoles) {
+//       const users = await User.findAll({
+//         where: { superior_id: Distributor_ROLE_ID, role_name: role },
+//       });
+
+//       const totalUsers = users.length;
+
+//       //** Fetch role-specific sales and stock targets **//
+//       const roleTarget = await SalesStockTarget.findOne({
+//         where: { role_name: role },
+//       });
+
+//       const targetAmount = parseFloat(roleTarget?.target || 0) * totalUsers;
+//       const targetStock = parseFloat(roleTarget?.stock_target || 0) * totalUsers;
+
+//       //** Fetch accepted orders for users directly under this role **//
+//       const orders = await Order.findAll({
+//         where: {
+//           user_id: users.map((user) => user.id),
+//           status: 'Accepted',
+//         },
+//         include: [
+//           {
+//             model: OrderItem,
+//             as: 'OrderItems',
+//             include: {
+//               model: Product,
+//               as: 'product',
+//               required: true,
+//             },
+//           },
+//         ],
+//       });
+
+//       let totalSalesAmount = 0;
+//       let totalStockAchieved = 0;
+
+//       for (const order of orders) {
+//         for (const orderItem of order.OrderItems) {
+//           const product = orderItem.product;
+//           let price = 0;
+
+//           //** Determine price based on role **//
+//           switch (role) {
+//             case 'Area Development Officer':
+//               price = product.adoPrice || 0;
+//               break;
+//             case 'Master Distributor':
+//               price = product.mdPrice || 0;
+//               break;
+//             case 'Super Distributor':
+//               price = product.sdPrice || 0;
+//               break;
+//             case 'Distributor':
+//               price = product.distributorPrice || 0;
+//               break;
+//           }
+
+//           totalSalesAmount += price * (parseInt(orderItem.quantity) || 0);
+//           totalStockAchieved += parseInt(orderItem.quantity) || 0;
+//         }
+//       }
+
+//       const pendingAmount = Math.max(targetAmount - totalSalesAmount, 0);
+//       const pendingStock = Math.max(targetStock - totalStockAchieved, 0);
+
+//       const salesAchievementPercent = Math.min(
+//         Math.max(targetAmount > 0 ? (totalSalesAmount / targetAmount) * 100 : 0, 0),
+//         100
+//       );
+//       const stockAchievementPercent = Math.min(
+//         Math.max(targetStock > 0 ? (totalStockAchieved / targetStock) * 100 : 0, 0),
+//         100
+//       );
+
+//         //** Calculate total amount ordered by 'Customer' users for direct roles **//
+//         const customerOrdersDirect = await Order.findAll({
+//           where: {
+//             user_id: users.filter((user) => user.role_name === 'Customer').map((user) => user.id),
+//             status: 'Accepted',
+//           },
+//         });
+  
+//         const customerBuyedAmmountDirect = customerOrdersDirect.reduce((total, order) => total + parseFloat(order.final_amount || 0), 0);
+
+//       const roleData = {
+//         roleName: role,
+//         totalUsers,
+//         targetAmount,
+//         targetStock,
+//         totalSalesAmount,
+//         totalStockAchieved,
+//         pendingAmount,
+//         pendingStock,
+//         salesAchievementPercent: salesAchievementPercent.toFixed(2),
+//         stockAchievementPercent: stockAchievementPercent.toFixed(2),
+//         customerBuyedAmmount: role === 'Customer' ? customerBuyedAmmountDirect : undefined,
+//       };
+
+//       result.push(roleData);
+
+//     }
+
+//     return res.status(200).json({
+//       success: true,
+//       result,
+//     });
+
+
+//   } catch (error) {
+//     console.error('Error calculating overall sales:', error);
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Failed to calculate overall sales',
+//       error: error.message,
+//     });
+//   }
+// };
+
 const { Order, Product, OrderItem, User, SalesStockTarget } = require('../../../models');
 const { Op } = require('sequelize');
 const { sequelize } = require('../../../models');
 
+
 exports.getOverallSalesCalculation = async (req, res) => {
   try {
-    const USER_ROLE_NAME = req.user.role_name; 
-    const Distributor_ROLE_ID = req.user.id;  
+    const USER_ROLE_NAME = req.user.role_name;
+    const Distributor_ROLE_ID = req.user.id;
 
     //** Check if the role is 'Customer' and restrict access **//
     if (USER_ROLE_NAME === 'Customer') {
@@ -14,6 +284,11 @@ exports.getOverallSalesCalculation = async (req, res) => {
         message: 'You do not have access to this information.',
       });
     }
+
+    // Get selected month from query params, default to current month
+    const selectedMonth = req.query.month ? moment(req.query.month, 'YYYY-MM').startOf('month') : moment().startOf('month');
+    const startDate = selectedMonth.toDate();
+    const endDate = moment(selectedMonth).endOf('month').toDate();
 
     const roles = ['Area Development Officer', 'Master Distributor', 'Super Distributor', 'Distributor', 'Customer'];
     const result = [];
@@ -36,11 +311,12 @@ exports.getOverallSalesCalculation = async (req, res) => {
         const targetAmount = parseFloat(roleTarget?.target || 0) * totalUsers;
         const targetStock = parseFloat(roleTarget?.stock_target || 0) * totalUsers;
 
-        //** Fetch accepted orders for users in this role **//
+        //** Fetch accepted orders for users in this role within the selected month **//
         const orders = await Order.findAll({
           where: {
             higher_role_id: users.map((user) => user.id),
             status: 'Accepted',
+            createdAt: { [Op.between]: [startDate, endDate] }, // Filter by selected month
           },
           include: [
             {
@@ -98,15 +374,16 @@ exports.getOverallSalesCalculation = async (req, res) => {
           100
         );
 
-                //** Calculate total amount ordered by 'Customer' users **//
-                const customerOrders = await Order.findAll({
-                  where: {
-                    user_id: users.filter((user) => user.role_name === 'Customer').map((user) => user.id),
-                    status: 'Accepted',
-                  },
-                });
+        //** Calculate total amount ordered by 'Customer' users in the selected month **//
+        const customerOrders = await Order.findAll({
+          where: {
+            user_id: users.filter((user) => user.role_name === 'Customer').map((user) => user.id),
+            status: 'Accepted',
+            createdAt: { [Op.between]: [startDate, endDate] },
+          },
+        });
 
-            const customerBuyedAmmount = customerOrders.reduce((total, order) => total + parseFloat(order.final_amount || 0), 0);
+        const customerBuyedAmmount = customerOrders.reduce((total, order) => total + parseFloat(order.final_amount || 0), 0);
 
         const roleData = {
           roleName: role,
@@ -119,14 +396,10 @@ exports.getOverallSalesCalculation = async (req, res) => {
           pendingStock,
           salesAchievementPercent: salesAchievementPercent.toFixed(2),
           stockAchievementPercent: stockAchievementPercent.toFixed(2),
+          customerBuyedAmmount: role === 'Customer' ? customerBuyedAmmount : undefined,
         };
-  
-        if (role === 'Customer') {
-          roleData.customerBuyedAmmount = customerBuyedAmmount;
-        }
-  
-        result.push(roleData);
 
+        result.push(roleData);
       }
 
       return res.status(200).json({
@@ -137,16 +410,6 @@ exports.getOverallSalesCalculation = async (req, res) => {
 
     //***** Non-admin roles: Fetch only data directly under the user's ID *****//
     let directRoles = roles.filter((role) => role !== USER_ROLE_NAME && role !== 'Admin');
-
-    //** Exclude specific roles based on the logged-in user's role **//
-    if (USER_ROLE_NAME === 'Super Distributor') {
-      directRoles = directRoles.filter(role => role !== 'Area Development Officer' && role !== 'Master Distributor' && role !== 'Super Distributor');
-    } else if (USER_ROLE_NAME === 'Distributor') {
-      directRoles = directRoles.filter(role => role !== 'Area Development Officer' && role !== 'Master Distributor' && role !== 'Super Distributor' && role !== 'Distributor');
-    } else if (USER_ROLE_NAME === 'Master Distributor') {
-      //** Exclude 'Area Development Officer' if logged in as 'Master Distributor' **//
-      directRoles = directRoles.filter(role => role !== 'Area Development Officer');
-    }
 
     for (const role of directRoles) {
       const users = await User.findAll({
@@ -163,11 +426,12 @@ exports.getOverallSalesCalculation = async (req, res) => {
       const targetAmount = parseFloat(roleTarget?.target || 0) * totalUsers;
       const targetStock = parseFloat(roleTarget?.stock_target || 0) * totalUsers;
 
-      //** Fetch accepted orders for users directly under this role **//
+      //** Fetch accepted orders for users directly under this role in the selected month **//
       const orders = await Order.findAll({
         where: {
           user_id: users.map((user) => user.id),
           status: 'Accepted',
+          createdAt: { [Op.between]: [startDate, endDate] },
         },
         include: [
           {
@@ -190,7 +454,6 @@ exports.getOverallSalesCalculation = async (req, res) => {
           const product = orderItem.product;
           let price = 0;
 
-          //** Determine price based on role **//
           switch (role) {
             case 'Area Development Officer':
               price = product.adoPrice || 0;
@@ -214,25 +477,6 @@ exports.getOverallSalesCalculation = async (req, res) => {
       const pendingAmount = Math.max(targetAmount - totalSalesAmount, 0);
       const pendingStock = Math.max(targetStock - totalStockAchieved, 0);
 
-      const salesAchievementPercent = Math.min(
-        Math.max(targetAmount > 0 ? (totalSalesAmount / targetAmount) * 100 : 0, 0),
-        100
-      );
-      const stockAchievementPercent = Math.min(
-        Math.max(targetStock > 0 ? (totalStockAchieved / targetStock) * 100 : 0, 0),
-        100
-      );
-
-        //** Calculate total amount ordered by 'Customer' users for direct roles **//
-        const customerOrdersDirect = await Order.findAll({
-          where: {
-            user_id: users.filter((user) => user.role_name === 'Customer').map((user) => user.id),
-            status: 'Accepted',
-          },
-        });
-  
-        const customerBuyedAmmountDirect = customerOrdersDirect.reduce((total, order) => total + parseFloat(order.final_amount || 0), 0);
-
       const roleData = {
         roleName: role,
         totalUsers,
@@ -242,30 +486,20 @@ exports.getOverallSalesCalculation = async (req, res) => {
         totalStockAchieved,
         pendingAmount,
         pendingStock,
-        salesAchievementPercent: salesAchievementPercent.toFixed(2),
-        stockAchievementPercent: stockAchievementPercent.toFixed(2),
-        customerBuyedAmmount: role === 'Customer' ? customerBuyedAmmountDirect : undefined,
+        salesAchievementPercent: ((totalSalesAmount / targetAmount) * 100).toFixed(2),
+        stockAchievementPercent: ((totalStockAchieved / targetStock) * 100).toFixed(2),
       };
 
       result.push(roleData);
-
     }
 
-    return res.status(200).json({
-      success: true,
-      result,
-    });
-
-
+    return res.status(200).json({ success: true, result });
   } catch (error) {
     console.error('Error calculating overall sales:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to calculate overall sales',
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: 'Failed to calculate overall sales', error: error.message });
   }
 };
+
 
 
 
