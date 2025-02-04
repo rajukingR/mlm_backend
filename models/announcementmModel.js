@@ -33,13 +33,8 @@ module.exports = (sequelize, DataTypes) => {
    
     image: {
       type: DataTypes.STRING,
-      allowNull: true, // Store the file name or URL
+      allowNull: true, 
     },
-    file: {
-      type: DataTypes.STRING, // Store the filename of the uploaded file
-      allowNull: true,
-    },
-    
   }, {
     tableName: 'announcements',
     timestamps: true,

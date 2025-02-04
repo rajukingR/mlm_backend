@@ -43,7 +43,7 @@ exports.createMediaNews = async (req, res) => {
         link,
         receiver: receiverString, // Store as JSON string
         event_date,
-        file: req.file ? req.file.filename : null,
+        image: req.file ? req.file.filename : null,
       });
   
       // Emit the 'new_media_news' event
@@ -186,7 +186,7 @@ exports.createMediaNews = async (req, res) => {
         link,
         receiver: receiverString, // Store as JSON string
         event_date,
-        file: req.file ? req.file.filename : mediaNews.image, // Update image only if a new file is uploaded
+        image: req.file ? req.file.filename : mediaNews.image, // Update image only if a new file is uploaded
       });
   
       // Emit the 'update_media_news' event
