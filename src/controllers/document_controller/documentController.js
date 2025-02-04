@@ -1,7 +1,8 @@
 const { Document, User, Notification } = require('../../../models');
 const { Op } = require('sequelize');
 const moment = require('moment');  // Import moment.js
-
+const path = require('path');
+const fs = require('fs');  // Ensure fs is imported for file operations
 
 exports.getDocuments = async (req, res) => {
   try {
@@ -189,16 +190,18 @@ exports.createDocument = async (req, res) => {
     // Set the default status if not provided
     const documentStatus = status || 'active'; // Default status to 'active'
 
-    const allowedMimeType = 'image/';
+    // Define allowed mime types for files (images, PDFs, ZIP)
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf', 'application/zip'];
 
-    if (req.file && !req.file.mimetype.startsWith(allowedMimeType)) {
+    // Validate file format if provided
+    if (req.file && !allowedMimeTypes.includes(req.file.mimetype)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid image format. Only image files are allowed.',
+        message: 'Invalid file format. Only image, PDF, or ZIP files are allowed.',
       });
     }
 
-    // Create the document
+    // Create the document in the database
     const document = await Document.create({
       documentID,
       heading,
@@ -209,15 +212,16 @@ exports.createDocument = async (req, res) => {
       status: documentStatus, // Use the default or provided status
       fromDate: autoUpdate ? fromDate : null,
       toDate: autoUpdate ? toDate : null,
-      image: req.file ? req.file.filename : null, // Save only the filename
+      file: req.file ? req.file.filename : null, // Save only the filename (if file exists)
     });
 
     // Emit event for new document
     req.io.emit('new_document', document);
 
-    /////////////**********Notification******* */
+    // Parse receiver if it's a string (for array of roles)
     const parsedReceiver = typeof receiver === 'string' ? JSON.parse(receiver) : receiver;
 
+    // If there are receivers (roles), send notifications
     if (parsedReceiver.length > 0) {
       // Find all users whose roles match the roles in `receiver`
       const users = await User.findAll({
@@ -229,24 +233,23 @@ exports.createDocument = async (req, res) => {
       });
 
       const notifications = users.map((user) => ({
-        user_id: user.id, 
-        message: `New Document received: ${heading}`, 
-        is_read: false, 
-        created_at: new Date(), 
+        user_id: user.id,
+        message: `New Document received: ${heading}`,
+        is_read: false,
+        created_at: new Date(),
         detail: {
-          document_id:document.id,
+          document_id: document.id,
           link,
           receiver: parsedReceiver,
-          user_name:user.full_name,
-          image: req.file ? req.file.filename : null,
-          type:"document"
+          user_name: user.full_name,
+          file: req.file ? req.file.filename : null,
+          type: 'document',
         },
       }));
 
       // Insert notifications in bulk
       await Notification.bulkCreate(notifications);
     }
-
 
     return res.status(201).json({
       success: true,
@@ -277,25 +280,23 @@ exports.updateByIdDocument = async (req, res) => {
   } = req.body;
 
   try {
-    // Find the document to update
     const document = await Document.findByPk(id);
     if (!document) {
       return res.status(404).json({
         success: false,
-        message: "Document not found",
+        message: 'Document not found',
       });
     }
 
-    // Update document fields
-    document.status = "active";
+    // Update the document fields
     document.documentID = documentID || document.documentID;
     document.heading = heading || document.heading;
     document.description = description || document.description;
     document.link = link || null;
 
-    // Parse receiver if necessary and update
+    // Update receiver array
     let parsedReceiver = receiver;
-    if (typeof receiver === "string") {
+    if (typeof receiver === 'string') {
       parsedReceiver = JSON.parse(receiver);
     }
     if (Array.isArray(parsedReceiver)) {
@@ -303,7 +304,7 @@ exports.updateByIdDocument = async (req, res) => {
     } else {
       return res.status(400).json({
         success: false,
-        message: "Receiver must be an array of roles.",
+        message: 'Receiver must be an array of roles.',
       });
     }
 
@@ -314,38 +315,35 @@ exports.updateByIdDocument = async (req, res) => {
       document.toDate = toDate || document.toDate;
     }
 
-    // Update image if a new file is provided
+    // Update the file/image if provided
     if (req.file) {
-      document.image = req.file.filename;
+      // Delete old file (if exists) before saving the new one
+      if (document.file) {
+        const filePath = path.join(__dirname, '../uploads', document.file);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath); // Delete the old file
+        }
+      }
+      document.file = req.file.filename; // Store the new file's filename
     }
 
+    // Save the updated document
     await document.save();
 
-    // Emit an event for document update
-    req.io.emit("update_document", document);
+    // Emit event for document update (if using socket.io)
+    req.io.emit('update_document', document);
 
-    // Parse receiver data from the JSON string
+    // Send notifications to users based on updated receiver roles
     const receiverArray = JSON.parse(document.receiver);
-
     if (receiverArray.length > 0) {
-      // Remove existing notifications for this document
       await Notification.destroy({
-        where: {
-          "detail.document_id": document.id,
-        },
+        where: { 'detail.document_id': document.id },
       });
 
-      // Find users whose roles match the receiver array
       const users = await User.findAll({
-        where: {
-          role_name: {
-            [Op.in]: receiverArray, // Match roles in receiver array
-          },
-        },
-        attributes: ["id", "username", "full_name"],
+        where: { role_name: { [Op.in]: receiverArray } },
       });
 
-      // Create notifications for the updated document
       const notifications = users.map((user) => ({
         user_id: user.id,
         message: `New Document received: ${heading}`,
@@ -355,8 +353,8 @@ exports.updateByIdDocument = async (req, res) => {
           document_id: document.id,
           link,
           receiver: receiverArray,
-          image: req.file ? req.file.filename : document.image,
-          type: "document",
+          image: req.file ? req.file.filename : document.file,
+          type: 'document',
         },
       }));
 
@@ -364,21 +362,19 @@ exports.updateByIdDocument = async (req, res) => {
       await Notification.bulkCreate(notifications);
     }
 
-    // Respond with the updated document
     return res.status(200).json({
       success: true,
       data: document,
     });
   } catch (error) {
-    console.error("Error updating document:", error);
+    console.error('Error updating document:', error);
     return res.status(500).json({
       success: false,
-      message: "Failed to update document",
+      message: 'Failed to update document',
       error: error.message,
     });
   }
 };
-
 
 
 // Delete a document by ID
