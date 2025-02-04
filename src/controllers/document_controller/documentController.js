@@ -212,7 +212,7 @@ exports.createDocument = async (req, res) => {
       status: documentStatus, // Use the default or provided status
       fromDate: autoUpdate ? fromDate : null,
       toDate: autoUpdate ? toDate : null,
-      file: req.file ? req.file.filename : null, // Save only the filename (if file exists)
+      image: req.file ? req.file.filename : null, // Save only the filename (if file exists)
     });
 
     // Emit event for new document
@@ -242,7 +242,7 @@ exports.createDocument = async (req, res) => {
           link,
           receiver: parsedReceiver,
           user_name: user.full_name,
-          file: req.file ? req.file.filename : null,
+          image: req.file ? req.file.filename : null,
           type: 'document',
         },
       }));
@@ -324,7 +324,7 @@ exports.updateByIdDocument = async (req, res) => {
           fs.unlinkSync(filePath); // Delete the old file
         }
       }
-      document.file = req.file.filename; // Store the new file's filename
+      document.image = req.file.filename; // Store the new file's filename
     }
 
     // Save the updated document

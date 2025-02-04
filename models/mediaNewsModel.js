@@ -30,10 +30,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    file: {
-      type: DataTypes.STRING, // Store the filename of the uploaded file
-      allowNull: true,
-    },
     image: {
       type: DataTypes.STRING,
       allowNull: true,
