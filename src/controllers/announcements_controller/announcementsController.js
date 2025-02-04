@@ -94,7 +94,7 @@ exports.createAnnouncement = async (req, res) => {
       description,
       link,
       receiver,
-      file: req.file ? req.file.filename : null,   
+      image: req.file ? req.file.filename : null,   
     });
 
     // Emit event for new announcement using `req.io`
@@ -194,7 +194,7 @@ exports.updateByIdAnnouncement = async (req, res) => {
 
     // Handle file upload if present
     if (req.file) {
-      announcement.file = req.file.filename;
+      announcement.image = req.file.filename;
     }
 
     await announcement.save();
