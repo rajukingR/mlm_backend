@@ -13,9 +13,10 @@ router.get('/admin',authMiddleware, documentController.getDocumentsAdmin);
 
 router.get('/:id', documentController.getByIdDocument);
 
-router.post('/create', upload.single('image'), documentController.createDocument);
+router.post('/create', upload.single('file'), documentController.createDocument);
 
-router.put('/:id', upload.single('image'), documentController.updateByIdDocument);
+// PUT route for updating a document by ID
+router.put('/:id', upload.single('file'), documentController.updateByIdDocument);
 
 router.delete('/:id', documentController.deleteByIdDocument);
 
