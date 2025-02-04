@@ -35,6 +35,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true, // Store the file name or URL
     },
+    file: {
+      type: DataTypes.STRING, // Store the filename of the uploaded file
+      allowNull: true,
+    },
     
   }, {
     tableName: 'announcements',
