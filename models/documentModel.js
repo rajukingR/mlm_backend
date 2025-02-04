@@ -56,10 +56,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
     },
-    file: {
-      type: DataTypes.STRING, // Store the filename of the uploaded file
-      allowNull: true,
-    },
   }, {
     tableName: 'documents',
     timestamps: true, 
