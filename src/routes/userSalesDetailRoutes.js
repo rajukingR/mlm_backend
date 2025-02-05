@@ -5,6 +5,7 @@ const userSalesDetail = require('../controllers/user_sales_detail/userSalesDetai
 const { authMiddleware } = require('../middlewares/authMiddleware');
 
 router.get('/sales_achievement/:role/:user_id', userSalesDetail.getMonthlySalesDetails);
+router.get('/sales_achievementWeb/:role/:user_id', userSalesDetail.getMonthlySalesDetailsWeb);
 router.get('/yearly_sales_achievement/:role/:user_id', userSalesDetail.getYearlySalesDetails);
 
 router.get('/getLowHierarchySalesDetails/:user_id', userSalesDetail.getLowHierarchySalesDetails);
