@@ -4,7 +4,8 @@ const twilio = require('twilio');
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 
-const serviceSid = process.env.TWILIO_SERVICE_ID;  
+
+const serviceSid ="VA9382da8780d1e59942f29792918cb593";  
 
 // Initialize Twilio client
 const client = twilio(accountSid, authToken);
