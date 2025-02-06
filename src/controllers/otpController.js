@@ -1,11 +1,8 @@
 const axios = require('axios');
-const twilio = require('twilio');
-require('dotenv').config();
+
 const { User } = require('../../models'); // Import the User model 
 
 
-// Initialize Twilio client
-const client = twilio(accountSid, authToken);
 
 const removeCountryCode = (phoneNumber) => {
     return phoneNumber.replace(/^\+91/, ''); 
