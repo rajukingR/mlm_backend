@@ -39,7 +39,7 @@ module.exports = {
       allowNull: true,
       defaultValue: false
     });
-    await queryInterface.addColumn('Products', 'activateStatus', {
+    await queryInterface.addColumn('Products', 'status', {
       type: Sequelize.BOOLEAN,
       allowNull: false,
       defaultValue: true
@@ -58,12 +58,12 @@ module.exports = {
     await queryInterface.removeColumn('Products', 'image');
     await queryInterface.removeColumn('Products', 'description');
     await queryInterface.removeColumn('Products', 'productVolume');
-    await queryInterface.removeColumn('Products', 'mrpPriceCustomer');
+    await queryInterface.removeColumn('Products', 'price');
     await queryInterface.removeColumn('Products', 'adoPrice');
     await queryInterface.removeColumn('Products', 'mdPrice');
     await queryInterface.removeColumn('Products', 'sdPrice');
     await queryInterface.removeColumn('Products', 'distributorPrice');
     await queryInterface.removeColumn('Products', 'autoUpdate');
-    await queryInterface.removeColumn('Products', 'activateStatus');
+    await queryInterface.removeColumn('Products', 'status');
   }
 };
