@@ -183,23 +183,15 @@ exports.createDocument = async (req, res) => {
     autoUpdate,
     fromDate,
     toDate,
-    status, // Ensure status is included in the request body
+    status,
   } = req.body;
 
   try {
     // Set the default status if not provided
-    const documentStatus = status || 'active'; // Default status to 'active'
+    const documentStatus = status || "active";
 
-    // Define allowed mime types for files (images, PDFs, ZIP)
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'application/pdf', 'application/zip'];
-
-    // Validate file format if provided
-    if (req.file && !allowedMimeTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid file format. Only image, PDF, or ZIP files are allowed.',
-      });
-    }
+    // No file type restrictions - allow all files
+    const uploadedFile = req.file ? req.file.filename : null;
 
     // Create the document in the database
     const document = await Document.create({
@@ -209,21 +201,20 @@ exports.createDocument = async (req, res) => {
       link,
       receiver,
       autoUpdate,
-      status: documentStatus, // Use the default or provided status
+      status: documentStatus,
       fromDate: autoUpdate ? fromDate : null,
       toDate: autoUpdate ? toDate : null,
-      image: req.file ? req.file.filename : null, // Save only the filename (if file exists)
+      image: uploadedFile, // Save the uploaded file (if exists)
     });
 
     // Emit event for new document
-    req.io.emit('new_document', document);
+    req.io.emit("new_document", document);
 
     // Parse receiver if it's a string (for array of roles)
-    const parsedReceiver = typeof receiver === 'string' ? JSON.parse(receiver) : receiver;
+    const parsedReceiver = typeof receiver === "string" ? JSON.parse(receiver) : receiver;
 
     // If there are receivers (roles), send notifications
     if (parsedReceiver.length > 0) {
-      // Find all users whose roles match the roles in `receiver`
       const users = await User.findAll({
         where: {
           role_name: {
@@ -242,8 +233,8 @@ exports.createDocument = async (req, res) => {
           link,
           receiver: parsedReceiver,
           user_name: user.full_name,
-          image: req.file ? req.file.filename : null,
-          type: 'document',
+          image: uploadedFile,
+          type: "document",
         },
       }));
 
@@ -256,14 +247,15 @@ exports.createDocument = async (req, res) => {
       data: document,
     });
   } catch (error) {
-    console.error('Error creating document:', error);
+    console.error("Error creating document:", error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to create document',
+      message: "Failed to create document",
       error: error.message,
     });
   }
 };
+
 
 // Update a document by ID
 exports.updateByIdDocument = async (req, res) => {
