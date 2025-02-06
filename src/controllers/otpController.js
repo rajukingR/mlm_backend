@@ -21,8 +21,11 @@ const sendOtp = async (req, res) => {
     if (!phoneNumber) {
         return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
+
+    // Clean the phone number (remove +91)
     const cleanedPhoneNumber = removeCountryCode(phoneNumber);
 
+    // Fetch the user with the cleaned phone number
     const user = await User.findOne({ where: { mobile_number: cleanedPhoneNumber } });
 
     if (!user) {
@@ -30,10 +33,12 @@ const sendOtp = async (req, res) => {
     }
 
     try {
+        // Send OTP using the cleaned phone number
         const verification = await client.verify.v2.services(serviceSid)
             .verifications
             .create({ to: phoneNumber, channel: 'sms' });
 
+        console.log('Verification SID:', verification.sid); // Log the SID for debugging
 
         return res.status(200).json({
             success: true,
@@ -49,6 +54,7 @@ const sendOtp = async (req, res) => {
         });
     }
 };
+
 
 // Verify OTP function
 const verifyOtp = async (req, res) => {
