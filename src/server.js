@@ -40,6 +40,7 @@ const orderLimitRoutes = require('./routes/orderLimitRoutes');
 const forgotPasswordRoutes = require('./routes/forgotPasswordRoutes');
 const overalSalesRoutes = require('./routes/overall_sales_route/overalSalesRoutes');
 const { sendMonthlyNotifications } = require('./controllers/notification/monthly_notification/sendMonthlyNotifications');
+const sentOTPRoutes = require('./routes/sendOtpRoutes');
 
 const envFile = `.env.${process.env.NODE_ENV || 'development'}`;
 dotenv.config({ path: envFile });
@@ -132,6 +133,7 @@ app.use('/uploads', express.static(path.resolve(__dirname, 'uploads')));
 app.use('/api/salestarget', salesTargetrRoutes);
 app.use('/api/delete_request', deleteRequestRoutes);
 
+app.use('/api/sent-otp', sentOTPRoutes);
 
 
 app.use('/api/admin', adminRoutes);
