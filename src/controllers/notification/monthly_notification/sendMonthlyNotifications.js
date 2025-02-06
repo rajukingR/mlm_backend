@@ -148,7 +148,7 @@ const updateNotifications = async () => {
   }
 };
 
-// setInterval(updateNotifications, 20  * 1000);
+setInterval(updateNotifications, 20  * 1000);
 
 
 
