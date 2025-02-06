@@ -64,70 +64,35 @@ const sendForgotPasswordLink = async (req, res) => {
 };
 
 const resetPassword = async (req, res) => {
-    const { email, token, password } = req.body;
-  
-    try {
-      // Find user by email to get resetToken and resetTokenExpiration
-      const user = await User.findOne({ where: { email: email } });
-      if (!user) {
-        return res.status(404).json({ message: 'User not found.' });
-      }
+  const { mobileNumber, password } = req.body;
 
-      // Check if the reset token matches and is not expired
-      if (user.resetToken !== token) {
-        return res.status(400).json({ message: 'Invalid or expired reset token.' });
-      }
-  
-      // Check if the reset token is expired
-      const currentTime = Date.now();
-      if (user.resetTokenExpiration < currentTime) {
-        return res.status(400).json({ message: 'Reset link has expired.' });
-      }
-  
-      // Encrypt the new password
-      const encryptedPassword = encryptPassword(password);
-      console.log('Encrypted Password:', encryptedPassword); // Log encrypted password for debugging
-  
-      // Update the user's password in the database and clear the reset token
-      const updateUser = await User.update(
-        { password: encryptedPassword, resetToken: null, resetTokenExpiration: null },
-        { where: { email: email } }
-      );
-  
-      if (updateUser[0] === 0) {
-        return res.status(500).json({ message: 'Failed to update the password.' });
-      }
-  
-      // Send confirmation email
-      const fullName = user.full_name;
-      const transporter = nodemailer.createTransport({
-        service: 'Gmail',
-        auth: {
-          user: 'rajuking9160@gmail.com', // Your email
-          pass: 'ifye whlp asxl owhf', // Your email password
-        },
-      });
-  
-      const mailOptions = {
-        from: 'your-email@gmail.com',
-        to: user.email,
-        subject: 'Password Successfully Updated',
-        html: `<p>Hello ${fullName},</p><p>Your password has been successfully updated. If this was not you, please contact support immediately.</p>`,
-      };
-  
-      try {
-        await transporter.sendMail(mailOptions);
-      } catch (mailError) {
-        console.error('Error sending confirmation email:', mailError);
-        return res.status(500).json({ message: 'Failed to send confirmation email.' });
-      }
-  
-      return res.status(200).json({ message: 'Password updated successfully.' });
-    } catch (error) {
-      console.error('Error updating password:', error);
-      return res.status(500).json({ message: 'Internal server error.' });
+  try {
+    // Find user by mobile number
+    const user = await User.findOne({ where: { mobile_number: mobileNumber } });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
     }
+
+    // Encrypt the new password
+    const encryptedPassword = encryptPassword(password);
+
+    // Update the user's password in the database
+    const updateUser = await User.update(
+      { password: encryptedPassword },
+      { where: { mobile_number: mobileNumber } }  // Use mobileNumber here
+    );
+
+    if (updateUser[0] === 0) {
+      return res.status(500).json({ message: 'Failed to update the password.' });
+    }
+
+    return res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    console.error('Error updating password:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
 };
+
 
   
 
