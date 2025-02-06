@@ -3,9 +3,6 @@ const twilio = require('twilio');
 require('dotenv').config();
 const { User } = require('../../models'); // Import the User model 
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const serviceSid = process.env.TWILIO_SERVICE_SID;
 
 // Initialize Twilio client
 const client = twilio(accountSid, authToken);
