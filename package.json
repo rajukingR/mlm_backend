@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "start": "node build/server.js",
-    "build": "babel server.js --out-dir build",
-    "server": "nodemon server.js"
+    "start": "cross-env NODE_ENV=production node build/server.js",
+    "build": "babel src --out-dir build && ncp models build/models && ncp public build/public && ncp .env build/.env && ncp .env.production build/.env.production",
+    "server": "node src/server.js",
+    "start:development": "cross-env NODE_ENV=development  nodemon src/server.js",
+    "start:production": "cross-env NODE_ENV=production node src/server.js"
   },
   "keywords": [],
   "author": "",
@@ -24,15 +26,16 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "sequelize": "^6.37.4",
-    "sharp": "^0.33.5",
     "socket.io": "^4.8.1",
-    "unzipper": "^0.12.3"
+    "twilio": "^5.4.3"
   },
   "devDependencies": {
     "@babel/cli": "^7.25.6",
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.4",
-    "nodemon": "^3.1.9",
+    "cross-env": "^7.0.3",
+    "ncp": "^2.0.0",
+    "nodemon": "^3.1.4",
     "sequelize-cli": "^6.6.2"
   }
 }
