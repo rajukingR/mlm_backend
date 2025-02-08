@@ -407,6 +407,7 @@ exports.getOverallSalesCalculation = async (req, res) => {
         result,
       });
     }
+    
 
     //***** Non-admin roles: Fetch only data directly under the user's ID *****//
     let directRoles = roles.filter((role) => role !== USER_ROLE_NAME && role !== 'Admin');
