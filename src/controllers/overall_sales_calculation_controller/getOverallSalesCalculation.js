@@ -4,8 +4,8 @@
 
 // exports.getOverallSalesCalculation = async (req, res) => {
 //   try {
-//     const USER_ROLE_NAME = req.user.role_name; 
-//     const Distributor_ROLE_ID = req.user.id;  
+//     const USER_ROLE_NAME = req.user.role_name;
+//     const Distributor_ROLE_ID = req.user.id;
 
 //     //** Check if the role is 'Customer' and restrict access **//
 //     if (USER_ROLE_NAME === 'Customer') {
@@ -120,11 +120,11 @@
 //           salesAchievementPercent: salesAchievementPercent.toFixed(2),
 //           stockAchievementPercent: stockAchievementPercent.toFixed(2),
 //         };
-  
+
 //         if (role === 'Customer') {
 //           roleData.customerBuyedAmmount = customerBuyedAmmount;
 //         }
-  
+
 //         result.push(roleData);
 
 //       }
@@ -230,7 +230,7 @@
 //             status: 'Accepted',
 //           },
 //         });
-  
+
 //         const customerBuyedAmmountDirect = customerOrdersDirect.reduce((total, order) => total + parseFloat(order.final_amount || 0), 0);
 
 //       const roleData = {
@@ -256,7 +256,6 @@
 //       result,
 //     });
 
-
 //   } catch (error) {
 //     console.error('Error calculating overall sales:', error);
 //     return res.status(500).json({
@@ -267,34 +266,65 @@
 //   }
 // };
 
-const { Order, Product, OrderItem, User, SalesStockTarget } = require('../../../models');
-const { Op } = require('sequelize');
-const { sequelize } = require('../../../models');
-
+const {
+  Order,
+  Product,
+  OrderItem,
+  User,
+  SalesStockTarget,
+} = require("../../../models");
+const { Op } = require("sequelize");
+const { sequelize } = require("../../../models");
 
 exports.getOverallSalesCalculation = async (req, res) => {
   try {
-    const USER_ROLE_NAME = req.user.role_name;
-    const Distributor_ROLE_ID = req.user.id;
+    let USER_ROLE_NAME = req.user.role_name;
+    let Distributor_ROLE_ID = req.user.id;
+
+    if (USER_ROLE_NAME === "Admin") {
+      Distributor_ROLE_ID = 1;
+    }
 
     //** Check if the role is 'Customer' and restrict access **//
-    if (USER_ROLE_NAME === 'Customer') {
+    if (USER_ROLE_NAME === "Customer") {
       return res.status(403).json({
         success: false,
-        message: 'You do not have access to this information.',
+        message: "You do not have access to this information.",
       });
     }
 
-    // Get selected month from query params, default to current month
-    const selectedMonth = req.query.month ? moment(req.query.month, 'YYYY-MM').startOf('month') : moment().startOf('month');
-    const startDate = selectedMonth.toDate();
-    const endDate = moment(selectedMonth).endOf('month').toDate();
+    const selectedMonth = req.query.month
+      ? moment.utc(req.query.month, "YYYY-MM").startOf("month")
+      : moment.utc().startOf("month");
 
-    const roles = ['Area Development Officer', 'Master Distributor', 'Super Distributor', 'Distributor', 'Customer'];
+    const startDate = selectedMonth.toDate();
+    const endDate = moment.utc(selectedMonth).endOf("month").toDate();
+
+    const roles = [
+      "Area Development Officer",
+      "Master Distributor",
+      "Super Distributor",
+      "Distributor",
+      "Customer",
+    ];
     const result = [];
+    let loginUsertotalSales = 0;
+
+    loginUsertotalSales =
+    (await Order.sum("total_amount", {
+      where: {
+        higher_role_id: Distributor_ROLE_ID,
+        status: "Accepted",
+        updatedAt: {
+          [Op.gte]: new Date(startDate),
+          [Op.lte]: new Date(endDate),
+        },
+      },
+    })) || 0;
+
 
     //** Admin role: predefined hierarchy logic **//
-    if (USER_ROLE_NAME === 'Admin') {
+    if (USER_ROLE_NAME === "Admin") {
       for (const role of roles) {
         // Fetch users by role
         const users = await User.findAll({
@@ -309,22 +339,25 @@ exports.getOverallSalesCalculation = async (req, res) => {
         });
 
         const targetAmount = parseFloat(roleTarget?.target || 0) * totalUsers;
-        const targetStock = parseFloat(roleTarget?.stock_target || 0) * totalUsers;
+        const targetStock =
+          parseFloat(roleTarget?.stock_target || 0) * totalUsers;
+
+        
 
         //** Fetch accepted orders for users in this role within the selected month **//
         const orders = await Order.findAll({
           where: {
             higher_role_id: users.map((user) => user.id),
-            status: 'Accepted',
+            status: "Accepted",
             createdAt: { [Op.between]: [startDate, endDate] }, // Filter by selected month
           },
           include: [
             {
               model: OrderItem,
-              as: 'OrderItems',
+              as: "OrderItems",
               include: {
                 model: Product,
-                as: 'product',
+                as: "product",
                 required: true,
               },
             },
@@ -342,16 +375,16 @@ exports.getOverallSalesCalculation = async (req, res) => {
 
             //** Determine price based on role **//
             switch (role) {
-              case 'Area Development Officer':
+              case "Area Development Officer":
                 price = product.adoPrice || 0;
                 break;
-              case 'Master Distributor':
+              case "Master Distributor":
                 price = product.mdPrice || 0;
                 break;
-              case 'Super Distributor':
+              case "Super Distributor":
                 price = product.sdPrice || 0;
                 break;
-              case 'Distributor':
+              case "Distributor":
                 price = product.distributorPrice || 0;
                 break;
             }
@@ -366,24 +399,35 @@ exports.getOverallSalesCalculation = async (req, res) => {
         const pendingStock = Math.max(targetStock - totalStockAchieved, 0);
 
         const salesAchievementPercent = Math.min(
-          Math.max(targetAmount > 0 ? (totalSalesAmount / targetAmount) * 100 : 0, 0),
+          Math.max(
+            targetAmount > 0 ? (totalSalesAmount / targetAmount) * 100 : 0,
+            0
+          ),
           100
         );
         const stockAchievementPercent = Math.min(
-          Math.max(targetStock > 0 ? (totalStockAchieved / targetStock) * 100 : 0, 0),
+          Math.max(
+            targetStock > 0 ? (totalStockAchieved / targetStock) * 100 : 0,
+            0
+          ),
           100
         );
 
         //** Calculate total amount ordered by 'Customer' users in the selected month **//
         const customerOrders = await Order.findAll({
           where: {
-            user_id: users.filter((user) => user.role_name === 'Customer').map((user) => user.id),
-            status: 'Accepted',
-            createdAt: { [Op.between]: [startDate, endDate] },
+            user_id: users
+              .filter((user) => user.role_name === "Customer")
+              .map((user) => user.id),
+            status: "Accepted",
+            updatedAt: { [Op.between]: [startDate, endDate] },
           },
         });
 
-        const customerBuyedAmmount = customerOrders.reduce((total, order) => total + parseFloat(order.final_amount || 0), 0);
+        const customerBuyedAmmount = customerOrders.reduce(
+          (total, order) => total + parseFloat(order.final_amount || 0),
+          0
+        );
 
         const roleData = {
           roleName: role,
@@ -396,7 +440,8 @@ exports.getOverallSalesCalculation = async (req, res) => {
           pendingStock,
           salesAchievementPercent: salesAchievementPercent.toFixed(2),
           stockAchievementPercent: stockAchievementPercent.toFixed(2),
-          customerBuyedAmmount: role === 'Customer' ? customerBuyedAmmount : undefined,
+          customerBuyedAmmount:
+            role === "Customer" ? customerBuyedAmmount : undefined,
         };
 
         result.push(roleData);
@@ -405,12 +450,14 @@ exports.getOverallSalesCalculation = async (req, res) => {
       return res.status(200).json({
         success: true,
         result,
+        loginUsertotalSales,
       });
     }
-    
 
     //***** Non-admin roles: Fetch only data directly under the user's ID *****//
-    let directRoles = roles.filter((role) => role !== USER_ROLE_NAME && role !== 'Admin');
+    let directRoles = roles.filter(
+      (role) => role !== USER_ROLE_NAME && role !== "Admin"
+    );
 
     for (const role of directRoles) {
       const users = await User.findAll({
@@ -425,22 +472,24 @@ exports.getOverallSalesCalculation = async (req, res) => {
       });
 
       const targetAmount = parseFloat(roleTarget?.target || 0) * totalUsers;
-      const targetStock = parseFloat(roleTarget?.stock_target || 0) * totalUsers;
+      const targetStock =
+        parseFloat(roleTarget?.stock_target || 0) * totalUsers;
 
       //** Fetch accepted orders for users directly under this role in the selected month **//
       const orders = await Order.findAll({
         where: {
+          higher_role_id:Distributor_ROLE_ID,
           user_id: users.map((user) => user.id),
-          status: 'Accepted',
-          createdAt: { [Op.between]: [startDate, endDate] },
+          status: "Accepted",
+          updatedAt: { [Op.between]: [startDate, endDate] },
         },
         include: [
           {
             model: OrderItem,
-            as: 'OrderItems',
+            as: "OrderItems",
             include: {
               model: Product,
-              as: 'product',
+              as: "product",
               required: true,
             },
           },
@@ -456,16 +505,16 @@ exports.getOverallSalesCalculation = async (req, res) => {
           let price = 0;
 
           switch (role) {
-            case 'Area Development Officer':
+            case "Area Development Officer":
               price = product.adoPrice || 0;
               break;
-            case 'Master Distributor':
+            case "Master Distributor":
               price = product.mdPrice || 0;
               break;
-            case 'Super Distributor':
+            case "Super Distributor":
               price = product.sdPrice || 0;
               break;
-            case 'Distributor':
+            case "Distributor":
               price = product.distributorPrice || 0;
               break;
           }
@@ -487,28 +536,35 @@ exports.getOverallSalesCalculation = async (req, res) => {
         totalStockAchieved,
         pendingAmount,
         pendingStock,
-        salesAchievementPercent: ((totalSalesAmount / targetAmount) * 100).toFixed(2),
-        stockAchievementPercent: ((totalStockAchieved / targetStock) * 100).toFixed(2),
+        salesAchievementPercent: (
+          (totalSalesAmount / targetAmount) *
+          100
+        ).toFixed(2),
+        stockAchievementPercent: (
+          (totalStockAchieved / targetStock) *
+          100
+        ).toFixed(2),
       };
 
       result.push(roleData);
     }
 
-    return res.status(200).json({ success: true, result });
+    return res
+      .status(200)
+      .json({
+        success: true,
+        result,
+        loginUsertotalSales,
+      });
   } catch (error) {
-    console.error('Error calculating overall sales:', error);
-    return res.status(500).json({ success: false, message: 'Failed to calculate overall sales', error: error.message });
+    console.error("Error calculating overall sales:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to calculate overall sales",
+      error: error.message,
+    });
   }
 };
-
-
-
-
-
-
-
-
-
 
 // const { Order, Product, OrderItem, User, SalesStockTarget } = require('../../../models');
 // const { Op } = require('sequelize');
@@ -698,14 +754,9 @@ exports.getOverallSalesCalculation = async (req, res) => {
 //   }
 // };
 
-
-
-
-
 //////////*******Most selleing Product API********////////////
 
-const moment = require('moment'); 
-
+const moment = require("moment");
 
 exports.getMostSellingProductPercentage = async (req, res) => {
   const USER_ID = req.user.id;
@@ -717,21 +768,21 @@ exports.getMostSellingProductPercentage = async (req, res) => {
     if (!month) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a month.',
+        message: "Please provide a month.",
       });
     }
 
     // Get the start and end date for the provided month
-    const startOfMonth = moment(month, 'YYYY-MM').startOf('month').toDate();
-    const endOfMonth = moment(month, 'YYYY-MM').endOf('month').toDate();
+    const startOfMonth = moment(month, "YYYY-MM").startOf("month").toDate();
+    const endOfMonth = moment(month, "YYYY-MM").endOf("month").toDate();
 
     // Set conditions based on the role of the user
     const orderConditions = {
-      status: 'Accepted',
+      status: "Accepted",
       created_at: { [Op.between]: [startOfMonth, endOfMonth] },
     };
 
-    if (USER_ROLE === 'Admin') {
+    if (USER_ROLE === "Admin") {
       // If Admin, filter orders where higher_role_id is 1
       orderConditions.higher_role_id = 1;
     } else {
@@ -745,10 +796,10 @@ exports.getMostSellingProductPercentage = async (req, res) => {
       include: [
         {
           model: OrderItem,
-          as: 'OrderItems',
+          as: "OrderItems",
           include: {
             model: Product,
-            as: 'product',
+            as: "product",
             required: true,
           },
         },
@@ -756,7 +807,10 @@ exports.getMostSellingProductPercentage = async (req, res) => {
     });
 
     if (!orders || orders.length === 0) {
-      return res.status(404).json({ success: false, message: 'No orders found for the selected month' });
+      return res.status(404).json({
+        success: false,
+        message: "No orders found for the selected month",
+      });
     }
 
     // Step 1: Calculate total sales for the selected month
@@ -787,7 +841,7 @@ exports.getMostSellingProductPercentage = async (req, res) => {
     }
 
     // Step 2: Calculate percentage for each product
-    const productPercentages = Object.keys(productSales).map(productId => {
+    const productPercentages = Object.keys(productSales).map((productId) => {
       const product = productSales[productId];
       const productPercentage = (product.sales / totalSales) * 100;
       return {
@@ -805,18 +859,16 @@ exports.getMostSellingProductPercentage = async (req, res) => {
       mostSellingProducts: productPercentages,
     });
   } catch (error) {
-    console.error('Error fetching most selling product percentage:', error);
+    console.error("Error fetching most selling product percentage:", error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch product percentage',
+      message: "Failed to fetch product percentage",
       error: error.message,
     });
   }
 };
 
-
-
-// exports.getMostSellingProductPercentage = async (req, res) => { 
+// exports.getMostSellingProductPercentage = async (req, res) => {
 //   const USER_ID = req.user.id;
 
 //   try {
@@ -903,238 +955,241 @@ exports.getMostSellingProductPercentage = async (req, res) => {
 //   }
 // };
 
-
 /////////////***********Get Sales Trent************//////////
 
-
-
-
-
 exports.salesOverTime = async (req, res) => {
-
   // exports.getProductSalesQuantityByMonths = async (req, res) => {
-    const { role_name: USER_ROLE_NAME, id: USER_ID } = req.user;
-    const { startMonth, endMonth } = req.body;
-  
-    try {
-      if (!startMonth || !endMonth) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Please provide both startMonth and endMonth in the request body.' 
-        });
-      }
-  
-      // Parse the input months to get start and end dates
-      const startDate = new Date(`${startMonth}-01`);
-      const endDate = new Date(`${endMonth}-01`);
-      endDate.setMonth(endDate.getMonth() + 1); // Include the entire end month
-  
-      if (startDate > endDate) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid date range. Start month must be earlier than or equal to end month.',
-        });
-      }
-  
-      const whereCondition = {
-        created_at: { [Op.between]: [startDate, endDate] },
-        status: 'Accepted',
-      };
-  
-      // Add user filter if not admin
-      if (USER_ROLE_NAME !== 'Admin') {
-        whereCondition.higher_role_id = USER_ID;
-      }
-  
-      // Fetch orders within the specified range
-      const orders = await Order.findAll({
-        where: whereCondition,
-        include: [
-          {
-            model: OrderItem,
-            as: 'OrderItems',
-            include: {
-              model: Product,
-              as: 'product',
-              required: true,
-            },
+  const { role_name: USER_ROLE_NAME, id: USER_ID } = req.user;
+  const { startMonth, endMonth } = req.body;
+
+  try {
+    if (!startMonth || !endMonth) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please provide both startMonth and endMonth in the request body.",
+      });
+    }
+
+    // Parse the input months to get start and end dates
+    const startDate = new Date(`${startMonth}-01`);
+    const endDate = new Date(`${endMonth}-01`);
+    endDate.setMonth(endDate.getMonth() + 1); // Include the entire end month
+
+    if (startDate > endDate) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid date range. Start month must be earlier than or equal to end month.",
+      });
+    }
+
+    const whereCondition = {
+      created_at: { [Op.between]: [startDate, endDate] },
+      status: "Accepted",
+    };
+
+    // Add user filter if not admin
+    if (USER_ROLE_NAME !== "Admin") {
+      whereCondition.higher_role_id = USER_ID;
+    }
+
+    // Fetch orders within the specified range
+    const orders = await Order.findAll({
+      where: whereCondition,
+      include: [
+        {
+          model: OrderItem,
+          as: "OrderItems",
+          include: {
+            model: Product,
+            as: "product",
+            required: true,
           },
-        ],
+        },
+      ],
+    });
+
+    // Calculate product quantity sold
+    const productSales = {};
+    orders.forEach((order) => {
+      order.OrderItems.forEach((orderItem) => {
+        const productName = orderItem.product.name;
+        productSales[productName] =
+          (productSales[productName] || 0) + (orderItem.quantity || 0);
       });
-  
-      // Calculate product quantity sold
-      const productSales = {};
-      orders.forEach((order) => {
-        order.OrderItems.forEach((orderItem) => {
-          const productName = orderItem.product.name;
-          productSales[productName] = (productSales[productName] || 0) + (orderItem.quantity || 0);
-        });
-      });
-  
-      // Prepare response
-      const result = Object.entries(productSales).map(([productName, quantity]) => ({
+    });
+
+    // Prepare response
+    const result = Object.entries(productSales).map(
+      ([productName, quantity]) => ({
         productName,
         quantity,
-      }));
-  
-      return res.status(200).json({
-        success: true,
-        result,
-        message: `Product sales quantity from ${startMonth} to ${endMonth}.`,
-      });
-    } catch (error) {
-      console.error('Error fetching product sales quantity:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch product sales quantity',
-        error: error.message,
-      });
+      })
+    );
+
+    return res.status(200).json({
+      success: true,
+      result,
+      message: `Product sales quantity from ${startMonth} to ${endMonth}.`,
+    });
+  } catch (error) {
+    console.error("Error fetching product sales quantity:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch product sales quantity",
+      error: error.message,
+    });
+  }
+};
+
+//////////*****Bar Graph, total stock&selled stock detail*******//////////
+
+exports.getStockTargetDetails = async (req, res) => {
+  try {
+    const { role_name: USER_ROLE_NAME, id: USER_ID } = req.user; // Logged-in user's role and ID
+
+    // Get the current date and the last 6 months
+    const currentDate = new Date();
+    const months = [];
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(currentDate);
+      date.setMonth(currentDate.getMonth() - i);
+      months.push(date.toISOString().slice(0, 7)); // Format as YYYY-MM
     }
-  };
 
+    let result = [];
 
-  //////////*****Bar Graph, total stock&selled stock detail*******//////////
+    if (USER_ROLE_NAME === "Admin") {
+      // Admin: Calculate total ADO stock target and sold stock for each of the last 6 months
+      const adoUsers = await User.findAll({
+        where: { role_name: "Area Development Officer" },
+      });
 
+      const totalAdoStockTarget = await SalesStockTarget.findOne({
+        where: { role_name: "Area Development Officer" },
+      });
 
-  
-  exports.getStockTargetDetails = async (req, res) => {
-    try {
-      const { role_name: USER_ROLE_NAME, id: USER_ID } = req.user; // Logged-in user's role and ID
-  
-      // Get the current date and the last 6 months
-      const currentDate = new Date();
-      const months = [];
-      for (let i = 0; i < 6; i++) {
-        const date = new Date(currentDate);
-        date.setMonth(currentDate.getMonth() - i);
-        months.push(date.toISOString().slice(0, 7)); // Format as YYYY-MM
-      }
-  
-      let result = [];
-  
-      if (USER_ROLE_NAME === 'Admin') {
-        // Admin: Calculate total ADO stock target and sold stock for each of the last 6 months
-        const adoUsers = await User.findAll({
-          where: { role_name: 'Area Development Officer' },
-        });
-  
-        const totalAdoStockTarget = await SalesStockTarget.findOne({
-          where: { role_name: 'Area Development Officer' },
-        });
-  
-        const totalTargetStock = adoUsers.length * (totalAdoStockTarget?.stock_target || 0);
-  
-        // For each month, calculate total sold stock for ADOs
-        for (const month of months) {
-          const adoIds = adoUsers.map((user) => user.id);
-          const adoOrders = await Order.findAll({
-            where: {
-              user_id: adoIds,
-              status: 'Accepted',
-              createdAt: {
-                [Op.gte]: new Date(`${month}-01`), // Start of the month
-                [Op.lt]: new Date(new Date(`${month}-01`).setMonth(new Date(`${month}-01`).getMonth() + 1)), // End of the month
+      const totalTargetStock =
+        adoUsers.length * (totalAdoStockTarget?.stock_target || 0);
+
+      // For each month, calculate total sold stock for ADOs
+      for (const month of months) {
+        const adoIds = adoUsers.map((user) => user.id);
+        const adoOrders = await Order.findAll({
+          where: {
+            user_id: adoIds,
+            status: "Accepted",
+            createdAt: {
+              [Op.gte]: new Date(`${month}-01`), // Start of the month
+              [Op.lt]: new Date(
+                new Date(`${month}-01`).setMonth(
+                  new Date(`${month}-01`).getMonth() + 1
+                )
+              ), // End of the month
+            },
+          },
+          include: [
+            {
+              model: OrderItem,
+              as: "OrderItems",
+              include: {
+                model: Product,
+                as: "product",
+                required: true,
               },
             },
-            include: [
-              {
-                model: OrderItem,
-                as: 'OrderItems',
-                include: {
-                  model: Product,
-                  as: 'product',
-                  required: true,
-                },
-              },
-            ],
-          });
-  
-          let totalSoldStock = 0;
-          let totalSoldStockAmount = 0; // Initialize total sold stock amount
-  
-          for (const order of adoOrders) {
-            for (const orderItem of order.OrderItems) {
-              const product = orderItem.product;
-              const price = product.sdPrice || 0; // Get the price for the product
-  
-              totalSoldStock += parseInt(orderItem.quantity) || 0; // Total quantity sold
-              totalSoldStockAmount += (parseInt(orderItem.quantity) || 0) * price; // Total value of sold stock
-            }
-          }
-  
-          result.push({
-            month,
-            totalTargetStock,
-            totalSoldStock,
-            totalSoldStockAmount, 
-          });
-        }
-  
-      } else {
-        // Non-Admin Roles: Fetch user-specific stock target and sold stock for each of the last 6 months
-        const userTarget = await SalesStockTarget.findOne({
-          where: { role_name: USER_ROLE_NAME },
+          ],
         });
-  
-        const totalTargetStock = userTarget?.stock_target || 0;
-  
-        // For each month, fetch sold stock for this user
-        for (const month of months) {
-          const userOrders = await Order.findAll({
-            where: {
-              user_id: USER_ID,
-              status: 'Accepted',
-              createdAt: {
-                [Op.gte]: new Date(`${month}-01`), // Start of the month
-                [Op.lt]: new Date(new Date(`${month}-01`).setMonth(new Date(`${month}-01`).getMonth() + 1)), // End of the month
+
+        let totalSoldStock = 0;
+        let totalSoldStockAmount = 0; // Initialize total sold stock amount
+
+        for (const order of adoOrders) {
+          for (const orderItem of order.OrderItems) {
+            const product = orderItem.product;
+            const price = product.sdPrice || 0; // Get the price for the product
+
+            totalSoldStock += parseInt(orderItem.quantity) || 0; // Total quantity sold
+            totalSoldStockAmount += (parseInt(orderItem.quantity) || 0) * price; // Total value of sold stock
+          }
+        }
+
+        result.push({
+          month,
+          totalTargetStock,
+          totalSoldStock,
+          totalSoldStockAmount,
+        });
+      }
+    } else {
+      // Non-Admin Roles: Fetch user-specific stock target and sold stock for each of the last 6 months
+      const userTarget = await SalesStockTarget.findOne({
+        where: { role_name: USER_ROLE_NAME },
+      });
+
+      const totalTargetStock = userTarget?.stock_target || 0;
+
+      // For each month, fetch sold stock for this user
+      for (const month of months) {
+        const userOrders = await Order.findAll({
+          where: {
+            user_id: USER_ID,
+            status: "Accepted",
+            createdAt: {
+              [Op.gte]: new Date(`${month}-01`), // Start of the month
+              [Op.lt]: new Date(
+                new Date(`${month}-01`).setMonth(
+                  new Date(`${month}-01`).getMonth() + 1
+                )
+              ), // End of the month
+            },
+          },
+          include: [
+            {
+              model: OrderItem,
+              as: "OrderItems",
+              include: {
+                model: Product,
+                as: "product",
+                required: true,
               },
             },
-            include: [
-              {
-                model: OrderItem,
-                as: 'OrderItems',
-                include: {
-                  model: Product,
-                  as: 'product',
-                  required: true,
-                },
-              },
-            ],
-          });
-  
-          let totalSoldStock = 0;
-          let totalSoldStockAmount = 0; // Initialize total sold stock amount
-  
-          for (const order of userOrders) {
-            for (const orderItem of order.OrderItems) {
-              const product = orderItem.product;
-              const price = product.sdPrice || 0; // Get the price for the product
-  
-              totalSoldStock += parseInt(orderItem.quantity) || 0; // Total quantity sold
-              totalSoldStockAmount += (parseInt(orderItem.quantity) || 0) * price; // Total value of sold stock
-            }
+          ],
+        });
+
+        let totalSoldStock = 0;
+        let totalSoldStockAmount = 0; // Initialize total sold stock amount
+
+        for (const order of userOrders) {
+          for (const orderItem of order.OrderItems) {
+            const product = orderItem.product;
+            const price = product.sdPrice || 0; // Get the price for the product
+
+            totalSoldStock += parseInt(orderItem.quantity) || 0; // Total quantity sold
+            totalSoldStockAmount += (parseInt(orderItem.quantity) || 0) * price; // Total value of sold stock
           }
-  
-          result.push({
-            month,
-            totalTargetStock,
-            totalSoldStock,
-            totalSoldStockAmount, // Add total sold stock amount to the result
-          });
         }
+
+        result.push({
+          month,
+          totalTargetStock,
+          totalSoldStock,
+          totalSoldStockAmount, // Add total sold stock amount to the result
+        });
       }
-  
-      return res.status(200).json({
-        success: true,
-        result,
-      });
-    } catch (error) {
-      console.error('Error fetching stock target details:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to fetch stock target details',
-        error: error.message,
-      });
     }
-  };
-  
+
+    return res.status(200).json({
+      success: true,
+      result,
+    });
+  } catch (error) {
+    console.error("Error fetching stock target details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch stock target details",
+      error: error.message,
+    });
+  }
+};
