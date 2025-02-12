@@ -10,6 +10,8 @@ const { Server } = require('socket.io');
 const { sequelize } = require('../models');
 const path = require('path');
 const cron = require('node-cron');
+const admin = require("firebase-admin");
+const serviceAccount = require("./config/firebaseServiceAccount.json");
 
 // Routes
 const adminRoutes = require('./routes/adminRoutes');
@@ -41,12 +43,18 @@ const forgotPasswordRoutes = require('./routes/forgotPasswordRoutes');
 const overalSalesRoutes = require('./routes/overall_sales_route/overalSalesRoutes');
 const { sendMonthlyNotifications } = require('./controllers/notification/monthly_notification/sendMonthlyNotifications');
 const sentOTPRoutes = require('./routes/sendOtpRoutes');
+const fcmRoutes = require("./routes/fcmRoutes"); // Import FCM routes
+const pushNotificationRoutes = require("./routes/pushNotificationRoutes");
 
 const envFile = `.env.${process.env.NODE_ENV || 'development'}`;
 dotenv.config({ path: envFile });
 
+
+
 const app = express();
 const port = process.env.PORT || 4000; 
+
+dotenv.config();
 
 // Environment Variables
 const KERAMRUTH_DOMAIN_NAME = process.env.KERAMRUTH_DOMAIN_NAME;
@@ -196,6 +204,10 @@ cron.schedule('0 12 15 * *', async () => {
 });
 //**send-notifications don't call this api --> only for development**//
 app.use('/api/month_notifications', notificationRoutes);
+app.use("/api/fcm", fcmRoutes); // Mount FCM routes
+app.use("/api/push-notifications", pushNotificationRoutes); // Send notifications
+
+
 
 // Start server
 server.listen(port, '::', async () => {

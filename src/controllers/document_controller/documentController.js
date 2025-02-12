@@ -454,4 +454,4 @@ function autoUpdateDocuments() {
   }, 30 * 1000);  // Call the function every 10 seconds
 }
 
-autoUpdateDocuments(); 
+// autoUpdateDocuments(); 

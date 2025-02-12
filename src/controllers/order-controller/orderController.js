@@ -325,7 +325,7 @@ const updateAssignedOrders = async () => {
                   photo: "1733391557532.jpeg", 
                   detail: {
                     user_name: orderUserName,
-                    order_id: order.id,
+                    orderUniqueId: order.order_id,
                     role: userRoleName,
                     status: 'Pending',
                     type: 'order_request',
@@ -344,7 +344,7 @@ const updateAssignedOrders = async () => {
                   photo: "1733391557532.jpeg",
                   detail: {
                     user_name: orderUserName,
-                    order_id: order.id,
+                    orderUniqueId: order.order_id,
                     role: userRoleName,
                     status: 'Pending',
                     type: 'order_request',
@@ -358,7 +358,7 @@ const updateAssignedOrders = async () => {
                   photo: "1733391557532.jpeg",
                   detail: {
                     user_name: orderUserName,
-                    order_id: order.id,
+                    orderUniqueId: order.order_id,
                     role: userRoleName,
                     status: 'Pending',
                     type: 'order_request',
@@ -412,7 +412,7 @@ const updateAssignedOrders = async () => {
 
 
 // setInterval(updateAssignedOrders, 30 * 1000);
-setInterval(updateAssignedOrders, 30 * 1000);
+// setInterval(updateAssignedOrders, 30 * 1000);
 
 // Function to fetch orders requested by lower hierarchy roles
 exports.getOrdersBySubordinates = async (req, res) => {

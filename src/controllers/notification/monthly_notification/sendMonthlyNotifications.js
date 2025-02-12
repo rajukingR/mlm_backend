@@ -1,5 +1,7 @@
 const { SalesTarget, Order, Product, OrderItem, User, Notification } = require('../../../../models');
 const { Op } = require('sequelize');
+const admin = require("../../../config/firebaseAdmin"); 
+const { FcmToken } = require("../../../../models"); 
 
 exports.sendMonthlyNotifications = async () => {
   try {
@@ -148,7 +150,7 @@ const updateNotifications = async () => {
   }
 };
 
-setInterval(updateNotifications, 20  * 1000);
+// setInterval(updateNotifications, 20  * 1000);
 
 
 
@@ -204,9 +206,53 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
+exports.sendNotification = async (req, res) => {
+  const { user_id, title, message } = req.body;
 
+  try {
+    // Fetch the user's FCM token from fcm_tokens table
+    const fcmToken = await FcmToken.findOne({
+      where: { user_id },
+      attributes: ["token"],
+      order: [["created_at", "DESC"]], // Get the latest token
+    });
 
+    if (!fcmToken || !fcmToken.token) {
+      return res.status(400).json({ success: false, message: "User FCM token not found." });
+    }
 
+    const payload = {
+      token: fcmToken.token, // Use token from fcm_tokens table
+      notification: {
+        title: title,
+        body: message,
+      },
+      android: {
+        notification: {
+          sound: "default",
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: "default",
+          },
+        },
+      },
+    };
+
+    // Send notification using Firebase Admin SDK
+    await admin.messaging().send(payload);
+
+    // Save notification to database
+    await Notification.create({ user_id, title, message, status: "Active" });
+
+    return res.status(200).json({ success: true, message: "Notification sent successfully!" });
+  } catch (error) {
+    console.error("FCM Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to send notification.", error: error.message });
+  }
+};
 
 
 
