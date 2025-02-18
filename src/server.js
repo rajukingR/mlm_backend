@@ -10,8 +10,7 @@ const { Server } = require('socket.io');
 const { sequelize } = require('../models');
 const path = require('path');
 const cron = require('node-cron');
-const admin = require("firebase-admin");
-const serviceAccount = require("./config/firebaseServiceAccount.json");
+
 
 // Routes
 const adminRoutes = require('./routes/adminRoutes');

@@ -311,17 +311,16 @@ exports.getOverallSalesCalculation = async (req, res) => {
     let loginUsertotalSales = 0;
 
     loginUsertotalSales =
-    (await Order.sum("total_amount", {
-      where: {
-        higher_role_id: Distributor_ROLE_ID,
-        status: "Accepted",
-        updatedAt: {
-          [Op.gte]: new Date(startDate),
-          [Op.lte]: new Date(endDate),
+      (await Order.sum("total_amount", {
+        where: {
+          higher_role_id: Distributor_ROLE_ID,
+          status: "Accepted",
+          updatedAt: {
+            [Op.gte]: new Date(startDate),
+            [Op.lte]: new Date(endDate),
+          },
         },
-      },
-    })) || 0;
-
+      })) || 0;
 
     //** Admin role: predefined hierarchy logic **//
     if (USER_ROLE_NAME === "Admin") {
@@ -342,14 +341,13 @@ exports.getOverallSalesCalculation = async (req, res) => {
         const targetStock =
           parseFloat(roleTarget?.stock_target || 0) * totalUsers;
 
-        
-
         //** Fetch accepted orders for users in this role within the selected month **//
         const orders = await Order.findAll({
           where: {
-            higher_role_id: users.map((user) => user.id),
+            higher_role_id: Distributor_ROLE_ID,
+            user_id: users.map((user) => user.id),
             status: "Accepted",
-            createdAt: { [Op.between]: [startDate, endDate] }, // Filter by selected month
+            updatedAt: { [Op.between]: [startDate, endDate] }, // Filter by selected month
           },
           include: [
             {
@@ -459,6 +457,16 @@ exports.getOverallSalesCalculation = async (req, res) => {
       (role) => role !== USER_ROLE_NAME && role !== "Admin"
     );
 
+    if (USER_ROLE_NAME === 'Super Distributor') {
+      directRoles = directRoles.filter(role => role !== 'Area Development Officer' && role !== 'Master Distributor' && role !== 'Super Distributor');
+    } else if (USER_ROLE_NAME === 'Distributor') {
+      directRoles = directRoles.filter(role => role !== 'Area Development Officer' && role !== 'Master Distributor' && role !== 'Super Distributor' && role !== 'Distributor');
+    } else if (USER_ROLE_NAME === 'Master Distributor') {
+      //** Exclude 'Area Development Officer' if logged in as 'Master Distributor' **//
+      directRoles = directRoles.filter(role => role !== 'Area Development Officer');
+    }
+
+
     for (const role of directRoles) {
       const users = await User.findAll({
         where: { superior_id: Distributor_ROLE_ID, role_name: role },
@@ -478,7 +486,7 @@ exports.getOverallSalesCalculation = async (req, res) => {
       //** Fetch accepted orders for users directly under this role in the selected month **//
       const orders = await Order.findAll({
         where: {
-          higher_role_id:Distributor_ROLE_ID,
+          higher_role_id: Distributor_ROLE_ID,
           user_id: users.map((user) => user.id),
           status: "Accepted",
           updatedAt: { [Op.between]: [startDate, endDate] },
@@ -524,6 +532,28 @@ exports.getOverallSalesCalculation = async (req, res) => {
         }
       }
 
+      let customerBuyedAmmount = 0;
+      
+      if (role === "Customer") {
+        const customers = await User.findAll({
+          where: { superior_id: Distributor_ROLE_ID, role_name: "Customer" },
+        });
+
+        const customerOrders = await Order.findAll({
+          where: {
+            higher_role_id: Distributor_ROLE_ID,
+            user_id: customers.map((customer) => customer.id),
+            status: "Accepted",
+            updatedAt: { [Op.between]: [startDate, endDate] },
+          },
+        });
+
+        customerBuyedAmmount = customerOrders.reduce(
+          (total, order) => total + parseFloat(order.final_amount || 0),
+          0
+        );
+      }
+
       const pendingAmount = Math.max(targetAmount - totalSalesAmount, 0);
       const pendingStock = Math.max(targetStock - totalStockAchieved, 0);
 
@@ -544,18 +574,18 @@ exports.getOverallSalesCalculation = async (req, res) => {
           (totalStockAchieved / targetStock) *
           100
         ).toFixed(2),
+        customerBuyedAmmount:
+          role === "Customer" ? customerBuyedAmmount : undefined, // Add this
       };
 
       result.push(roleData);
     }
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        result,
-        loginUsertotalSales,
-      });
+    return res.status(200).json({
+      success: true,
+      result,
+      loginUsertotalSales,
+    });
   } catch (error) {
     console.error("Error calculating overall sales:", error);
     return res.status(500).json({

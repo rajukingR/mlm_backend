@@ -4,11 +4,9 @@ const { Op } = require('sequelize');
 
 exports.getMonthlySalesDetailsWeb = async (req, res) => {
   const { role_id, user_id } = req.params;
-  // Expecting month and year as optional query parameters, e.g. /api/endpoint/674?month=2&year=2025
   let { month, year } = req.query;
 
   try {
-    // Fetch user details for creation date
     const user = await User.findByPk(user_id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -24,11 +22,8 @@ exports.getMonthlySalesDetailsWeb = async (req, res) => {
     const totalMonthlyTarget = parseFloat(roleTarget.target) || 0;
     const totalStockTarget = parseFloat(roleTarget.stock_target) || 0;
 
-    // Determine the start and end of the target month.
-    // If month and year are provided in the query, use them. Otherwise, default to the current month.
     let startOfMonth, endOfMonth;
     if (month && year) {
-      // If month is provided as a number (1-12) then convert to JavaScript month index (0-11)
       month = parseInt(month);
       year = parseInt(year);
       if (isNaN(month) || isNaN(year) || month < 1 || month > 12) {
@@ -37,17 +32,19 @@ exports.getMonthlySalesDetailsWeb = async (req, res) => {
           message: 'Invalid month or year provided in query parameters',
         });
       }
-      startOfMonth = new Date(year, month - 1, 1);
-      // Setting day 0 of the next month gives you the last day of the desired month.
-      endOfMonth = new Date(year, month, 0);
+      
+      // Set startOfMonth to the 1st of the month (set time to 00:00:00 to avoid timezone issues)
+      startOfMonth = new Date(Date.UTC(year, month - 1, 1));
+
+      // Set endOfMonth to the last day of the month (Feb 2025 will be 28, for example)
+      endOfMonth = new Date(Date.UTC(year, month, 0));  // The 0th day of the next month gives the last day of the current month
     } else {
       const currentDate = new Date();
-      startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      startOfMonth = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth(), 1));
+      endOfMonth = new Date(Date.UTC(currentDate.getFullYear(), currentDate.getMonth() + 1, 0));
     }
 
     // --- Calculate Sales Achievement ---
-    // Get orders where the user is acting as the higher role (for sales)
     const acceptedOrders = await Order.findAll({
       where: {
         higher_role_id: user_id,
@@ -68,9 +65,7 @@ exports.getMonthlySalesDetailsWeb = async (req, res) => {
     });
 
     let totalAchievementAmount = 0;
-    // For each order, determine the role of the ordering user and use the correct price field from the product.
     for (const order of acceptedOrders) {
-      // Fetch the user who placed the order (using higher_role_id)
       const orderUser = await User.findByPk(order.higher_role_id);
       const roleName = orderUser ? orderUser.role_name : '';
 
@@ -101,7 +96,6 @@ exports.getMonthlySalesDetailsWeb = async (req, res) => {
     }
 
     // --- Calculate Stock Achievement ---
-    // Get orders where the user is directly placing the order (for stock)
     const acceptedOrdersForStock = await Order.findAll({
       where: {
         user_id: user_id,
@@ -123,7 +117,6 @@ exports.getMonthlySalesDetailsWeb = async (req, res) => {
     const stockAchievementPercent = Math.min(100, Math.max(0, (totalStockAchievement / totalStockTarget) * 100));
     const stockUnachievementPercent = 100 - stockAchievementPercent;
 
-    // Format the month name for the response
     const monthName = startOfMonth.toLocaleString('default', { month: 'long' });
 
     const monthlyDetail = {
@@ -139,6 +132,8 @@ exports.getMonthlySalesDetailsWeb = async (req, res) => {
       PendingStockTarget: pendingStockTarget,
       StockAchievementPercent: stockAchievementPercent.toFixed(2),
       StockUnachievementPercent: stockUnachievementPercent.toFixed(2),
+      startOfMonth: startOfMonth.toISOString().split('T')[0], // '2025-02-01'
+      endOfMonth: endOfMonth.toISOString().split('T')[0], // '2025-02-28'
     };
 
     return res.status(200).json({
@@ -156,6 +151,7 @@ exports.getMonthlySalesDetailsWeb = async (req, res) => {
     });
   }
 };
+
 
 
 
